@@ -1,8 +1,13 @@
 //! Authentication for Hafiz
 
+pub mod ldap;
 pub mod presigned;
 pub mod signature;
 
+pub use ldap::{
+    LdapAuthProvider, LdapClient, LdapConfig, LdapUser, LdapAuthResult,
+    LdapStatus, LdapServerType, AttributeMappings,
+};
 pub use presigned::{
     generate_presigned_url, verify_presigned_url, 
     extract_access_key_from_presigned, is_presigned_request,

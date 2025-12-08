@@ -211,3 +211,103 @@ cluster_tls_enabled = false
 #    client_ca_file = "/data/hafiz/certs/ca.crt"
 #
 # =============================================================================
+# LDAP/Active Directory Configuration
+# =============================================================================
+[ldap]
+# Enable LDAP authentication
+enabled = false
+
+# LDAP server URL (ldap:// or ldaps://)
+server_url = "ldap://ldap.example.com:389"
+
+# Use STARTTLS for connection upgrade
+start_tls = false
+
+# Skip TLS certificate verification (not recommended for production)
+skip_tls_verify = false
+
+# Bind DN for LDAP queries (service account)
+bind_dn = "cn=admin,dc=example,dc=com"
+bind_password = "admin_password"
+
+# Base DN for user searches
+user_base_dn = "ou=users,dc=example,dc=com"
+
+# User search filter (use {username} as placeholder)
+# For Active Directory: "(sAMAccountName={username})"
+# For OpenLDAP: "(uid={username})"
+user_filter = "(uid={username})"
+
+# Base DN for group searches (optional)
+# group_base_dn = "ou=groups,dc=example,dc=com"
+
+# Group search filter (use {dn} or {username} as placeholder)
+# For Active Directory: "(member={dn})"
+# For OpenLDAP: "(memberUid={username})"
+# group_filter = "(member={dn})"
+
+# Attribute mappings
+username_attribute = "uid"           # Active Directory: sAMAccountName
+email_attribute = "mail"
+display_name_attribute = "cn"        # Active Directory: displayName
+group_name_attribute = "cn"
+
+# Connection timeout in seconds
+timeout_seconds = 10
+
+# Cache TTL for authenticated users (seconds)
+cache_ttl_seconds = 300
+
+# LDAP server type: ldap, active_directory, openldap, 389ds
+server_type = "ldap"
+
+# Group to policy mappings
+# [ldap.group_policies]
+# admins = ["admin"]
+# developers = ["readwrite"]
+# viewers = ["readonly"]
+
+# Default policies for users without group mapping
+default_policies = ["readonly"]
+
+# =============================================================================
+# LDAP Quick Start - OpenLDAP
+# =============================================================================
+#
+# [ldap]
+# enabled = true
+# server_url = "ldap://ldap.example.com:389"
+# bind_dn = "cn=admin,dc=example,dc=com"
+# bind_password = "secret"
+# user_base_dn = "ou=users,dc=example,dc=com"
+# user_filter = "(uid={username})"
+# group_base_dn = "ou=groups,dc=example,dc=com"
+# group_filter = "(memberUid={username})"
+# server_type = "openldap"
+#
+# [ldap.group_policies]
+# admins = ["admin"]
+# developers = ["readwrite"]
+#
+# =============================================================================
+# LDAP Quick Start - Active Directory
+# =============================================================================
+#
+# [ldap]
+# enabled = true
+# server_url = "ldaps://dc.example.com:636"
+# bind_dn = "CN=LDAP Service,OU=Service Accounts,DC=example,DC=com"
+# bind_password = "secret"
+# user_base_dn = "OU=Users,DC=example,DC=com"
+# user_filter = "(sAMAccountName={username})"
+# group_base_dn = "OU=Groups,DC=example,DC=com"
+# group_filter = "(member={dn})"
+# username_attribute = "sAMAccountName"
+# display_name_attribute = "displayName"
+# server_type = "active_directory"
+#
+# [ldap.group_policies]
+# "Domain Admins" = ["admin"]
+# "S3 Users" = ["readwrite"]
+#
+# =============================================================================

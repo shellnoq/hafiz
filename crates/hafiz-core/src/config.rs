@@ -31,6 +31,9 @@ pub struct HafizConfig {
     
     #[serde(default)]
     pub cluster: ClusterConfigSection,
+    
+    #[serde(default)]
+    pub ldap: LdapConfigSection,
 }
 
 impl Default for HafizConfig {
@@ -45,6 +48,7 @@ impl Default for HafizConfig {
             logging: LoggingConfig::default(),
             lifecycle: LifecycleWorkerConfig::default(),
             cluster: ClusterConfigSection::default(),
+            ldap: LdapConfigSection::default(),
         }
     }
 }
@@ -538,6 +542,149 @@ impl ClusterConfigSection {
             cluster_tls_cert: self.cluster_tls_cert.clone(),
             cluster_tls_key: self.cluster_tls_key.clone(),
             cluster_ca_cert: self.cluster_ca_cert.clone(),
+        }
+    }
+}
+
+/// LDAP/Active Directory Configuration Section
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LdapConfigSection {
+    /// Enable LDAP authentication
+    #[serde(default)]
+    pub enabled: bool,
+
+    /// LDAP server URL (ldap:// or ldaps://)
+    #[serde(default = "default_ldap_url")]
+    pub server_url: String,
+
+    /// Use STARTTLS
+    #[serde(default)]
+    pub start_tls: bool,
+
+    /// Skip TLS certificate verification
+    #[serde(default)]
+    pub skip_tls_verify: bool,
+
+    /// Bind DN for LDAP queries
+    #[serde(default)]
+    pub bind_dn: String,
+
+    /// Bind password
+    #[serde(default)]
+    pub bind_password: String,
+
+    /// Base DN for user searches
+    #[serde(default)]
+    pub user_base_dn: String,
+
+    /// User search filter (use {username} placeholder)
+    #[serde(default = "default_user_filter")]
+    pub user_filter: String,
+
+    /// Base DN for group searches
+    #[serde(default)]
+    pub group_base_dn: Option<String>,
+
+    /// Group search filter (use {dn} or {username} placeholder)
+    #[serde(default)]
+    pub group_filter: Option<String>,
+
+    /// Username attribute
+    #[serde(default = "default_username_attr")]
+    pub username_attribute: String,
+
+    /// Email attribute
+    #[serde(default = "default_email_attr")]
+    pub email_attribute: String,
+
+    /// Display name attribute
+    #[serde(default = "default_displayname_attr")]
+    pub display_name_attribute: String,
+
+    /// Group name attribute
+    #[serde(default = "default_groupname_attr")]
+    pub group_name_attribute: String,
+
+    /// Connection timeout in seconds
+    #[serde(default = "default_ldap_timeout")]
+    pub timeout_seconds: u64,
+
+    /// Cache TTL for authenticated users (seconds)
+    #[serde(default = "default_cache_ttl")]
+    pub cache_ttl_seconds: u64,
+
+    /// LDAP server type: ldap, active_directory, openldap, 389ds
+    #[serde(default)]
+    pub server_type: String,
+
+    /// Group to policy mappings (JSON string or inline)
+    /// Example: {"admins": ["admin"], "developers": ["readwrite"]}
+    #[serde(default)]
+    pub group_policies: std::collections::HashMap<String, Vec<String>>,
+
+    /// Default policies for users without group mapping
+    #[serde(default = "default_policies")]
+    pub default_policies: Vec<String>,
+}
+
+fn default_ldap_url() -> String {
+    "ldap://localhost:389".to_string()
+}
+
+fn default_user_filter() -> String {
+    "(uid={username})".to_string()
+}
+
+fn default_username_attr() -> String {
+    "uid".to_string()
+}
+
+fn default_email_attr() -> String {
+    "mail".to_string()
+}
+
+fn default_displayname_attr() -> String {
+    "cn".to_string()
+}
+
+fn default_groupname_attr() -> String {
+    "cn".to_string()
+}
+
+fn default_ldap_timeout() -> u64 {
+    10
+}
+
+fn default_cache_ttl() -> u64 {
+    300
+}
+
+fn default_policies() -> Vec<String> {
+    vec!["readonly".to_string()]
+}
+
+impl Default for LdapConfigSection {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            server_url: default_ldap_url(),
+            start_tls: false,
+            skip_tls_verify: false,
+            bind_dn: String::new(),
+            bind_password: String::new(),
+            user_base_dn: String::new(),
+            user_filter: default_user_filter(),
+            group_base_dn: None,
+            group_filter: None,
+            username_attribute: default_username_attr(),
+            email_attribute: default_email_attr(),
+            display_name_attribute: default_displayname_attr(),
+            group_name_attribute: default_groupname_attr(),
+            timeout_seconds: default_ldap_timeout(),
+            cache_ttl_seconds: default_cache_ttl(),
+            server_type: "ldap".to_string(),
+            group_policies: std::collections::HashMap::new(),
+            default_policies: default_policies(),
         }
     }
 }

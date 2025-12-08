@@ -1,10 +1,11 @@
 //! Admin API routes for Hafiz management
 //!
 //! These endpoints provide administrative access to manage buckets,
-//! users, cluster, and view system statistics.
+//! users, cluster, LDAP, and view system statistics.
 
 #[cfg(feature = "cluster")]
 mod cluster;
+mod ldap;
 mod presigned;
 mod stats;
 mod users;
@@ -21,6 +22,7 @@ use crate::server::AppState;
 
 #[cfg(feature = "cluster")]
 pub use cluster::*;
+pub use ldap::*;
 pub use presigned::*;
 pub use stats::*;
 pub use users::*;
