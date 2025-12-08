@@ -1,116 +1,258 @@
-# Hafiz Helm Chart - Default Values
-# This file contains default configuration values for the Hafiz S3-compatible storage.
+# Hafiz Helm Chart Values
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
 
-# =============================================================================
-# Global Settings
-# =============================================================================
+# -- Number of Hafiz replicas
+replicaCount: 3
 
-# Number of replicas (for standalone mode, use 1; for cluster mode, use 3+)
-replicaCount: 1
-
-# Image settings
 image:
-  repository: hafiz/hafiz
+  # -- Container image repository
+  repository: ghcr.io/yourorg/hafiz
+  # -- Image pull policy
   pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion
+  # -- Overrides the image tag (default is chart appVersion)
   tag: ""
 
-# Image pull secrets (for private registries)
+# -- Image pull secrets for private registries
 imagePullSecrets: []
 
-# Override chart name
+# -- Override the name of the chart
 nameOverride: ""
+
+# -- Override the full name of the chart
 fullnameOverride: ""
 
 # =============================================================================
-# Service Account
+# Hafiz Configuration
+# =============================================================================
+
+hafiz:
+  # -- Log level (trace, debug, info, warn, error)
+  logLevel: info
+  
+  # -- Log format (json, pretty)
+  logFormat: json
+
+  # S3 API Configuration
+  s3:
+    # -- S3 API port
+    port: 9000
+    # -- Region name
+    region: us-east-1
+    # -- Maximum request body size (e.g., "5GB")
+    maxBodySize: "5GB"
+    # -- Request timeout in seconds
+    requestTimeout: 300
+
+  # Admin API Configuration  
+  admin:
+    # -- Enable admin API
+    enabled: true
+    # -- Admin API port
+    port: 9001
+    # -- Admin username
+    username: admin
+    # -- Admin password (use existingSecret in production)
+    password: ""
+    # -- Use existing secret for admin credentials
+    existingSecret: ""
+    # -- Key in secret for admin password
+    existingSecretKey: "admin-password"
+
+  # Storage Configuration
+  storage:
+    # -- Storage backend type (filesystem, s3)
+    type: filesystem
+    # -- Base path for filesystem storage
+    basePath: /data
+    # -- Enable compression
+    compression: true
+    # -- Compression level (1-9)
+    compressionLevel: 6
+
+  # Metadata Configuration
+  metadata:
+    # -- Metadata backend type (sqlite, postgresql)
+    type: postgresql
+    # -- SQLite database path (if type: sqlite)
+    sqlitePath: /data/metadata.db
+
+  # Encryption Configuration
+  encryption:
+    # -- Enable server-side encryption
+    enabled: true
+    # -- Master key (32 bytes base64, use existingSecret in production)
+    masterKey: ""
+    # -- Use existing secret for master key
+    existingSecret: ""
+    # -- Key in secret for master key
+    existingSecretKey: "encryption-key"
+
+  # Authentication Configuration
+  auth:
+    # -- Root access key (use existingSecret in production)
+    rootAccessKey: ""
+    # -- Root secret key (use existingSecret in production)
+    rootSecretKey: ""
+    # -- Use existing secret for root credentials
+    existingSecret: ""
+    # -- Key in secret for access key
+    accessKeySecretKey: "access-key"
+    # -- Key in secret for secret key
+    secretKeySecretKey: "secret-key"
+
+  # Cluster Configuration
+  cluster:
+    # -- Enable cluster mode
+    enabled: true
+    # -- Cluster node ID (auto-generated if empty)
+    nodeId: ""
+    # -- Gossip port for cluster communication
+    gossipPort: 7946
+    # -- Sync port for data replication
+    syncPort: 7947
+
+  # LDAP Configuration
+  ldap:
+    # -- Enable LDAP authentication
+    enabled: false
+    # -- LDAP server URL
+    url: "ldap://ldap.example.com:389"
+    # -- Base DN for user search
+    baseDn: "dc=example,dc=com"
+    # -- Bind DN
+    bindDn: "cn=admin,dc=example,dc=com"
+    # -- Bind password (use existingSecret in production)
+    bindPassword: ""
+    # -- User search filter
+    userFilter: "(uid={username})"
+    # -- Group search filter
+    groupFilter: "(member={dn})"
+    # -- Use existing secret for LDAP bind password
+    existingSecret: ""
+    # -- Key in secret for bind password
+    existingSecretKey: "ldap-password"
+
+  # TLS Configuration
+  tls:
+    # -- Enable TLS
+    enabled: false
+    # -- TLS certificate (base64 encoded)
+    certificate: ""
+    # -- TLS private key (base64 encoded)
+    privateKey: ""
+    # -- Use existing secret for TLS
+    existingSecret: ""
+    # -- Key in secret for certificate
+    certSecretKey: "tls.crt"
+    # -- Key in secret for private key
+    keySecretKey: "tls.key"
+
+# =============================================================================
+# Kubernetes Resources
 # =============================================================================
 
 serviceAccount:
-  # Create a service account
+  # -- Create a service account
   create: true
-  # Annotations to add
+  # -- Annotations to add to the service account
   annotations: {}
-  # Name (auto-generated if not set)
+  # -- The name of the service account (auto-generated if empty)
   name: ""
-
-# =============================================================================
-# Pod Settings
-# =============================================================================
 
 podAnnotations: {}
 
+podLabels: {}
+
 podSecurityContext:
   fsGroup: 1000
+  runAsNonRoot: true
 
 securityContext:
+  allowPrivilegeEscalation: false
   capabilities:
     drop:
-    - ALL
-  readOnlyRootFilesystem: false
+      - ALL
+  readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 1000
+  runAsGroup: 1000
 
-# =============================================================================
 # S3 API Service
-# =============================================================================
-
 service:
+  # -- Service type
   type: ClusterIP
+  # -- S3 API port
   port: 9000
-  # nodePort: 30900  # Only if type is NodePort
+  # -- Node port (if type is NodePort)
+  nodePort: ""
+  # -- Annotations for the service
   annotations: {}
+  # -- Load balancer IP (if type is LoadBalancer)
+  loadBalancerIP: ""
+  # -- Load balancer source ranges
+  loadBalancerSourceRanges: []
 
-# =============================================================================
-# Admin Console Service
-# =============================================================================
-
+# Admin API Service
 adminService:
+  # -- Enable admin service
   enabled: true
+  # -- Service type
   type: ClusterIP
+  # -- Admin API port
   port: 9001
-  # nodePort: 30901  # Only if type is NodePort
+  # -- Node port (if type is NodePort)
+  nodePort: ""
+  # -- Annotations for the service
   annotations: {}
 
-# =============================================================================
-# Ingress Configuration
-# =============================================================================
+# Headless service for cluster discovery
+headlessService:
+  # -- Enable headless service
+  enabled: true
+  # -- Annotations for headless service
+  annotations: {}
 
 ingress:
+  # -- Enable ingress
   enabled: false
-  className: ""
+  # -- Ingress class name
+  className: "nginx"
+  # -- Annotations for ingress
   annotations: {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
-    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    # nginx.ingress.kubernetes.io/proxy-body-size: "5g"
+  # -- Ingress hosts configuration
   hosts:
     - host: s3.example.com
       paths:
         - path: /
           pathType: Prefix
+  # -- TLS configuration for ingress
   tls: []
   #  - secretName: hafiz-tls
   #    hosts:
   #      - s3.example.com
 
-# Admin Ingress (separate)
+# Admin Ingress (separate from S3 API)
 adminIngress:
+  # -- Enable admin ingress
   enabled: false
-  className: ""
+  # -- Ingress class name
+  className: "nginx"
+  # -- Annotations for admin ingress
   annotations: {}
+  # -- Admin ingress hosts
   hosts:
     - host: admin.s3.example.com
       paths:
         - path: /
           pathType: Prefix
+  # -- TLS configuration for admin ingress
   tls: []
 
-# =============================================================================
-# Resources
-# =============================================================================
-
 resources:
-  # We recommend uncommenting these for production
   limits:
     cpu: 2000m
     memory: 4Gi
@@ -118,220 +260,31 @@ resources:
     cpu: 500m
     memory: 1Gi
 
-# =============================================================================
-# Autoscaling (HPA)
-# =============================================================================
-
+# Horizontal Pod Autoscaler
 autoscaling:
-  enabled: false
-  minReplicas: 1
+  # -- Enable HPA
+  enabled: true
+  # -- Minimum replicas
+  minReplicas: 3
+  # -- Maximum replicas
   maxReplicas: 10
-  targetCPUUtilizationPercentage: 80
+  # -- Target CPU utilization percentage
+  targetCPUUtilizationPercentage: 70
+  # -- Target memory utilization percentage
   targetMemoryUtilizationPercentage: 80
+  # -- Custom metrics for scaling
+  customMetrics: []
 
-# =============================================================================
-# Node Scheduling
-# =============================================================================
-
-nodeSelector: {}
-
-tolerations: []
-
-affinity: {}
-
-# Pod topology spread constraints
-topologySpreadConstraints: []
-
-# =============================================================================
-# Persistence
-# =============================================================================
-
-persistence:
+# Pod Disruption Budget
+podDisruptionBudget:
+  # -- Enable PDB
   enabled: true
-  
-  # Storage class (leave empty for default)
-  storageClass: ""
-  
-  # Access modes
-  accessModes:
-    - ReadWriteOnce
-  
-  # Size
-  size: 100Gi
-  
-  # Existing PVC (leave empty to create new)
-  existingClaim: ""
-  
-  # Annotations
-  annotations: {}
+  # -- Minimum available pods
+  minAvailable: 2
+  # -- Maximum unavailable pods (alternative to minAvailable)
+  maxUnavailable: ""
 
-# =============================================================================
-# Hafiz Configuration
-# =============================================================================
-
-# Server settings
-server:
-  bindAddress: "0.0.0.0"
-  port: 9000
-  adminPort: 9001
-
-# Authentication
-auth:
-  # Root credentials (will be stored in Secret)
-  rootAccessKey: "minioadmin"
-  rootSecretKey: "minioadmin"
-  
-  # Use existing secret (if set, auth.rootAccessKey/rootSecretKey are ignored)
-  existingSecret: ""
-  accessKeyKey: "access-key"
-  secretKeyKey: "secret-key"
-
-# Storage backend
-storage:
-  # Data directory (inside the container)
-  dataDir: "/data/hafiz"
-  
-  # Encryption settings
-  encryption:
-    enabled: false
-    masterKey: ""  # Auto-generated if empty and enabled
-    existingSecret: ""
-    masterKeyKey: "master-key"
-
-# Database
-database:
-  # SQLite (embedded) or PostgreSQL
-  type: sqlite  # sqlite or postgres
-  
-  # SQLite path (relative to dataDir)
-  sqlitePath: "metadata.db"
-  
-  # PostgreSQL settings (if type is postgres)
-  postgres:
-    host: ""
-    port: 5432
-    database: "hafiz"
-    username: "hafiz"
-    password: ""
-    sslMode: "disable"
-    existingSecret: ""
-    passwordKey: "password"
-
-# =============================================================================
-# TLS Configuration
-# =============================================================================
-
-tls:
-  enabled: false
-  
-  # Use existing secret containing tls.crt and tls.key
-  existingSecret: ""
-  
-  # Or provide certificates directly
-  certificate: ""
-  key: ""
-  
-  # mTLS (mutual TLS)
-  mtls:
-    enabled: false
-    clientCA: ""
-
-# =============================================================================
-# Cluster Mode (Distributed)
-# =============================================================================
-
-cluster:
-  enabled: false
-  
-  # Cluster mode requires 3+ replicas
-  # Node discovery
-  discovery:
-    # Use Kubernetes headless service
-    type: kubernetes
-    
-    # Or static list
-    # type: static
-    # nodes:
-    #   - "hafiz-0.hafiz-headless:9100"
-    #   - "hafiz-1.hafiz-headless:9100"
-    #   - "hafiz-2.hafiz-headless:9100"
-  
-  # Internal cluster communication port
-  port: 9100
-
-# =============================================================================
-# LDAP / Active Directory Integration
-# =============================================================================
-
-ldap:
-  enabled: false
-  
-  serverUrl: ""  # ldaps://dc.example.com:636
-  serverType: "active_directory"  # active_directory or openldap
-  
-  bindDn: ""
-  bindPassword: ""
-  existingSecret: ""
-  bindPasswordKey: "ldap-password"
-  
-  userBaseDn: ""
-  userFilter: "(sAMAccountName={username})"
-  
-  groupBaseDn: ""
-  groupFilter: "(member={dn})"
-  
-  # Attribute mapping
-  attributes:
-    username: "sAMAccountName"
-    email: "mail"
-    displayName: "displayName"
-  
-  # Group to policy mapping (JSON)
-  groupPolicies: |
-    {
-      "Domain Admins": ["admin"],
-      "S3 Users": ["readwrite"]
-    }
-  
-  # Cache settings
-  cacheEnabled: true
-  cacheTtl: 300
-
-# =============================================================================
-# Metrics & Monitoring
-# =============================================================================
-
-metrics:
-  enabled: true
-  port: 9000
-  path: "/metrics"
-  
-  # ServiceMonitor for Prometheus Operator
-  serviceMonitor:
-    enabled: false
-    namespace: ""
-    interval: 30s
-    scrapeTimeout: 10s
-    labels: {}
-    
-  # Grafana dashboard ConfigMap
-  grafanaDashboard:
-    enabled: false
-    labels:
-      grafana_dashboard: "1"
-
-# =============================================================================
-# Logging
-# =============================================================================
-
-logging:
-  level: "info"  # trace, debug, info, warn, error
-  format: "json"  # json or pretty
-
-# =============================================================================
-# Health Checks
-# =============================================================================
-
+# Liveness probe configuration
 livenessProbe:
   enabled: true
   initialDelaySeconds: 10
@@ -340,6 +293,7 @@ livenessProbe:
   failureThreshold: 3
   successThreshold: 1
 
+# Readiness probe configuration
 readinessProbe:
   enabled: true
   initialDelaySeconds: 5
@@ -348,40 +302,191 @@ readinessProbe:
   failureThreshold: 3
   successThreshold: 1
 
+# Startup probe configuration
 startupProbe:
-  enabled: false
-  initialDelaySeconds: 0
-  periodSeconds: 10
-  timeoutSeconds: 5
+  enabled: true
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
   failureThreshold: 30
   successThreshold: 1
 
+# -- Node selector for pod scheduling
+nodeSelector: {}
+
+# -- Tolerations for pod scheduling
+tolerations: []
+
+# -- Affinity rules for pod scheduling
+affinity: {}
+  # podAntiAffinity:
+  #   requiredDuringSchedulingIgnoredDuringExecution:
+  #     - labelSelector:
+  #         matchLabels:
+  #           app.kubernetes.io/name: hafiz
+  #       topologyKey: kubernetes.io/hostname
+
+# -- Topology spread constraints
+topologySpreadConstraints: []
+  # - maxSkew: 1
+  #   topologyKey: topology.kubernetes.io/zone
+  #   whenUnsatisfiable: DoNotSchedule
+  #   labelSelector:
+  #     matchLabels:
+  #       app.kubernetes.io/name: hafiz
+
+# -- Priority class name
+priorityClassName: ""
+
+# -- Termination grace period in seconds
+terminationGracePeriodSeconds: 30
+
 # =============================================================================
-# Extra Configuration
+# Persistence
 # =============================================================================
 
-# Extra environment variables
-extraEnv: []
-#  - name: EXTRA_VAR
-#    value: "value"
+persistence:
+  # -- Enable persistence
+  enabled: true
+  # -- Storage class name (empty uses default)
+  storageClassName: ""
+  # -- Access modes
+  accessModes:
+    - ReadWriteOnce
+  # -- Storage size
+  size: 100Gi
+  # -- Annotations for PVC
+  annotations: {}
+  # -- Selector for PVC
+  selector: {}
+  # -- Existing PVC name (if using existing PVC)
+  existingClaim: ""
 
-# Extra volumes
-extraVolumes: []
+# =============================================================================
+# Metrics & Monitoring
+# =============================================================================
 
-# Extra volume mounts
-extraVolumeMounts: []
+metrics:
+  # -- Enable Prometheus metrics
+  enabled: true
+  # -- Metrics port
+  port: 9090
+  # -- Metrics path
+  path: /metrics
 
-# Extra init containers
+  serviceMonitor:
+    # -- Create ServiceMonitor resource
+    enabled: false
+    # -- Namespace for ServiceMonitor (defaults to release namespace)
+    namespace: ""
+    # -- Interval for scraping metrics
+    interval: 30s
+    # -- Timeout for scraping metrics
+    scrapeTimeout: 10s
+    # -- Additional labels for ServiceMonitor
+    labels: {}
+    # -- Relabelings for ServiceMonitor
+    relabelings: []
+    # -- Metric relabelings for ServiceMonitor
+    metricRelabelings: []
+
+  prometheusRule:
+    # -- Create PrometheusRule resource
+    enabled: false
+    # -- Namespace for PrometheusRule
+    namespace: ""
+    # -- Additional labels for PrometheusRule
+    labels: {}
+    # -- Alerting rules
+    rules: []
+      # - alert: HafizHighErrorRate
+      #   expr: rate(hafiz_http_requests_total{status=~"5.."}[5m]) > 0.1
+      #   for: 5m
+      #   labels:
+      #     severity: warning
+      #   annotations:
+      #     summary: High error rate detected
+
+# =============================================================================
+# PostgreSQL (Bitnami subchart)
+# =============================================================================
+
+postgresql:
+  # -- Enable PostgreSQL subchart
+  enabled: true
+  
+  auth:
+    # -- PostgreSQL username
+    username: hafiz
+    # -- PostgreSQL password
+    password: ""
+    # -- PostgreSQL database name
+    database: hafiz
+    # -- Use existing secret for PostgreSQL
+    existingSecret: ""
+  
+  primary:
+    persistence:
+      # -- Enable persistence for PostgreSQL
+      enabled: true
+      # -- Storage size for PostgreSQL
+      size: 20Gi
+    
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 256Mi
+
+  # For external PostgreSQL
+  external:
+    # -- External PostgreSQL host
+    host: ""
+    # -- External PostgreSQL port
+    port: 5432
+    # -- External PostgreSQL database
+    database: hafiz
+    # -- External PostgreSQL username
+    username: hafiz
+    # -- External PostgreSQL password
+    password: ""
+    # -- Use existing secret for external PostgreSQL
+    existingSecret: ""
+    # -- Key in secret for password
+    existingSecretKey: "postgresql-password"
+
+# =============================================================================
+# Init Containers & Sidecars
+# =============================================================================
+
+# -- Extra init containers
 extraInitContainers: []
 
-# Extra containers (sidecars)
+# -- Extra sidecar containers
 extraContainers: []
 
-# ConfigMap with additional configuration
-extraConfigMap: ""
+# -- Extra volumes
+extraVolumes: []
 
-# Lifecycle hooks
-lifecycle: {}
-#  preStop:
-#    exec:
-#      command: ["/bin/sh", "-c", "sleep 10"]
+# -- Extra volume mounts
+extraVolumeMounts: []
+
+# -- Extra environment variables
+extraEnv: []
+
+# -- Extra environment variables from secrets/configmaps
+extraEnvFrom: []
+
+# =============================================================================
+# Network Policies
+# =============================================================================
+
+networkPolicy:
+  # -- Enable network policy
+  enabled: false
+  # -- Ingress rules
+  ingress: []
+  # -- Egress rules
+  egress: []

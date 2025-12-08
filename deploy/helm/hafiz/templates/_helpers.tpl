@@ -7,8 +7,6 @@ Expand the name of the chart.
 
 {{/*
 Create a default fully qualified app name.
-We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
-If release name contains chart name it will be used as a full name.
 */}}
 {{- define "hafiz.fullname" -}}
 {{- if .Values.fullnameOverride }}
@@ -62,57 +60,148 @@ Create the name of the service account to use
 {{- end }}
 
 {{/*
-Get the secret name for credentials
+Return the PostgreSQL hostname
 */}}
-{{- define "hafiz.secretName" -}}
-{{- if .Values.auth.existingSecret }}
-{{- .Values.auth.existingSecret }}
+{{- define "hafiz.postgresql.host" -}}
+{{- if .Values.postgresql.enabled }}
+{{- printf "%s-postgresql" (include "hafiz.fullname" .) }}
 {{- else }}
-{{- include "hafiz.fullname" . }}
+{{- .Values.postgresql.external.host }}
 {{- end }}
 {{- end }}
 
 {{/*
-Get the database connection string
+Return the PostgreSQL port
 */}}
-{{- define "hafiz.databaseUrl" -}}
-{{- if eq .Values.database.type "sqlite" }}
-sqlite://{{ .Values.storage.dataDir }}/{{ .Values.database.sqlitePath }}
+{{- define "hafiz.postgresql.port" -}}
+{{- if .Values.postgresql.enabled }}
+{{- printf "5432" }}
 {{- else }}
-postgres://{{ .Values.database.postgres.username }}:$(POSTGRES_PASSWORD)@{{ .Values.database.postgres.host }}:{{ .Values.database.postgres.port }}/{{ .Values.database.postgres.database }}?sslmode={{ .Values.database.postgres.sslMode }}
+{{- .Values.postgresql.external.port | toString }}
 {{- end }}
 {{- end }}
 
 {{/*
-Image name
+Return the PostgreSQL database name
 */}}
-{{- define "hafiz.image" -}}
-{{- $tag := default .Chart.AppVersion .Values.image.tag }}
-{{- printf "%s:%s" .Values.image.repository $tag }}
-{{- end }}
-
-{{/*
-PVC name
-*/}}
-{{- define "hafiz.pvcName" -}}
-{{- if .Values.persistence.existingClaim }}
-{{- .Values.persistence.existingClaim }}
+{{- define "hafiz.postgresql.database" -}}
+{{- if .Values.postgresql.enabled }}
+{{- .Values.postgresql.auth.database }}
 {{- else }}
-{{- include "hafiz.fullname" . }}-data
+{{- .Values.postgresql.external.database }}
 {{- end }}
 {{- end }}
 
 {{/*
-Headless service name for cluster mode
+Return the PostgreSQL username
 */}}
-{{- define "hafiz.headlessServiceName" -}}
-{{- include "hafiz.fullname" . }}-headless
+{{- define "hafiz.postgresql.username" -}}
+{{- if .Values.postgresql.enabled }}
+{{- .Values.postgresql.auth.username }}
+{{- else }}
+{{- .Values.postgresql.external.username }}
+{{- end }}
 {{- end }}
 
 {{/*
-Config checksum annotation
+Return the PostgreSQL secret name
 */}}
-{{- define "hafiz.configChecksum" -}}
-checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
-checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+{{- define "hafiz.postgresql.secretName" -}}
+{{- if .Values.postgresql.enabled }}
+{{- if .Values.postgresql.auth.existingSecret }}
+{{- .Values.postgresql.auth.existingSecret }}
+{{- else }}
+{{- printf "%s-postgresql" (include "hafiz.fullname" .) }}
+{{- end }}
+{{- else }}
+{{- if .Values.postgresql.external.existingSecret }}
+{{- .Values.postgresql.external.existingSecret }}
+{{- else }}
+{{- printf "%s-postgresql-external" (include "hafiz.fullname" .) }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Return the PostgreSQL secret key
+*/}}
+{{- define "hafiz.postgresql.secretKey" -}}
+{{- if .Values.postgresql.enabled }}
+{{- if .Values.postgresql.auth.existingSecret }}
+{{- "password" }}
+{{- else }}
+{{- "password" }}
+{{- end }}
+{{- else }}
+{{- .Values.postgresql.external.existingSecretKey | default "postgresql-password" }}
+{{- end }}
+{{- end }}
+
+{{/*
+Return the auth secret name
+*/}}
+{{- define "hafiz.auth.secretName" -}}
+{{- if .Values.hafiz.auth.existingSecret }}
+{{- .Values.hafiz.auth.existingSecret }}
+{{- else }}
+{{- printf "%s-auth" (include "hafiz.fullname" .) }}
+{{- end }}
+{{- end }}
+
+{{/*
+Return the encryption secret name
+*/}}
+{{- define "hafiz.encryption.secretName" -}}
+{{- if .Values.hafiz.encryption.existingSecret }}
+{{- .Values.hafiz.encryption.existingSecret }}
+{{- else }}
+{{- printf "%s-encryption" (include "hafiz.fullname" .) }}
+{{- end }}
+{{- end }}
+
+{{/*
+Return the admin secret name
+*/}}
+{{- define "hafiz.admin.secretName" -}}
+{{- if .Values.hafiz.admin.existingSecret }}
+{{- .Values.hafiz.admin.existingSecret }}
+{{- else }}
+{{- printf "%s-admin" (include "hafiz.fullname" .) }}
+{{- end }}
+{{- end }}
+
+{{/*
+Return the LDAP secret name
+*/}}
+{{- define "hafiz.ldap.secretName" -}}
+{{- if .Values.hafiz.ldap.existingSecret }}
+{{- .Values.hafiz.ldap.existingSecret }}
+{{- else }}
+{{- printf "%s-ldap" (include "hafiz.fullname" .) }}
+{{- end }}
+{{- end }}
+
+{{/*
+Return the TLS secret name
+*/}}
+{{- define "hafiz.tls.secretName" -}}
+{{- if .Values.hafiz.tls.existingSecret }}
+{{- .Values.hafiz.tls.existingSecret }}
+{{- else }}
+{{- printf "%s-tls" (include "hafiz.fullname" .) }}
+{{- end }}
+{{- end }}
+
+{{/*
+Generate cluster peers list
+*/}}
+{{- define "hafiz.clusterPeers" -}}
+{{- $fullname := include "hafiz.fullname" . -}}
+{{- $replicas := int .Values.replicaCount -}}
+{{- $gossipPort := int .Values.hafiz.cluster.gossipPort -}}
+{{- $peers := list -}}
+{{- range $i := until $replicas -}}
+{{- $peers = append $peers (printf "%s-%d.%s-headless:%d" $fullname $i $fullname $gossipPort) -}}
+{{- end -}}
+{{- join "," $peers -}}
 {{- end }}

@@ -1,0 +1,85 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "hafiz.fullname" . }}
+  labels:
+    {{- include "hafiz.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "hafiz.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow S3 API traffic
+    - ports:
+        - protocol: TCP
+          port: {{ .Values.hafiz.s3.port }}
+    # Allow Admin API traffic
+    {{- if .Values.hafiz.admin.enabled }}
+    - ports:
+        - protocol: TCP
+          port: {{ .Values.hafiz.admin.port }}
+    {{- end }}
+    # Allow metrics scraping
+    {{- if .Values.metrics.enabled }}
+    - ports:
+        - protocol: TCP
+          port: {{ .Values.metrics.port }}
+    {{- end }}
+    # Allow cluster gossip traffic from same app
+    {{- if .Values.hafiz.cluster.enabled }}
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "hafiz.selectorLabels" . | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.hafiz.cluster.gossipPort }}
+        - protocol: TCP
+          port: {{ .Values.hafiz.cluster.syncPort }}
+    {{- end }}
+    # Custom ingress rules
+    {{- with .Values.networkPolicy.ingress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  egress:
+    # Allow DNS
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow PostgreSQL
+    {{- if or .Values.postgresql.enabled .Values.postgresql.external.host }}
+    - ports:
+        - protocol: TCP
+          port: {{ include "hafiz.postgresql.port" . }}
+    {{- end }}
+    # Allow cluster communication
+    {{- if .Values.hafiz.cluster.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "hafiz.selectorLabels" . | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.hafiz.cluster.gossipPort }}
+        - protocol: TCP
+          port: {{ .Values.hafiz.cluster.syncPort }}
+    {{- end }}
+    # Allow LDAP
+    {{- if .Values.hafiz.ldap.enabled }}
+    - ports:
+        - protocol: TCP
+          port: 389
+        - protocol: TCP
+          port: 636
+    {{- end }}
+    # Custom egress rules
+    {{- with .Values.networkPolicy.egress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}

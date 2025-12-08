@@ -1,17 +1,13 @@
 apiVersion: v2
 name: hafiz
-description: Enterprise S3-Compatible Object Storage
+description: A Helm chart for Hafiz S3-compatible object storage
 
-# Chart type: application or library
 type: application
 
-# Chart version - independent of app version
 version: 0.1.0
 
-# Application version
 appVersion: "0.1.0"
 
-# Keywords for searching
 keywords:
   - s3
   - object-storage
@@ -19,33 +15,21 @@ keywords:
   - minio-alternative
   - cloud-native
 
-# Home page
-home: https://github.com/hafiz
+home: https://github.com/yourorg/hafiz
 
-# Sources
 sources:
-  - https://github.com/hafiz
+  - https://github.com/yourorg/hafiz
 
-# Maintainers
 maintainers:
   - name: Hafiz Team
-    email: team@hafiz.io
+    email: team@example.com
 
-# Icon (optional)
-# icon: https://hafiz.io/logo.png
-
-# Dependencies (if any)
-dependencies: []
-
-# Annotations
 annotations:
-  # Artifact Hub annotations
   artifacthub.io/license: Apache-2.0
   artifacthub.io/category: storage
-  
-  # Links
-  artifacthub.io/links: |
-    - name: Documentation
-      url: https://hafiz.io/docs
-    - name: GitHub
-      url: https://github.com/hafiz
+
+dependencies:
+  - name: postgresql
+    version: "13.x.x"
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled

@@ -1,0 +1,104 @@
+# Development Values for Hafiz
+# Use: helm install hafiz ./hafiz -f values-development.yaml
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/yourorg/hafiz
+  tag: "latest"
+  pullPolicy: Always
+
+hafiz:
+  logLevel: debug
+  logFormat: pretty
+
+  s3:
+    port: 9000
+    region: us-east-1
+    maxBodySize: "1GB"
+    requestTimeout: 60
+
+  admin:
+    enabled: true
+    port: 9001
+    username: admin
+    password: admin123  # Only for development!
+
+  storage:
+    type: filesystem
+    basePath: /data
+    compression: false
+
+  metadata:
+    type: sqlite
+    sqlitePath: /data/metadata.db
+
+  encryption:
+    enabled: false
+
+  auth:
+    rootAccessKey: minioadmin
+    rootSecretKey: minioadmin
+
+  cluster:
+    enabled: false
+
+  tls:
+    enabled: false
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: false
+
+persistence:
+  enabled: true
+  storageClassName: ""
+  size: 10Gi
+
+ingress:
+  enabled: false
+
+adminIngress:
+  enabled: false
+
+service:
+  type: NodePort
+  nodePort: 30900
+
+adminService:
+  enabled: true
+  type: NodePort
+  nodePort: 30901
+
+metrics:
+  enabled: true
+  port: 9090
+  serviceMonitor:
+    enabled: false
+
+postgresql:
+  enabled: false
+
+# For development - no security restrictions
+podSecurityContext: {}
+securityContext: {}
+
+networkPolicy:
+  enabled: false
+
+# Development node selector
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

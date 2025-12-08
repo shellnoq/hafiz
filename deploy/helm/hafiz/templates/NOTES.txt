@@ -1,131 +1,112 @@
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                                                                              ║
-║   _   _         __ _                                                         ║
-║  | | | |  __ _ / _(_)____                                                    ║
-║  | |_| | / _` | |_| |_  /                                                    ║
-║  |  _  || (_| |  _| |/ /                                                     ║
-║  |_| |_| \__,_|_| |_/___|                                                    ║
-║                                                                              ║
-║  Enterprise S3-Compatible Object Storage                                     ║
-║                                                                              ║
-╚══════════════════════════════════════════════════════════════════════════════╝
+🎉 Hafiz S3-compatible object storage has been deployed!
 
-Thank you for installing {{ .Chart.Name }}!
-
-Your release is named: {{ .Release.Name }}
-Chart version: {{ .Chart.Version }}
-App version: {{ .Chart.AppVersion }}
-
-═══════════════════════════════════════════════════════════════════════════════
- GETTING STARTED
-═══════════════════════════════════════════════════════════════════════════════
-
-1. Get the S3 API URL:
 {{- if .Values.ingress.enabled }}
-{{- range $host := .Values.ingress.hosts }}
-   S3 Endpoint: http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📡 S3 API Endpoint:
+{{- range .Values.ingress.hosts }}
+   https://{{ .host }}
 {{- end }}
-{{- else if contains "NodePort" .Values.service.type }}
-   export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "hafiz.fullname" . }})
-   export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
-   echo "S3 Endpoint: http://$NODE_IP:$NODE_PORT"
-{{- else if contains "LoadBalancer" .Values.service.type }}
-   NOTE: It may take a few minutes for the LoadBalancer IP to be available.
-   export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "hafiz.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
-   echo "S3 Endpoint: http://$SERVICE_IP:{{ .Values.service.port }}"
-{{- else if contains "ClusterIP" .Values.service.type }}
-   kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "hafiz.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
-   echo "S3 Endpoint: http://127.0.0.1:{{ .Values.service.port }}"
+{{- else }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📡 S3 API Access:
+
+  To access the S3 API from within the cluster:
+    http://{{ include "hafiz.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}
+
+  To access from outside the cluster:
+{{- if eq .Values.service.type "NodePort" }}
+    export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "hafiz.fullname" . }})
+    export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+    echo http://$NODE_IP:$NODE_PORT
+{{- else if eq .Values.service.type "LoadBalancer" }}
+    NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+    kubectl get --namespace {{ .Release.Namespace }} svc {{ include "hafiz.fullname" . }} -w
+{{- else }}
+    kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "hafiz.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+    echo http://localhost:{{ .Values.service.port }}
+{{- end }}
 {{- end }}
 
-{{- if .Values.adminService.enabled }}
+{{- if .Values.hafiz.admin.enabled }}
 
-2. Get the Admin Console URL:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧 Admin Console:
 {{- if .Values.adminIngress.enabled }}
-{{- range $host := .Values.adminIngress.hosts }}
-   Admin Console: http{{ if $.Values.adminIngress.tls }}s{{ end }}://{{ $host.host }}
+{{- range .Values.adminIngress.hosts }}
+   https://{{ .host }}
 {{- end }}
 {{- else }}
    kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "hafiz.fullname" . }}-admin {{ .Values.adminService.port }}:{{ .Values.adminService.port }}
-   echo "Admin Console: http://127.0.0.1:{{ .Values.adminService.port }}"
-{{- end }}
+   echo http://localhost:{{ .Values.adminService.port }}
 {{- end }}
 
-3. Get the credentials:
-{{- if .Values.auth.existingSecret }}
-   # Using existing secret: {{ .Values.auth.existingSecret }}
-   export ACCESS_KEY=$(kubectl get secret --namespace {{ .Release.Namespace }} {{ .Values.auth.existingSecret }} -o jsonpath="{.data.{{ .Values.auth.accessKeyKey }}}" | base64 -d)
-   export SECRET_KEY=$(kubectl get secret --namespace {{ .Release.Namespace }} {{ .Values.auth.existingSecret }} -o jsonpath="{.data.{{ .Values.auth.secretKeyKey }}}" | base64 -d)
+   Username: {{ .Values.hafiz.admin.username }}
+   Password: kubectl get secret --namespace {{ .Release.Namespace }} {{ include "hafiz.admin.secretName" . }} -o jsonpath="{.data.admin-password}" | base64 -d
+{{- end }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔑 Credentials:
+
+  Get root access key:
+    kubectl get secret --namespace {{ .Release.Namespace }} {{ include "hafiz.auth.secretName" . }} -o jsonpath="{.data.access-key}" | base64 -d
+
+  Get root secret key:
+    kubectl get secret --namespace {{ .Release.Namespace }} {{ include "hafiz.auth.secretName" . }} -o jsonpath="{.data.secret-key}" | base64 -d
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 Quick Start:
+
+  1. Configure AWS CLI or Hafiz CLI:
+
+     export AWS_ACCESS_KEY_ID=$(kubectl get secret --namespace {{ .Release.Namespace }} {{ include "hafiz.auth.secretName" . }} -o jsonpath="{.data.access-key}" | base64 -d)
+     export AWS_SECRET_ACCESS_KEY=$(kubectl get secret --namespace {{ .Release.Namespace }} {{ include "hafiz.auth.secretName" . }} -o jsonpath="{.data.secret-key}" | base64 -d)
+{{- if .Values.ingress.enabled }}
+{{- range .Values.ingress.hosts }}
+     export AWS_ENDPOINT_URL=https://{{ .host }}
+{{- end }}
 {{- else }}
-   export ACCESS_KEY=$(kubectl get secret --namespace {{ .Release.Namespace }} {{ include "hafiz.fullname" . }} -o jsonpath="{.data.{{ .Values.auth.accessKeyKey }}}" | base64 -d)
-   export SECRET_KEY=$(kubectl get secret --namespace {{ .Release.Namespace }} {{ include "hafiz.fullname" . }} -o jsonpath="{.data.{{ .Values.auth.secretKeyKey }}}" | base64 -d)
+     export AWS_ENDPOINT_URL=http://localhost:{{ .Values.service.port }}
 {{- end }}
-   echo "Access Key: $ACCESS_KEY"
-   echo "Secret Key: $SECRET_KEY"
 
-═══════════════════════════════════════════════════════════════════════════════
- USING WITH AWS CLI
-═══════════════════════════════════════════════════════════════════════════════
+  2. Create a bucket:
+     aws s3 mb s3://my-bucket --endpoint-url $AWS_ENDPOINT_URL
 
-Configure AWS CLI to use Hafiz:
+  3. Upload a file:
+     aws s3 cp myfile.txt s3://my-bucket/ --endpoint-url $AWS_ENDPOINT_URL
 
-   aws configure set aws_access_key_id $ACCESS_KEY
-   aws configure set aws_secret_access_key $SECRET_KEY
-
-   # Create a bucket
-   aws --endpoint-url http://127.0.0.1:{{ .Values.service.port }} s3 mb s3://mybucket
-
-   # List buckets
-   aws --endpoint-url http://127.0.0.1:{{ .Values.service.port }} s3 ls
-
-   # Upload a file
-   aws --endpoint-url http://127.0.0.1:{{ .Values.service.port }} s3 cp myfile.txt s3://mybucket/
-
-═══════════════════════════════════════════════════════════════════════════════
- USING WITH HAFIZ CLI
-═══════════════════════════════════════════════════════════════════════════════
-
-Configure Hafiz CLI:
-
-   hafiz alias set local http://127.0.0.1:{{ .Values.service.port }} $ACCESS_KEY $SECRET_KEY
-   hafiz ls local
-   hafiz mb local/mybucket
-   hafiz cp myfile.txt local/mybucket/
-
-{{- if .Values.cluster.enabled }}
-
-═══════════════════════════════════════════════════════════════════════════════
- CLUSTER MODE
-═══════════════════════════════════════════════════════════════════════════════
-
-Cluster mode is enabled with {{ .Values.replicaCount }} replicas.
-
-View cluster status:
-   kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "hafiz.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
-
-{{- end }}
+  4. List objects:
+     aws s3 ls s3://my-bucket/ --endpoint-url $AWS_ENDPOINT_URL
 
 {{- if .Values.metrics.enabled }}
 
-═══════════════════════════════════════════════════════════════════════════════
- MONITORING
-═══════════════════════════════════════════════════════════════════════════════
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 Metrics:
 
-Prometheus metrics are available at: {{ .Values.metrics.path }}
+  Prometheus metrics available at:
+    http://{{ include "hafiz.fullname" . }}-metrics.{{ .Release.Namespace }}.svc:{{ .Values.metrics.port }}{{ .Values.metrics.path }}
 
 {{- if .Values.metrics.serviceMonitor.enabled }}
-ServiceMonitor is enabled - metrics will be automatically discovered by Prometheus Operator.
+  ServiceMonitor is enabled for Prometheus Operator auto-discovery.
+{{- end }}
 {{- end }}
 
+{{- if .Values.hafiz.cluster.enabled }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🌐 Cluster Mode:
+
+  Hafiz is running in cluster mode with {{ .Values.replicaCount }} replicas.
+  
+  Check cluster status:
+    kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "hafiz.name" . }}"
 {{- end }}
 
-═══════════════════════════════════════════════════════════════════════════════
- DOCUMENTATION
-═══════════════════════════════════════════════════════════════════════════════
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📚 Documentation:
+   https://github.com/yourorg/hafiz
 
-For more information, visit:
-- Documentation: https://hafiz.io/docs
-- GitHub: https://github.com/hafiz
-- Issues: https://github.com/hafiz/issues
+🐛 Report Issues:
+   https://github.com/yourorg/hafiz/issues
 
-Need help? Open an issue or join our community!
+Thank you for using Hafiz! 🚀

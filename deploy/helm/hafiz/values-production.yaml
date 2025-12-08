@@ -1,0 +1,149 @@
+# Production Values for Hafiz
+# Use: helm install hafiz ./hafiz -f values-production.yaml
+
+replicaCount: 5
+
+image:
+  repository: ghcr.io/yourorg/hafiz
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+hafiz:
+  logLevel: info
+  logFormat: json
+
+  s3:
+    port: 9000
+    region: us-east-1
+    maxBodySize: "5GB"
+    requestTimeout: 300
+
+  admin:
+    enabled: true
+    port: 9001
+    username: admin
+    existingSecret: "hafiz-admin-credentials"
+    existingSecretKey: "admin-password"
+
+  storage:
+    type: filesystem
+    basePath: /data
+    compression: true
+    compressionLevel: 6
+
+  metadata:
+    type: postgresql
+
+  encryption:
+    enabled: true
+    existingSecret: "hafiz-encryption-key"
+    existingSecretKey: "master-key"
+
+  auth:
+    existingSecret: "hafiz-root-credentials"
+    accessKeySecretKey: "access-key"
+    secretKeySecretKey: "secret-key"
+
+  cluster:
+    enabled: true
+    gossipPort: 7946
+    syncPort: 7947
+
+  tls:
+    enabled: true
+    existingSecret: "hafiz-tls"
+
+resources:
+  limits:
+    cpu: 4000m
+    memory: 8Gi
+  requests:
+    cpu: 1000m
+    memory: 2Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 5
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 3
+
+persistence:
+  enabled: true
+  storageClassName: "fast-ssd"
+  size: 500Gi
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "5g"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+  hosts:
+    - host: s3.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: hafiz-tls-ingress
+      hosts:
+        - s3.example.com
+
+adminIngress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: hafiz-admin-basic-auth
+  hosts:
+    - host: admin.s3.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: hafiz-admin-tls-ingress
+      hosts:
+        - admin.s3.example.com
+
+metrics:
+  enabled: true
+  port: 9090
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+
+postgresql:
+  enabled: false
+  external:
+    host: "postgres.database.svc"
+    port: 5432
+    database: hafiz
+    username: hafiz
+    existingSecret: "hafiz-postgresql-credentials"
+    existingSecretKey: "password"
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: hafiz
+        topologyKey: kubernetes.io/hostname
+
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: DoNotSchedule
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: hafiz
+
+networkPolicy:
+  enabled: true

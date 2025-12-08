@@ -1,0 +1,318 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "hafiz.fullname" . }}
+  labels:
+    {{- include "hafiz.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  serviceName: {{ include "hafiz.fullname" . }}-headless
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      {{- include "hafiz.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "hafiz.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "hafiz.serviceAccountName" . }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      {{- with .Values.extraInitContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: s3
+              containerPort: {{ .Values.hafiz.s3.port }}
+              protocol: TCP
+            {{- if .Values.hafiz.admin.enabled }}
+            - name: admin
+              containerPort: {{ .Values.hafiz.admin.port }}
+              protocol: TCP
+            {{- end }}
+            {{- if .Values.metrics.enabled }}
+            - name: metrics
+              containerPort: {{ .Values.metrics.port }}
+              protocol: TCP
+            {{- end }}
+            {{- if .Values.hafiz.cluster.enabled }}
+            - name: gossip
+              containerPort: {{ .Values.hafiz.cluster.gossipPort }}
+              protocol: TCP
+            - name: sync
+              containerPort: {{ .Values.hafiz.cluster.syncPort }}
+              protocol: TCP
+            {{- end }}
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            # Configuration from ConfigMap
+            - name: HAFIZ_LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "hafiz.fullname" . }}
+                  key: log-level
+            - name: HAFIZ_LOG_FORMAT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "hafiz.fullname" . }}
+                  key: log-format
+            - name: HAFIZ_S3_PORT
+              value: {{ .Values.hafiz.s3.port | quote }}
+            - name: HAFIZ_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "hafiz.fullname" . }}
+                  key: region
+            # Storage configuration
+            - name: HAFIZ_STORAGE_TYPE
+              value: {{ .Values.hafiz.storage.type | quote }}
+            - name: HAFIZ_STORAGE_BASE_PATH
+              value: {{ .Values.hafiz.storage.basePath | quote }}
+            - name: HAFIZ_COMPRESSION_ENABLED
+              value: {{ .Values.hafiz.storage.compression | quote }}
+            # Metadata / PostgreSQL configuration
+            - name: HAFIZ_METADATA_TYPE
+              value: {{ .Values.hafiz.metadata.type | quote }}
+            {{- if eq .Values.hafiz.metadata.type "postgresql" }}
+            - name: HAFIZ_DATABASE_HOST
+              value: {{ include "hafiz.postgresql.host" . | quote }}
+            - name: HAFIZ_DATABASE_PORT
+              value: {{ include "hafiz.postgresql.port" . | quote }}
+            - name: HAFIZ_DATABASE_NAME
+              value: {{ include "hafiz.postgresql.database" . | quote }}
+            - name: HAFIZ_DATABASE_USER
+              value: {{ include "hafiz.postgresql.username" . | quote }}
+            - name: HAFIZ_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hafiz.postgresql.secretName" . }}
+                  key: {{ include "hafiz.postgresql.secretKey" . }}
+            {{- end }}
+            # Auth credentials
+            - name: HAFIZ_ROOT_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hafiz.auth.secretName" . }}
+                  key: {{ .Values.hafiz.auth.accessKeySecretKey | default "access-key" }}
+            - name: HAFIZ_ROOT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hafiz.auth.secretName" . }}
+                  key: {{ .Values.hafiz.auth.secretKeySecretKey | default "secret-key" }}
+            # Encryption
+            {{- if .Values.hafiz.encryption.enabled }}
+            - name: HAFIZ_ENCRYPTION_ENABLED
+              value: "true"
+            - name: HAFIZ_ENCRYPTION_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hafiz.encryption.secretName" . }}
+                  key: {{ .Values.hafiz.encryption.existingSecretKey | default "encryption-key" }}
+            {{- end }}
+            # Admin API
+            {{- if .Values.hafiz.admin.enabled }}
+            - name: HAFIZ_ADMIN_ENABLED
+              value: "true"
+            - name: HAFIZ_ADMIN_PORT
+              value: {{ .Values.hafiz.admin.port | quote }}
+            - name: HAFIZ_ADMIN_USERNAME
+              value: {{ .Values.hafiz.admin.username | quote }}
+            - name: HAFIZ_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hafiz.admin.secretName" . }}
+                  key: {{ .Values.hafiz.admin.existingSecretKey | default "admin-password" }}
+            {{- end }}
+            # Cluster configuration
+            {{- if .Values.hafiz.cluster.enabled }}
+            - name: HAFIZ_CLUSTER_ENABLED
+              value: "true"
+            - name: HAFIZ_CLUSTER_NODE_ID
+              value: "$(POD_NAME)"
+            - name: HAFIZ_CLUSTER_GOSSIP_PORT
+              value: {{ .Values.hafiz.cluster.gossipPort | quote }}
+            - name: HAFIZ_CLUSTER_SYNC_PORT
+              value: {{ .Values.hafiz.cluster.syncPort | quote }}
+            - name: HAFIZ_CLUSTER_PEERS
+              value: {{ include "hafiz.clusterPeers" . | quote }}
+            {{- end }}
+            # LDAP configuration
+            {{- if .Values.hafiz.ldap.enabled }}
+            - name: HAFIZ_LDAP_ENABLED
+              value: "true"
+            - name: HAFIZ_LDAP_URL
+              value: {{ .Values.hafiz.ldap.url | quote }}
+            - name: HAFIZ_LDAP_BASE_DN
+              value: {{ .Values.hafiz.ldap.baseDn | quote }}
+            - name: HAFIZ_LDAP_BIND_DN
+              value: {{ .Values.hafiz.ldap.bindDn | quote }}
+            - name: HAFIZ_LDAP_BIND_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hafiz.ldap.secretName" . }}
+                  key: {{ .Values.hafiz.ldap.existingSecretKey | default "ldap-password" }}
+            - name: HAFIZ_LDAP_USER_FILTER
+              value: {{ .Values.hafiz.ldap.userFilter | quote }}
+            {{- end }}
+            # Metrics
+            {{- if .Values.metrics.enabled }}
+            - name: HAFIZ_METRICS_ENABLED
+              value: "true"
+            - name: HAFIZ_METRICS_PORT
+              value: {{ .Values.metrics.port | quote }}
+            {{- end }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: s3
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+            successThreshold: {{ .Values.livenessProbe.successThreshold }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: s3
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+            successThreshold: {{ .Values.readinessProbe.successThreshold }}
+          {{- end }}
+          {{- if .Values.startupProbe.enabled }}
+          startupProbe:
+            httpGet:
+              path: /health
+              port: s3
+            initialDelaySeconds: {{ .Values.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.startupProbe.failureThreshold }}
+            successThreshold: {{ .Values.startupProbe.successThreshold }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.hafiz.storage.basePath }}
+            - name: tmp
+              mountPath: /tmp
+            {{- if .Values.hafiz.tls.enabled }}
+            - name: tls
+              mountPath: /etc/hafiz/tls
+              readOnly: true
+            {{- end }}
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+        {{- with .Values.extraContainers }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- if .Values.hafiz.tls.enabled }}
+        - name: tls
+          secret:
+            secretName: {{ include "hafiz.tls.secretName" . }}
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if not .Values.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        {{- with .Values.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+          {{- toYaml .Values.persistence.accessModes | nindent 10 }}
+        {{- if .Values.persistence.storageClassName }}
+        storageClassName: {{ .Values.persistence.storageClassName }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+        {{- with .Values.persistence.selector }}
+        selector:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+  {{- end }}

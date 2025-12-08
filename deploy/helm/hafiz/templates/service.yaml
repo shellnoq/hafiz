@@ -1,3 +1,4 @@
+{{/* S3 API Service */}}
 apiVersion: v1
 kind: Service
 metadata:
@@ -10,17 +11,60 @@ metadata:
   {{- end }}
 spec:
   type: {{ .Values.service.type }}
+  {{- if and .Values.service.loadBalancerIP (eq .Values.service.type "LoadBalancer") }}
+  loadBalancerIP: {{ .Values.service.loadBalancerIP }}
+  {{- end }}
+  {{- if .Values.service.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+    {{- toYaml .Values.service.loadBalancerSourceRanges | nindent 4 }}
+  {{- end }}
   ports:
     - port: {{ .Values.service.port }}
       targetPort: s3
       protocol: TCP
       name: s3
-      {{- if and (eq .Values.service.type "NodePort") .Values.service.nodePort }}
+      {{- if and .Values.service.nodePort (eq .Values.service.type "NodePort") }}
       nodePort: {{ .Values.service.nodePort }}
       {{- end }}
   selector:
     {{- include "hafiz.selectorLabels" . | nindent 4 }}
 ---
+{{/* Headless Service for StatefulSet */}}
+{{- if .Values.headlessService.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "hafiz.fullname" . }}-headless
+  labels:
+    {{- include "hafiz.labels" . | nindent 4 }}
+  {{- with .Values.headlessService.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - port: {{ .Values.hafiz.s3.port }}
+      targetPort: s3
+      protocol: TCP
+      name: s3
+    {{- if .Values.hafiz.cluster.enabled }}
+    - port: {{ .Values.hafiz.cluster.gossipPort }}
+      targetPort: gossip
+      protocol: TCP
+      name: gossip
+    - port: {{ .Values.hafiz.cluster.syncPort }}
+      targetPort: sync
+      protocol: TCP
+      name: sync
+    {{- end }}
+  selector:
+    {{- include "hafiz.selectorLabels" . | nindent 4 }}
+{{- end }}
+---
+{{/* Admin API Service */}}
 {{- if .Values.adminService.enabled }}
 apiVersion: v1
 kind: Service
@@ -40,34 +84,29 @@ spec:
       targetPort: admin
       protocol: TCP
       name: admin
-      {{- if and (eq .Values.adminService.type "NodePort") .Values.adminService.nodePort }}
+      {{- if and .Values.adminService.nodePort (eq .Values.adminService.type "NodePort") }}
       nodePort: {{ .Values.adminService.nodePort }}
       {{- end }}
   selector:
     {{- include "hafiz.selectorLabels" . | nindent 4 }}
 {{- end }}
 ---
-{{- if .Values.cluster.enabled }}
-# Headless service for StatefulSet DNS
+{{/* Metrics Service (for ServiceMonitor) */}}
+{{- if .Values.metrics.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "hafiz.headlessServiceName" . }}
+  name: {{ include "hafiz.fullname" . }}-metrics
   labels:
     {{- include "hafiz.labels" . | nindent 4 }}
-    app.kubernetes.io/component: headless
+    app.kubernetes.io/component: metrics
 spec:
   type: ClusterIP
-  clusterIP: None
   ports:
-    - port: {{ .Values.server.port }}
-      targetPort: s3
+    - port: {{ .Values.metrics.port }}
+      targetPort: metrics
       protocol: TCP
-      name: s3
-    - port: {{ .Values.cluster.port }}
-      targetPort: cluster
-      protocol: TCP
-      name: cluster
+      name: metrics
   selector:
     {{- include "hafiz.selectorLabels" . | nindent 4 }}
 {{- end }}
