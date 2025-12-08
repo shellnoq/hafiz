@@ -198,7 +198,69 @@ impl MetadataStore {
         .await
         .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
-        info!("Metadata store initialized with versioning, tagging, lifecycle, policy, ACL, and notification support");
+        // Bucket CORS configuration table
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS bucket_cors (
+                bucket TEXT PRIMARY KEY,
+                cors_xml TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        // Bucket Object Lock configuration table
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS bucket_object_lock (
+                bucket TEXT PRIMARY KEY,
+                config_xml TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        // Object retention table
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS object_retention (
+                bucket TEXT NOT NULL,
+                key TEXT NOT NULL,
+                version_id TEXT NOT NULL DEFAULT '',
+                retention_xml TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                PRIMARY KEY (bucket, key, version_id)
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        // Object legal hold table
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS object_legal_hold (
+                bucket TEXT NOT NULL,
+                key TEXT NOT NULL,
+                version_id TEXT NOT NULL DEFAULT '',
+                hold_xml TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                PRIMARY KEY (bucket, key, version_id)
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        info!("Metadata store initialized with versioning, tagging, lifecycle, policy, ACL, notification, CORS, and Object Lock support");
         Ok(())
     }
 
@@ -1400,6 +1462,206 @@ impl MetadataStore {
 
         Ok(row.map(|r| r.0))
     }
+
+    // ============= CORS Operations =============
+
+    /// Store bucket CORS configuration XML
+    pub async fn put_bucket_cors(&self, bucket: &str, cors_xml: &str) -> Result<()> {
+        let now = Utc::now().to_rfc3339();
+        
+        sqlx::query(
+            r#"
+            INSERT INTO bucket_cors (bucket, cors_xml, updated_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(bucket) DO UPDATE SET cors_xml = ?, updated_at = ?
+            "#,
+        )
+        .bind(bucket)
+        .bind(cors_xml)
+        .bind(&now)
+        .bind(cors_xml)
+        .bind(&now)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        debug!("Stored bucket CORS config for: {}", bucket);
+        Ok(())
+    }
+
+    /// Get bucket CORS configuration XML
+    pub async fn get_bucket_cors(&self, bucket: &str) -> Result<Option<String>> {
+        let row: Option<(String,)> = sqlx::query_as(
+            r#"SELECT cors_xml FROM bucket_cors WHERE bucket = ?"#,
+        )
+        .bind(bucket)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        Ok(row.map(|r| r.0))
+    }
+
+    /// Delete bucket CORS configuration
+    pub async fn delete_bucket_cors(&self, bucket: &str) -> Result<()> {
+        sqlx::query(r#"DELETE FROM bucket_cors WHERE bucket = ?"#)
+            .bind(bucket)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        debug!("Deleted bucket CORS config for: {}", bucket);
+        Ok(())
+    }
+
+    // ============= Object Lock Operations =============
+
+    /// Store bucket Object Lock configuration
+    pub async fn put_bucket_object_lock_config(&self, bucket: &str, config_xml: &str) -> Result<()> {
+        let now = Utc::now().to_rfc3339();
+        
+        sqlx::query(
+            r#"
+            INSERT INTO bucket_object_lock (bucket, config_xml, updated_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(bucket) DO UPDATE SET config_xml = ?, updated_at = ?
+            "#,
+        )
+        .bind(bucket)
+        .bind(config_xml)
+        .bind(&now)
+        .bind(config_xml)
+        .bind(&now)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        debug!("Stored bucket Object Lock config for: {}", bucket);
+        Ok(())
+    }
+
+    /// Get bucket Object Lock configuration
+    pub async fn get_bucket_object_lock_config(&self, bucket: &str) -> Result<Option<String>> {
+        let row: Option<(String,)> = sqlx::query_as(
+            r#"SELECT config_xml FROM bucket_object_lock WHERE bucket = ?"#,
+        )
+        .bind(bucket)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        Ok(row.map(|r| r.0))
+    }
+
+    /// Store object retention
+    pub async fn put_object_retention(
+        &self,
+        bucket: &str,
+        key: &str,
+        version_id: Option<&str>,
+        retention_xml: &str,
+    ) -> Result<()> {
+        let now = Utc::now().to_rfc3339();
+        let vid = version_id.unwrap_or("");
+        
+        sqlx::query(
+            r#"
+            INSERT INTO object_retention (bucket, key, version_id, retention_xml, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(bucket, key, version_id) DO UPDATE SET retention_xml = ?, updated_at = ?
+            "#,
+        )
+        .bind(bucket)
+        .bind(key)
+        .bind(vid)
+        .bind(retention_xml)
+        .bind(&now)
+        .bind(retention_xml)
+        .bind(&now)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        debug!("Stored object retention for: {}/{}", bucket, key);
+        Ok(())
+    }
+
+    /// Get object retention
+    pub async fn get_object_retention(
+        &self,
+        bucket: &str,
+        key: &str,
+        version_id: Option<&str>,
+    ) -> Result<Option<String>> {
+        let vid = version_id.unwrap_or("");
+        
+        let row: Option<(String,)> = sqlx::query_as(
+            r#"SELECT retention_xml FROM object_retention WHERE bucket = ? AND key = ? AND version_id = ?"#,
+        )
+        .bind(bucket)
+        .bind(key)
+        .bind(vid)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        Ok(row.map(|r| r.0))
+    }
+
+    /// Store object legal hold
+    pub async fn put_object_legal_hold(
+        &self,
+        bucket: &str,
+        key: &str,
+        version_id: Option<&str>,
+        hold_xml: &str,
+    ) -> Result<()> {
+        let now = Utc::now().to_rfc3339();
+        let vid = version_id.unwrap_or("");
+        
+        sqlx::query(
+            r#"
+            INSERT INTO object_legal_hold (bucket, key, version_id, hold_xml, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(bucket, key, version_id) DO UPDATE SET hold_xml = ?, updated_at = ?
+            "#,
+        )
+        .bind(bucket)
+        .bind(key)
+        .bind(vid)
+        .bind(hold_xml)
+        .bind(&now)
+        .bind(hold_xml)
+        .bind(&now)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        debug!("Stored object legal hold for: {}/{}", bucket, key);
+        Ok(())
+    }
+
+    /// Get object legal hold
+    pub async fn get_object_legal_hold(
+        &self,
+        bucket: &str,
+        key: &str,
+        version_id: Option<&str>,
+    ) -> Result<Option<String>> {
+        let vid = version_id.unwrap_or("");
+        
+        let row: Option<(String,)> = sqlx::query_as(
+            r#"SELECT hold_xml FROM object_legal_hold WHERE bucket = ? AND key = ? AND version_id = ?"#,
+        )
+        .bind(bucket)
+        .bind(key)
+        .bind(vid)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        Ok(row.map(|r| r.0))
+    }
 }
 
 // ============= Credentials Operations for Admin API =============
@@ -1959,5 +2221,45 @@ impl MetadataRepository for MetadataStore {
 
     async fn get_bucket_notification(&self, bucket: &str) -> Result<Option<String>> {
         MetadataStore::get_bucket_notification(self, bucket).await
+    }
+
+    // ============= CORS Operations =============
+
+    async fn put_bucket_cors(&self, bucket: &str, cors_xml: &str) -> Result<()> {
+        MetadataStore::put_bucket_cors(self, bucket, cors_xml).await
+    }
+
+    async fn get_bucket_cors(&self, bucket: &str) -> Result<Option<String>> {
+        MetadataStore::get_bucket_cors(self, bucket).await
+    }
+
+    async fn delete_bucket_cors(&self, bucket: &str) -> Result<()> {
+        MetadataStore::delete_bucket_cors(self, bucket).await
+    }
+
+    // ============= Object Lock Operations =============
+
+    async fn put_bucket_object_lock_config(&self, bucket: &str, config_xml: &str) -> Result<()> {
+        MetadataStore::put_bucket_object_lock_config(self, bucket, config_xml).await
+    }
+
+    async fn get_bucket_object_lock_config(&self, bucket: &str) -> Result<Option<String>> {
+        MetadataStore::get_bucket_object_lock_config(self, bucket).await
+    }
+
+    async fn put_object_retention(&self, bucket: &str, key: &str, version_id: Option<&str>, retention_xml: &str) -> Result<()> {
+        MetadataStore::put_object_retention(self, bucket, key, version_id, retention_xml).await
+    }
+
+    async fn get_object_retention(&self, bucket: &str, key: &str, version_id: Option<&str>) -> Result<Option<String>> {
+        MetadataStore::get_object_retention(self, bucket, key, version_id).await
+    }
+
+    async fn put_object_legal_hold(&self, bucket: &str, key: &str, version_id: Option<&str>, hold_xml: &str) -> Result<()> {
+        MetadataStore::put_object_legal_hold(self, bucket, key, version_id, hold_xml).await
+    }
+
+    async fn get_object_legal_hold(&self, bucket: &str, key: &str, version_id: Option<&str>) -> Result<Option<String>> {
+        MetadataStore::get_object_legal_hold(self, bucket, key, version_id).await
     }
 }

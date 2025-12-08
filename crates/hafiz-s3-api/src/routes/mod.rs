@@ -1,7 +1,12 @@
 //! S3 API Routes
 
+mod cors;
 mod notification;
+mod object_lock;
 mod policy;
+
+pub use cors::{handle_cors_preflight, add_cors_headers_to_response, is_origin_allowed};
+pub use object_lock::{can_delete_object, get_lock_error_message};
 
 use axum::{
     body::Body,
@@ -99,6 +104,16 @@ pub async fn bucket_get_handler(
         return notification::get_bucket_notification(state, path).await.into_response();
     }
     
+    // Check if this is a get bucket CORS request
+    if query_str == "cors" || query_str.starts_with("cors&") {
+        return cors::get_bucket_cors(state, path).await.into_response();
+    }
+    
+    // Check if this is a get bucket Object Lock request
+    if query_str == "object-lock" || query_str.starts_with("object-lock&") {
+        return object_lock::get_bucket_object_lock_config(state, path).await.into_response();
+    }
+    
     // Check if this is a list object versions request
     if query_str.contains("versions") {
         let params: ListObjectVersionsQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
@@ -151,6 +166,16 @@ pub async fn bucket_put_handler(
         return notification::put_bucket_notification(state, path, body).await.into_response();
     }
     
+    // Check if this is a put bucket CORS request
+    if query_str == "cors" || query_str.starts_with("cors&") {
+        return cors::put_bucket_cors(state, path, body).await.into_response();
+    }
+    
+    // Check if this is a put bucket Object Lock request
+    if query_str == "object-lock" || query_str.starts_with("object-lock&") {
+        return object_lock::put_bucket_object_lock_config(state, path, body).await.into_response();
+    }
+    
     // Default: CreateBucket
     create_bucket(state, path).await.into_response()
 }
@@ -171,6 +196,11 @@ pub async fn bucket_delete_handler(
     // Check if this is a delete bucket policy request
     if query_str == "policy" || query_str.starts_with("policy&") {
         return policy::delete_bucket_policy(state, path).await.into_response();
+    }
+    
+    // Check if this is a delete bucket CORS request
+    if query_str == "cors" || query_str.starts_with("cors&") {
+        return cors::delete_bucket_cors(state, path).await.into_response();
     }
     
     // Default: DeleteBucket
@@ -221,6 +251,18 @@ pub async fn object_get_handler(
         return policy::get_object_acl(state, path, version_id).await.into_response();
     }
     
+    // Check if this is a get object retention request
+    if query_str == "retention" || query_str.starts_with("retention&") || query_str.contains("&retention") {
+        let query: object_lock::RetentionQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
+        return object_lock::get_object_retention(state, path, Query(query)).await.into_response();
+    }
+    
+    // Check if this is a get object legal hold request
+    if query_str == "legal-hold" || query_str.starts_with("legal-hold&") || query_str.contains("&legal-hold") {
+        let query: object_lock::RetentionQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
+        return object_lock::get_object_legal_hold(state, path, Query(query)).await.into_response();
+    }
+    
     // Check if this is a list parts request
     if query_str.contains("uploadId") && !query_str.contains("partNumber") {
         let params: ListPartsQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
@@ -259,7 +301,19 @@ pub async fn object_put_handler(
         let version_id: Option<String> = serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
             .ok()
             .and_then(|m| m.get("versionId").cloned());
-        return policy::put_object_acl(state, path, headers, version_id, body).await.into_response();
+        return policy::put_object_acl(state, path, headers.clone(), version_id, body).await.into_response();
+    }
+    
+    // Check if this is a put object retention request
+    if query_str == "retention" || query_str.starts_with("retention&") || query_str.contains("&retention") {
+        let query: object_lock::RetentionQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
+        return object_lock::put_object_retention(state, path, headers, Query(query), body).await.into_response();
+    }
+    
+    // Check if this is a put object legal hold request
+    if query_str == "legal-hold" || query_str.starts_with("legal-hold&") || query_str.contains("&legal-hold") {
+        let query: object_lock::RetentionQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
+        return object_lock::put_object_legal_hold(state, path, Query(query), body).await.into_response();
     }
     
     // Check if this is an upload part request

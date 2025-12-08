@@ -152,4 +152,35 @@ pub trait MetadataRepository: Send + Sync {
     
     /// Get bucket notification configuration JSON
     async fn get_bucket_notification(&self, bucket: &str) -> Result<Option<String>>;
+
+    // ============= CORS Operations =============
+    
+    /// Store bucket CORS configuration XML
+    async fn put_bucket_cors(&self, bucket: &str, cors_xml: &str) -> Result<()>;
+    
+    /// Get bucket CORS configuration XML
+    async fn get_bucket_cors(&self, bucket: &str) -> Result<Option<String>>;
+    
+    /// Delete bucket CORS configuration
+    async fn delete_bucket_cors(&self, bucket: &str) -> Result<()>;
+
+    // ============= Object Lock Operations =============
+    
+    /// Store bucket Object Lock configuration XML
+    async fn put_bucket_object_lock_config(&self, bucket: &str, config_xml: &str) -> Result<()>;
+    
+    /// Get bucket Object Lock configuration XML
+    async fn get_bucket_object_lock_config(&self, bucket: &str) -> Result<Option<String>>;
+    
+    /// Store object retention XML
+    async fn put_object_retention(&self, bucket: &str, key: &str, version_id: Option<&str>, retention_xml: &str) -> Result<()>;
+    
+    /// Get object retention XML
+    async fn get_object_retention(&self, bucket: &str, key: &str, version_id: Option<&str>) -> Result<Option<String>>;
+    
+    /// Store object legal hold XML
+    async fn put_object_legal_hold(&self, bucket: &str, key: &str, version_id: Option<&str>, hold_xml: &str) -> Result<()>;
+    
+    /// Get object legal hold XML
+    async fn get_object_legal_hold(&self, bucket: &str, key: &str, version_id: Option<&str>) -> Result<Option<String>>;
 }

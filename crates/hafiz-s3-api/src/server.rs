@@ -2,7 +2,7 @@
 
 use axum::{
     middleware,
-    routing::{delete, get, head, post, put},
+    routing::{delete, get, head, options, post, put},
     Router,
 };
 use hyper_util::rt::{TokioExecutor, TokioIo};
@@ -13,10 +13,7 @@ use std::sync::Arc;
 use std::time::Instant;
 use tokio::net::TcpListener;
 use tower::Service;
-use tower_http::{
-    cors::CorsLayer,
-    trace::{DefaultMakeSpan, TraceLayer},
-};
+use tower_http::trace::{DefaultMakeSpan, TraceLayer};
 use tower_service::Service as _;
 use tracing::{error, info, warn};
 
@@ -194,6 +191,7 @@ impl S3Server {
             .route("/:bucket", put(routes::bucket_put_handler))  // CreateBucket, PutBucketVersioning, or PutBucketLifecycle
             .route("/:bucket", delete(routes::bucket_delete_handler)) // DeleteBucket or DeleteBucketLifecycle
             .route("/:bucket", post(routes::bucket_post_handler)) // DeleteObjects
+            .route("/:bucket", options(routes::handle_cors_preflight)) // CORS preflight for bucket
             
             // Object operations (including multipart, versioning, and tagging)
             .route("/:bucket/*key", head(routes::head_object))
@@ -201,6 +199,7 @@ impl S3Server {
             .route("/:bucket/*key", put(routes::object_put_handler))   // PutObject, CopyObject, UploadPart, or PutObjectTagging
             .route("/:bucket/*key", delete(routes::object_delete_handler)) // DeleteObject, AbortMultipart, or DeleteObjectTagging
             .route("/:bucket/*key", post(routes::object_post_handler)) // CreateMultipart or CompleteMultipart
+            .route("/:bucket/*key", options(routes::handle_cors_preflight)) // CORS preflight for object
             
             // Metrics middleware for S3 routes
             .layer(middleware::from_fn_with_state(metrics.clone(), metrics_middleware))
@@ -208,7 +207,7 @@ impl S3Server {
                 TraceLayer::new_for_http()
                     .make_span_with(DefaultMakeSpan::default().include_headers(true)),
             )
-            .layer(CorsLayer::permissive())
+            // Note: S3-specific CORS is handled by bucket configuration, not tower-http CorsLayer
             .with_state(state)
     }
 }
