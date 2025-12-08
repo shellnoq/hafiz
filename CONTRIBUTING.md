@@ -1,34 +1,39 @@
 # Contributing to Hafiz
 
-Thank you for your interest in contributing to Hafiz! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to Hafiz! This guide will help you get started.
 
 ## Code of Conduct
 
-Please be respectful and constructive in all interactions. We aim to maintain a welcoming environment for all contributors.
+Please be respectful and constructive in all interactions. We're building something great together.
 
 ## Getting Started
 
 ### Prerequisites
 
 - Rust 1.75 or later
-- Git
+- PostgreSQL 13+ (for integration tests)
 - Docker (optional, for testing)
+- Git
 
-### Development Setup
+### Setup Development Environment
 
 ```bash
 # Clone the repository
-git clone https://github.com/hafiz/hafiz.git
+git clone https://github.com/shellnoq/hafiz.git
 cd hafiz
 
-# Build the project
+# Install Rust (if needed)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Build
 cargo build
 
 # Run tests
 cargo test
 
-# Run with debug logging
-RUST_LOG=debug cargo run -- server
+# Run with hot reload (requires cargo-watch)
+cargo install cargo-watch
+cargo watch -x run
 ```
 
 ### Project Structure
@@ -36,213 +41,133 @@ RUST_LOG=debug cargo run -- server
 ```
 hafiz/
 ├── crates/
-│   ├── hafiz-core/        # Core types and configuration
-│   ├── hafiz-storage/     # Storage backend
-│   ├── hafiz-metadata/    # Database operations
-│   ├── hafiz-crypto/      # Encryption
-│   ├── hafiz-auth/        # Authentication and authorization
-│   ├── hafiz-s3-api/      # S3 REST API
-│   ├── hafiz-cluster/     # Distributed clustering
-│   ├── hafiz-admin/       # Admin UI (WebAssembly)
-│   └── hafiz-cli/         # Command-line tool
-├── deploy/                # Deployment configurations
-├── docs/                  # Documentation
-└── tests/                 # Integration tests
+│   ├── hafiz-core/       # Core types and utilities
+│   ├── hafiz-s3-api/     # S3 API routes
+│   ├── hafiz-storage/    # Storage backends
+│   ├── hafiz-metadata/   # Database layer
+│   ├── hafiz-auth/       # Authentication
+│   ├── hafiz-crypto/     # Encryption
+│   ├── hafiz-cluster/    # Clustering
+│   ├── hafiz-admin/      # Admin API
+│   └── hafiz-cli/        # CLI tool
+├── deploy/               # Deployment configs
+├── docs/                 # Documentation
+└── tests/                # Integration tests
 ```
 
 ## How to Contribute
 
 ### Reporting Bugs
 
-1. Check existing issues to avoid duplicates
+1. Check [existing issues](https://github.com/shellnoq/hafiz/issues)
 2. Create a new issue with:
-   - Clear title and description
+   - Clear title
    - Steps to reproduce
    - Expected vs actual behavior
-   - Environment details (OS, Rust version, etc.)
+   - Version and environment info
 
 ### Suggesting Features
 
-1. Check existing issues and discussions
-2. Create a feature request with:
+1. Check [existing discussions](https://github.com/shellnoq/hafiz/discussions)
+2. Open a new discussion with:
    - Use case description
    - Proposed solution
    - Alternatives considered
 
-### Submitting Code
+### Pull Requests
 
 1. **Fork** the repository
-2. **Create a branch** for your feature/fix:
-   ```bash
-   git checkout -b feature/my-feature
-   ```
-3. **Make your changes** following our coding standards
-4. **Write tests** for your changes
-5. **Run the test suite**:
-   ```bash
-   cargo test
-   cargo clippy
-   cargo fmt --check
-   ```
-6. **Commit** with clear messages:
-   ```bash
-   git commit -m "feat: add support for X"
-   ```
-7. **Push** to your fork and create a Pull Request
+2. **Create a branch**: `git checkout -b feature/my-feature`
+3. **Make changes** with tests
+4. **Run checks**: `cargo fmt && cargo clippy && cargo test`
+5. **Commit**: Use [conventional commits](https://www.conventionalcommits.org/)
+6. **Push**: `git push origin feature/my-feature`
+7. **Open PR**: Against `main` branch
+
+## Development Guidelines
+
+### Code Style
+
+```bash
+# Format code
+cargo fmt
+
+# Lint
+cargo clippy -- -D warnings
+```
 
 ### Commit Messages
 
-We follow [Conventional Commits](https://www.conventionalcommits.org/):
+Follow conventional commits:
 
-- `feat:` - New features
-- `fix:` - Bug fixes
-- `docs:` - Documentation changes
-- `refactor:` - Code refactoring
-- `test:` - Test additions/changes
-- `chore:` - Maintenance tasks
-
-Examples:
 ```
-feat: add support for S3 Select queries
-fix: handle empty multipart uploads correctly
-docs: update API documentation for versioning
-refactor: simplify bucket policy evaluation
-test: add integration tests for lifecycle rules
+feat: add bucket tagging support
+fix: handle empty prefix in list objects
+docs: update API reference
+test: add versioning tests
+refactor: simplify auth middleware
 ```
-
-## Coding Standards
-
-### Rust Style
-
-- Follow the [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/)
-- Use `cargo fmt` for formatting
-- Use `cargo clippy` for linting
-- Document public APIs with doc comments
-
-### Code Organization
-
-- Keep functions focused and small
-- Use meaningful variable and function names
-- Add comments for complex logic
-- Prefer composition over inheritance
-
-### Error Handling
-
-- Use `anyhow::Result` for application errors
-- Use `thiserror` for library errors
-- Provide meaningful error messages
-- Log errors at appropriate levels
 
 ### Testing
 
-- Write unit tests for core logic
-- Write integration tests for API endpoints
-- Use descriptive test names
-- Test edge cases and error conditions
-
-Example:
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_bucket_name_validation_accepts_valid_names() {
-        assert!(is_valid_bucket_name("my-bucket"));
-        assert!(is_valid_bucket_name("bucket.name.with.dots"));
-    }
-
-    #[test]
-    fn test_bucket_name_validation_rejects_invalid_names() {
-        assert!(!is_valid_bucket_name(""));
-        assert!(!is_valid_bucket_name("ab")); // too short
-        assert!(!is_valid_bucket_name("Uppercase")); // no uppercase
-    }
-}
-```
-
-## Pull Request Process
-
-1. **Description**: Clearly describe what the PR does
-2. **Tests**: Ensure all tests pass
-3. **Documentation**: Update docs if needed
-4. **Review**: Address reviewer feedback
-5. **Merge**: Maintainers will merge approved PRs
-
-### PR Template
-
-```markdown
-## Description
-Brief description of changes
-
-## Type of Change
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Breaking change
-- [ ] Documentation update
-
-## Testing
-How were these changes tested?
-
-## Checklist
-- [ ] Tests pass locally
-- [ ] Code follows style guidelines
-- [ ] Documentation updated
-- [ ] No new warnings
-```
-
-## Development Tips
-
-### Running Specific Tests
-
 ```bash
-# Run tests for a specific crate
+# Unit tests
+cargo test
+
+# Integration tests (requires PostgreSQL)
+cargo test --features integration
+
+# Test specific crate
 cargo test -p hafiz-s3-api
 
-# Run a specific test
-cargo test test_bucket_creation
-
-# Run with output
-cargo test -- --nocapture
+# Test with coverage (requires cargo-tarpaulin)
+cargo tarpaulin --out Html
 ```
 
-### Debugging
+### Documentation
 
 ```bash
-# Enable debug logging
-RUST_LOG=debug cargo run -- server
+# Generate docs
+cargo doc --no-deps --open
 
-# Enable trace logging for specific module
-RUST_LOG=hafiz_s3_api=trace cargo run -- server
+# Check doc comments
+cargo doc --no-deps 2>&1 | grep warning
 ```
 
-### Testing with AWS CLI
+## Pull Request Checklist
 
-```bash
-# Start the server
-cargo run -- server
+- [ ] Code compiles without warnings
+- [ ] All tests pass
+- [ ] New code has tests
+- [ ] Documentation updated
+- [ ] Changelog entry added
+- [ ] Commit messages follow convention
 
-# In another terminal, configure AWS CLI
-aws configure set aws_access_key_id minioadmin
-aws configure set aws_secret_access_key minioadmin
+## Architecture Decisions
 
-# Test operations
-aws --endpoint-url http://localhost:9000 s3 mb s3://test
-aws --endpoint-url http://localhost:9000 s3 cp README.md s3://test/
-aws --endpoint-url http://localhost:9000 s3 ls s3://test/
-```
+When proposing significant changes:
+
+1. Open a discussion first
+2. Write an ADR (Architecture Decision Record) if needed
+3. Get feedback before implementation
+
+## Release Process
+
+1. Update version in `Cargo.toml`
+2. Update `CHANGELOG.md`
+3. Create release PR
+4. After merge, tag release: `git tag v0.1.0`
+5. GitHub Actions builds and publishes
 
 ## Getting Help
 
-- **Documentation**: Check the [docs](docs/) folder
-- **Issues**: Search existing issues
-- **Discussions**: Use GitHub Discussions for questions
+- 💬 [GitHub Discussions](https://github.com/shellnoq/hafiz/discussions)
+- 🐛 [Issue Tracker](https://github.com/shellnoq/hafiz/issues)
 
-## Recognition
+## License
 
-Contributors are recognized in:
-- Git commit history
-- Release notes
-- Contributors list
+By contributing, you agree that your contributions will be licensed under the Apache License 2.0.
 
-Thank you for contributing to Hafiz! 🎉
+---
+
+Thank you for contributing! 🚀

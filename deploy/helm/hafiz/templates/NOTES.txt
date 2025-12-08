@@ -104,9 +104,9 @@
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📚 Documentation:
-   https://github.com/yourorg/hafiz
+   https://github.com/shellnoq/hafiz
 
 🐛 Report Issues:
-   https://github.com/yourorg/hafiz/issues
+   https://github.com/shellnoq/hafiz/issues
 
 Thank you for using Hafiz! 🚀

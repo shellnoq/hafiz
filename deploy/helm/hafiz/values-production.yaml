@@ -4,7 +4,7 @@
 replicaCount: 5
 
 image:
-  repository: ghcr.io/yourorg/hafiz
+  repository: ghcr.io/shellnoq/hafiz
   tag: "0.1.0"
   pullPolicy: IfNotPresent
 

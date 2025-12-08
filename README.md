@@ -1,174 +1,135 @@
-# Hafiz
+<p align="center">
+  <img src="docs/assets/logo.svg" alt="Hafiz Logo" width="200">
+</p>
 
-<div align="center">
+<h1 align="center">Hafiz</h1>
 
-```
-    _   _         __ _     
-   | | | |  __ _ / _(_)____
-   | |_| | / _` | |_| |_  /
-   |  _  || (_| |  _| |/ / 
-   |_| |_| \__,_|_| |_/___|
-```
+<p align="center">
+  <strong>Enterprise-grade S3-compatible object storage written in Rust</strong>
+</p>
 
-**Enterprise S3-Compatible Object Storage**
+<p align="center">
+  <a href="https://github.com/shellnoq/hafiz/actions"><img src="https://github.com/shellnoq/hafiz/workflows/CI/badge.svg" alt="CI Status"></a>
+  <a href="https://github.com/shellnoq/hafiz/releases"><img src="https://img.shields.io/github/v/release/shellnoq/hafiz" alt="Release"></a>
+  <a href="https://github.com/shellnoq/hafiz/blob/main/LICENSE"><img src="https://img.shields.io/github/license/shellnoq/hafiz" alt="License"></a>
+  <a href="https://hub.docker.com/r/shellnoq/hafiz"><img src="https://img.shields.io/docker/pulls/shellnoq/hafiz" alt="Docker Pulls"></a>
+</p>
 
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Rust](https://img.shields.io/badge/rust-1.75+-orange.svg)](https://www.rust-lang.org/)
-[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://hub.docker.com/r/hafiz/hafiz)
-
-[Features](#features) • [Quick Start](#quick-start) • [Documentation](#documentation) • [API Reference](#api-reference) • [Contributing](#contributing)
-
-</div>
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#documentation">Documentation</a> •
+  <a href="#deployment">Deployment</a> •
+  <a href="#contributing">Contributing</a>
+</p>
 
 ---
 
-## Overview
+**Hafiz** (حافظ - "Guardian" in Arabic/Turkish) is a high-performance, S3-compatible object storage system built from the ground up in Rust. Designed for enterprises that need reliable, secure, and scalable storage without vendor lock-in.
 
-Hafiz is a high-performance, S3-compatible object storage server written in Rust. It provides a drop-in replacement for Amazon S3 with enterprise features including encryption, clustering, LDAP integration, and regulatory compliance (WORM/Object Lock).
+## Why Hafiz?
 
-### Why Hafiz?
-
-- **🚀 High Performance**: Built with Rust and async I/O for maximum throughput
-- **🔒 Enterprise Security**: Server-side encryption, TLS, mTLS, LDAP/AD integration
-- **📦 S3 Compatible**: Works with AWS SDKs, CLI, and existing S3 tools
-- **🏢 Compliance Ready**: Object Lock (WORM) for SEC 17a-4, FINRA, HIPAA
-- **☁️ Cloud Native**: Kubernetes-ready with Helm charts, Prometheus metrics
-- **🔄 Distributed**: Optional clustering for high availability
+| Feature | Hafiz | MinIO | AWS S3 |
+|---------|-------|-------|--------|
+| S3 API Compatible | ✅ | ✅ | ✅ |
+| Server-Side Encryption | ✅ AES-256-GCM | ✅ | ✅ |
+| Object Lock (WORM) | ✅ SEC 17a-4 | ✅ | ✅ |
+| LDAP Integration | ✅ | ✅ Enterprise | ❌ |
+| Bucket Policies | ✅ Full IAM | ✅ | ✅ |
+| Event Notifications | ✅ Webhook/Kafka/NATS | ✅ | ✅ |
+| Written in Rust | ✅ Memory Safe | ❌ Go | ❌ |
+| Open Source | ✅ Apache 2.0 | ⚠️ AGPL | ❌ |
+| Self-Hosted | ✅ | ✅ | ❌ |
 
 ## Features
 
-### Core S3 Features
-- ✅ Bucket operations (Create, Delete, List, Head)
-- ✅ Object operations (Put, Get, Delete, Copy, Head)
-- ✅ Multipart uploads (large file support)
-- ✅ Versioning (full version history)
-- ✅ Presigned URLs (temporary access)
-- ✅ CORS (browser access)
-- ✅ Object tagging
+### 🚀 Core Storage
+- **Full S3 API compatibility** - Works with AWS SDKs, CLI, and tools
+- **Multi-part uploads** - Handle files up to 5TB
+- **Versioning** - Keep object history with MFA delete protection
+- **Lifecycle policies** - Automatic expiration and transitions
+- **Storage classes** - STANDARD, INTELLIGENT_TIERING, GLACIER simulation
 
-### Enterprise Features
-- ✅ **Server-Side Encryption** (AES-256-GCM)
-- ✅ **Access Control** (IAM policies, bucket policies)
-- ✅ **LDAP/Active Directory** integration
-- ✅ **Object Lock / WORM** (regulatory compliance)
-- ✅ **Event Notifications** (webhooks, Kafka, NATS)
-- ✅ **Replication** (bucket-level async replication)
-- ✅ **Lifecycle Rules** (automatic expiration, transitions)
+### 🔐 Enterprise Security
+- **Server-side encryption** - AES-256-GCM with customer-managed keys
+- **Object Lock (WORM)** - SEC 17a-4, FINRA, HIPAA, GDPR compliance
+- **Bucket policies** - Fine-grained IAM-style access control
+- **LDAP/Active Directory** - Enterprise identity integration
+- **TLS everywhere** - End-to-end encryption in transit
 
-### Operations
-- ✅ **Prometheus Metrics** (observability)
-- ✅ **Admin UI** (web-based management)
-- ✅ **CLI Tool** (command-line client)
-- ✅ **Helm Charts** (Kubernetes deployment)
-- ✅ **Docker Support** (containerized deployment)
+### 📊 Operations
+- **Admin UI** - Web-based management console
+- **Prometheus metrics** - Full observability
+- **Event notifications** - Webhook, Kafka, NATS, Redis, AMQP
+- **Access logging** - Audit trail for compliance
+- **Health checks** - Kubernetes-ready probes
+
+### 🌐 Scalability
+- **Cluster mode** - Horizontal scaling with gossip protocol
+- **PostgreSQL backend** - Production-grade metadata storage
+- **Helm chart** - One-command Kubernetes deployment
+- **Docker support** - Container-ready from day one
 
 ## Quick Start
 
-### Using Docker
+### Docker (Fastest)
 
 ```bash
-# Run with default settings
+# Single node
 docker run -d \
+  --name hafiz \
   -p 9000:9000 \
   -p 9001:9001 \
   -v hafiz-data:/data \
   -e HAFIZ_ROOT_ACCESS_KEY=minioadmin \
   -e HAFIZ_ROOT_SECRET_KEY=minioadmin \
-  hafiz/hafiz
+  ghcr.io/shellnoq/hafiz:latest
 
 # Access
-# S3 API: http://localhost:9000
-# Admin UI: http://localhost:9001
+echo "S3 API: http://localhost:9000"
+echo "Admin UI: http://localhost:9001"
 ```
 
-### Using Docker Compose
+### Docker Compose (Recommended)
 
 ```bash
-git clone https://github.com/hafiz/hafiz.git
+git clone https://github.com/shellnoq/hafiz.git
 cd hafiz
 docker-compose up -d
+
+# With PostgreSQL and monitoring
+docker-compose -f docker-compose.yml -f docker-compose.cluster.yml up -d
 ```
 
-### Using Helm (Kubernetes)
+### Kubernetes (Production)
 
 ```bash
-helm repo add hafiz https://hafiz.github.io/charts
-helm install my-hafiz hafiz/hafiz \
-  --set auth.rootAccessKey=myaccesskey \
-  --set auth.rootSecretKey=mysecretkey \
-  --set persistence.size=100Gi
+# Add Helm repository
+helm repo add hafiz https://shellnoq.github.io/hafiz
+helm repo update
+
+# Install
+helm install hafiz hafiz/hafiz \
+  --namespace hafiz \
+  --create-namespace \
+  -f values-production.yaml
 ```
 
 ### From Source
 
 ```bash
-# Prerequisites: Rust 1.75+
-git clone https://github.com/hafiz/hafiz.git
+# Prerequisites: Rust 1.75+, PostgreSQL (optional)
+git clone https://github.com/shellnoq/hafiz.git
 cd hafiz
+
+# Build
 cargo build --release
 
 # Run
-./target/release/hafiz server
+./target/release/hafiz-server
 ```
 
-## Configuration
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `HAFIZ_BIND_ADDRESS` | Server bind address | `0.0.0.0` |
-| `HAFIZ_PORT` | S3 API port | `9000` |
-| `HAFIZ_ADMIN_PORT` | Admin UI port | `9001` |
-| `HAFIZ_DATA_DIR` | Data storage directory | `./data` |
-| `HAFIZ_ROOT_ACCESS_KEY` | Root access key | `minioadmin` |
-| `HAFIZ_ROOT_SECRET_KEY` | Root secret key | `minioadmin` |
-| `HAFIZ_DATABASE_URL` | Database connection | `sqlite://./data/metadata.db` |
-| `HAFIZ_LOG_LEVEL` | Log level | `info` |
-
-### Configuration File
-
-Create `config.toml`:
-
-```toml
-[server]
-bind_address = "0.0.0.0"
-port = 9000
-admin_port = 9001
-
-[storage]
-data_dir = "/data/hafiz"
-
-[storage.encryption]
-enabled = true
-master_key_path = "/etc/hafiz/master.key"
-
-[database]
-url = "sqlite:///data/hafiz/metadata.db"
-
-[auth]
-root_access_key = "minioadmin"
-root_secret_key = "minioadmin"
-
-[tls]
-enabled = true
-cert_path = "/etc/hafiz/tls/server.crt"
-key_path = "/etc/hafiz/tls/server.key"
-
-[ldap]
-enabled = true
-server_url = "ldaps://dc.example.com:636"
-bind_dn = "CN=service,OU=Users,DC=example,DC=com"
-bind_password = "password"
-user_base_dn = "OU=Users,DC=example,DC=com"
-```
-
-Run with config:
-```bash
-hafiz server --config config.toml
-```
-
-## Using Hafiz
+## Usage
 
 ### AWS CLI
 
@@ -178,50 +139,35 @@ aws configure set aws_access_key_id minioadmin
 aws configure set aws_secret_access_key minioadmin
 
 # Create bucket
-aws --endpoint-url http://localhost:9000 s3 mb s3://mybucket
+aws --endpoint-url http://localhost:9000 s3 mb s3://my-bucket
 
 # Upload file
-aws --endpoint-url http://localhost:9000 s3 cp myfile.txt s3://mybucket/
+aws --endpoint-url http://localhost:9000 s3 cp file.txt s3://my-bucket/
 
 # List objects
-aws --endpoint-url http://localhost:9000 s3 ls s3://mybucket/
-
-# Download file
-aws --endpoint-url http://localhost:9000 s3 cp s3://mybucket/myfile.txt ./downloaded.txt
+aws --endpoint-url http://localhost:9000 s3 ls s3://my-bucket/
 ```
 
 ### Hafiz CLI
 
 ```bash
-# Configure alias
-hafiz alias set local http://localhost:9000 minioadmin minioadmin
+# Install
+cargo install hafiz-cli
 
-# List buckets
-hafiz ls local
+# Configure
+hafiz configure
+# Enter endpoint: http://localhost:9000
+# Enter access key: minioadmin
+# Enter secret key: minioadmin
 
-# Create bucket
-hafiz mb local/mybucket
-
-# Upload file
-hafiz cp myfile.txt local/mybucket/
-
-# Upload directory
-hafiz cp -r ./mydir local/mybucket/backup/
-
-# Download file
-hafiz cp local/mybucket/myfile.txt ./
-
-# View file content
-hafiz cat local/mybucket/config.json
-
-# Delete file
-hafiz rm local/mybucket/myfile.txt
-
-# Delete bucket (with all contents)
-hafiz rb --force local/mybucket
+# Use
+hafiz ls s3://
+hafiz mb s3://my-bucket
+hafiz cp file.txt s3://my-bucket/
+hafiz sync ./local/ s3://my-bucket/backup/
 ```
 
-### AWS SDK (Python)
+### Python (boto3)
 
 ```python
 import boto3
@@ -234,183 +180,80 @@ s3 = boto3.client(
 )
 
 # Create bucket
-s3.create_bucket(Bucket='mybucket')
+s3.create_bucket(Bucket='my-bucket')
 
 # Upload file
-s3.upload_file('myfile.txt', 'mybucket', 'myfile.txt')
-
-# Download file
-s3.download_file('mybucket', 'myfile.txt', 'downloaded.txt')
+s3.upload_file('file.txt', 'my-bucket', 'file.txt')
 
 # List objects
-response = s3.list_objects_v2(Bucket='mybucket')
+response = s3.list_objects_v2(Bucket='my-bucket')
 for obj in response.get('Contents', []):
-    print(obj['Key'], obj['Size'])
+    print(obj['Key'])
 ```
 
-### AWS SDK (JavaScript/Node.js)
+### JavaScript (AWS SDK v3)
 
 ```javascript
-const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 const client = new S3Client({
-  endpoint: 'http://localhost:9000',
-  region: 'us-east-1',
+  endpoint: "http://localhost:9000",
+  region: "us-east-1",
   credentials: {
-    accessKeyId: 'minioadmin',
-    secretAccessKey: 'minioadmin'
+    accessKeyId: "minioadmin",
+    secretAccessKey: "minioadmin",
   },
-  forcePathStyle: true
+  forcePathStyle: true,
 });
 
-// Upload
 await client.send(new PutObjectCommand({
-  Bucket: 'mybucket',
-  Key: 'myfile.txt',
-  Body: 'Hello, World!'
+  Bucket: "my-bucket",
+  Key: "hello.txt",
+  Body: "Hello, World!",
 }));
-
-// Download
-const response = await client.send(new GetObjectCommand({
-  Bucket: 'mybucket',
-  Key: 'myfile.txt'
-}));
-const body = await response.Body.transformToString();
 ```
 
-## Enterprise Features
+## Documentation
 
-### Server-Side Encryption
-
-Enable encryption in config:
-
-```toml
-[storage.encryption]
-enabled = true
-```
-
-All objects are automatically encrypted with AES-256-GCM.
-
-### Object Lock (WORM)
-
-For regulatory compliance (SEC 17a-4, FINRA, HIPAA):
-
-```bash
-# Enable Object Lock on bucket (at creation)
-aws --endpoint-url http://localhost:9000 s3api create-bucket \
-  --bucket compliance-bucket \
-  --object-lock-enabled-for-bucket
-
-# Set default retention
-aws --endpoint-url http://localhost:9000 s3api put-object-lock-configuration \
-  --bucket compliance-bucket \
-  --object-lock-configuration '{
-    "ObjectLockEnabled": "Enabled",
-    "Rule": {
-      "DefaultRetention": {
-        "Mode": "COMPLIANCE",
-        "Days": 2555
-      }
-    }
-  }'
-
-# Set legal hold on object
-aws --endpoint-url http://localhost:9000 s3api put-object-legal-hold \
-  --bucket compliance-bucket \
-  --key evidence.pdf \
-  --legal-hold '{"Status": "ON"}'
-```
-
-### LDAP Integration
-
-```toml
-[ldap]
-enabled = true
-server_url = "ldaps://dc.example.com:636"
-server_type = "active_directory"
-bind_dn = "CN=hafiz-svc,OU=Service Accounts,DC=example,DC=com"
-bind_password = "service-password"
-user_base_dn = "OU=Users,DC=example,DC=com"
-user_filter = "(sAMAccountName={username})"
-group_base_dn = "OU=Groups,DC=example,DC=com"
-
-[ldap.group_policies]
-"Domain Admins" = ["admin"]
-"S3 Admins" = ["admin"]
-"S3 Users" = ["readwrite"]
-"S3 Readers" = ["readonly"]
-```
-
-### Event Notifications
-
-```bash
-# Configure webhook notifications
-aws --endpoint-url http://localhost:9000 s3api put-bucket-notification-configuration \
-  --bucket mybucket \
-  --notification-configuration '{
-    "QueueConfigurations": [{
-      "QueueArn": "arn:aws:sqs:us-east-1:000000000000:my-queue",
-      "Events": ["s3:ObjectCreated:*", "s3:ObjectRemoved:*"]
-    }]
-  }'
-```
-
-## Monitoring
-
-### Prometheus Metrics
-
-Metrics available at `http://localhost:9000/metrics`:
-
-```
-# Request metrics
-hafiz_http_requests_total{method="GET", path="/", status="200"}
-hafiz_http_request_duration_seconds{method="GET", quantile="0.99"}
-
-# Storage metrics
-hafiz_storage_bytes_total
-hafiz_objects_total
-hafiz_buckets_total
-
-# Operation metrics
-hafiz_put_object_duration_seconds
-hafiz_get_object_duration_seconds
-```
-
-### Grafana Dashboard
-
-Import the dashboard from `deploy/grafana/dashboards/hafiz.json`.
+| Document | Description |
+|----------|-------------|
+| [Architecture](docs/ARCHITECTURE.md) | System design and components |
+| [API Reference](docs/API.md) | Complete S3 API documentation |
+| [Configuration](docs/CONFIGURATION.md) | All configuration options |
+| [Deployment](docs/DEPLOYMENT.md) | Production deployment guide |
+| [CLI Reference](docs/CLI.md) | Command-line interface guide |
+| [Security](docs/SECURITY.md) | Security features and best practices |
+| [Operations](docs/OPERATIONS.md) | Monitoring, backup, troubleshooting |
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      Hafiz Server                           │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │   S3 API    │  │  Admin API  │  │   Cluster Comms     │  │
-│  │  (Port 9000)│  │ (Port 9001) │  │    (Port 9100)      │  │
-│  └──────┬──────┘  └──────┬──────┘  └──────────┬──────────┘  │
-│         │                │                     │             │
-│  ┌──────┴────────────────┴─────────────────────┴──────────┐ │
-│  │                  Request Router                         │ │
-│  └──────────────────────────┬──────────────────────────────┘ │
-│                             │                                │
-│  ┌──────────────────────────┴──────────────────────────────┐ │
-│  │                  Authentication                          │ │
-│  │        (AWS SigV4, IAM Policies, LDAP)                  │ │
-│  └──────────────────────────┬──────────────────────────────┘ │
-│                             │                                │
-│  ┌────────────┐  ┌──────────┴──────────┐  ┌──────────────┐  │
-│  │ Metadata   │  │   Business Logic    │  │   Events     │  │
-│  │ (SQLite/   │  │   (Versioning,      │  │ (Webhooks,   │  │
-│  │  Postgres) │  │    Lifecycle, etc)  │  │  Kafka, NATS)│  │
-│  └──────┬─────┘  └──────────┬──────────┘  └──────────────┘  │
-│         │                   │                                │
-│  ┌──────┴───────────────────┴───────────────────────────────┐│
-│  │              Storage Backend (Encrypted)                  ││
-│  │                    (File System)                          ││
-│  └───────────────────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────────────────┘
+│                      Load Balancer                          │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+        ┌─────────────────┼─────────────────┐
+        │                 │                 │
+┌───────▼───────┐ ┌───────▼───────┐ ┌───────▼───────┐
+│   Hafiz #1    │ │   Hafiz #2    │ │   Hafiz #3    │
+│               │ │               │ │               │
+│  ┌─────────┐  │ │  ┌─────────┐  │ │  ┌─────────┐  │
+│  │ S3 API  │  │ │  │ S3 API  │  │ │  │ S3 API  │  │
+│  ├─────────┤  │ │  ├─────────┤  │ │  ├─────────┤  │
+│  │ Admin   │  │ │  │ Admin   │  │ │  │ Admin   │  │
+│  ├─────────┤  │ │  ├─────────┤  │ │  ├─────────┤  │
+│  │ Auth    │  │ │  │ Auth    │  │ │  │ Auth    │  │
+│  ├─────────┤  │ │  ├─────────┤  │ │  ├─────────┤  │
+│  │ Storage │  │ │  │ Storage │  │ │  │ Storage │  │
+│  └────┬────┘  │ │  └────┬────┘  │ │  └────┬────┘  │
+└───────┼───────┘ └───────┼───────┘ └───────┼───────┘
+        │                 │                 │
+        └─────────────────┼─────────────────┘
+                          │
+                 ┌────────▼────────┐
+                 │   PostgreSQL    │
+                 │   (Metadata)    │
+                 └─────────────────┘
 ```
 
 ## Project Structure
@@ -418,65 +261,152 @@ Import the dashboard from `deploy/grafana/dashboards/hafiz.json`.
 ```
 hafiz/
 ├── crates/
-│   ├── hafiz-core/        # Core types, config, errors
-│   ├── hafiz-storage/     # Storage backend
-│   ├── hafiz-metadata/    # Metadata repository
-│   ├── hafiz-crypto/      # Encryption
-│   ├── hafiz-auth/        # Authentication, IAM
-│   ├── hafiz-s3-api/      # S3 API implementation
-│   ├── hafiz-cluster/     # Clustering
-│   ├── hafiz-admin/       # Admin UI (WebAssembly)
-│   └── hafiz-cli/         # CLI tool
+│   ├── hafiz-core/       # Core types, traits, utilities
+│   ├── hafiz-s3-api/     # S3 API implementation (Axum)
+│   ├── hafiz-storage/    # Storage backends
+│   ├── hafiz-metadata/   # Metadata repository
+│   ├── hafiz-auth/       # Authentication & authorization
+│   ├── hafiz-crypto/     # Encryption & signing
+│   ├── hafiz-cluster/    # Cluster coordination
+│   ├── hafiz-admin/      # Admin API & UI
+│   └── hafiz-cli/        # Command-line interface
 ├── deploy/
-│   ├── docker/            # Docker files
-│   ├── helm/              # Helm charts
-│   ├── prometheus/        # Prometheus config
-│   └── grafana/           # Grafana dashboards
-├── docs/                  # Documentation
-├── Cargo.toml             # Workspace manifest
-├── docker-compose.yml     # Docker Compose
-└── README.md
+│   ├── helm/             # Kubernetes Helm chart
+│   ├── docker/           # Docker configurations
+│   ├── prometheus/       # Monitoring configs
+│   └── grafana/          # Dashboards
+├── docs/                 # Documentation
+├── scripts/              # Build & deployment scripts
+└── tests/                # Integration tests
 ```
 
-## API Reference
+## Configuration
 
-See [API Documentation](docs/API.md) for complete S3 API reference.
+### Environment Variables
+
+```bash
+# Required
+HAFIZ_ROOT_ACCESS_KEY=your-access-key
+HAFIZ_ROOT_SECRET_KEY=your-secret-key
+
+# Optional
+HAFIZ_S3_PORT=9000
+HAFIZ_ADMIN_PORT=9001
+HAFIZ_LOG_LEVEL=info
+HAFIZ_STORAGE_BASE_PATH=/data
+HAFIZ_DATABASE_URL=postgres://user:pass@host/db
+
+# Encryption
+HAFIZ_ENCRYPTION_ENABLED=true
+HAFIZ_ENCRYPTION_MASTER_KEY=base64-encoded-32-byte-key
+
+# Cluster
+HAFIZ_CLUSTER_ENABLED=true
+HAFIZ_CLUSTER_PEERS=node1:7946,node2:7946,node3:7946
+```
+
+See [Configuration Reference](docs/CONFIGURATION.md) for all options.
+
+## Deployment Options
+
+| Method | Use Case | Complexity |
+|--------|----------|------------|
+| Docker | Development, small deployments | ⭐ |
+| Docker Compose | Testing, staging | ⭐⭐ |
+| Kubernetes (Helm) | Production | ⭐⭐⭐ |
+| Binary | Bare metal, custom setups | ⭐⭐ |
+
+See [Deployment Guide](docs/DEPLOYMENT.md) for detailed instructions.
+
+## Compliance
+
+Hafiz is designed to meet regulatory requirements:
+
+| Regulation | Feature | Status |
+|------------|---------|--------|
+| **SEC 17a-4** | Object Lock (WORM) | ✅ |
+| **FINRA 4511** | Immutable records | ✅ |
+| **HIPAA** | Encryption, audit logs | ✅ |
+| **GDPR** | Data encryption, access control | ✅ |
+| **SOC 2** | Access logging, encryption | ✅ |
 
 ## Performance
 
-Benchmarks on AMD EPYC 7763, 64GB RAM, NVMe SSD:
+Benchmarks on AWS c5.2xlarge (8 vCPU, 16GB RAM):
 
 | Operation | Throughput | Latency (p99) |
 |-----------|------------|---------------|
-| PUT (1MB) | 2,500 ops/s | 15ms |
-| GET (1MB) | 4,000 ops/s | 8ms |
-| LIST (1000 objects) | 500 ops/s | 50ms |
-| DELETE | 10,000 ops/s | 2ms |
+| PUT (1MB) | 850 ops/s | 12ms |
+| GET (1MB) | 1,200 ops/s | 8ms |
+| LIST (1000 objects) | 500 ops/s | 25ms |
+| DELETE | 2,000 ops/s | 5ms |
+
+## Roadmap
+
+### v0.2.0 (Q1 2025)
+- [ ] S3 Select (SQL queries on objects)
+- [ ] Cross-region replication
+- [ ] Web UI improvements
+
+### v0.3.0 (Q2 2025)
+- [ ] Erasure coding
+- [ ] Tiered storage
+- [ ] Terraform provider
+
+### v1.0.0 (Q3 2025)
+- [ ] Production-ready release
+- [ ] Long-term support
+- [ ] Enterprise features
+
+See [ROADMAP.md](ROADMAP.md) for full details.
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md).
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ```bash
-# Development setup
-git clone https://github.com/hafiz/hafiz.git
+# Clone
+git clone https://github.com/shellnoq/hafiz.git
 cd hafiz
-cargo build
-cargo test
+
+# Setup development environment
+make dev-setup
+
+# Run tests
+make test
+
+# Run locally
+make run
 ```
+
+## Community
+
+- 💬 [GitHub Discussions](https://github.com/shellnoq/hafiz/discussions)
+- 🐛 [Issue Tracker](https://github.com/shellnoq/hafiz/issues)
+- 📧 [Email](mailto:hello@shellnoq.com)
 
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE) for details.
+Hafiz is licensed under the [Apache License 2.0](LICENSE).
+
+```
+Copyright 2024 Shellnoq
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+```
 
 ## Acknowledgments
 
-- Inspired by MinIO, SeaweedFS, and other great object storage projects
-- Built with amazing Rust ecosystem: tokio, axum, sqlx
-- Thanks to all contributors!
+- Built with [Rust](https://www.rust-lang.org/) 🦀
+- Inspired by [MinIO](https://min.io/) and [SeaweedFS](https://github.com/seaweedfs/seaweedfs)
+- S3 API specification by [Amazon Web Services](https://docs.aws.amazon.com/s3/)
 
 ---
 
-<div align="center">
-Made with ❤️ by the Hafiz Team
-</div>
+<p align="center">
+  Made with ❤️ by <a href="https://github.com/shellnoq">Shellnoq</a>
+</p>

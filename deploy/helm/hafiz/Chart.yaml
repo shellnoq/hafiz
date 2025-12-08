@@ -15,10 +15,10 @@ keywords:
   - minio-alternative
   - cloud-native
 
-home: https://github.com/yourorg/hafiz
+home: https://github.com/shellnoq/hafiz
 
 sources:
-  - https://github.com/yourorg/hafiz
+  - https://github.com/shellnoq/hafiz
 
 maintainers:
   - name: Hafiz Team

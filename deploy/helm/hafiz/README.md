@@ -14,7 +14,7 @@ A Helm chart for deploying Hafiz S3-compatible object storage on Kubernetes.
 
 ```bash
 # Add the Hafiz Helm repository (when published)
-helm repo add hafiz https://yourorg.github.io/hafiz
+helm repo add hafiz https://shellnoq.github.io/hafiz
 helm repo update
 
 # Install with development values
