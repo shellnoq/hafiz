@@ -1,17 +1,14 @@
 //! S3 Server implementation
 
 use axum::{
-    extract::ConnectInfo,
     middleware,
     routing::{delete, get, head, post, put},
     Router,
 };
-use hyper::body::Incoming;
 use hyper_util::rt::{TokioExecutor, TokioIo};
 use hafiz_core::{config::HafizConfig, Result};
 use hafiz_metadata::MetadataStore;
 use hafiz_storage::LocalStorage;
-use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::net::TcpListener;
@@ -28,6 +25,9 @@ use crate::admin;
 use crate::metrics::{MetricsRecorder, metrics_handler, metrics_middleware};
 use crate::tls::TlsAcceptor;
 
+#[cfg(feature = "cluster")]
+use hafiz_cluster::ClusterManager;
+
 /// Application state shared across handlers
 #[derive(Clone)]
 pub struct AppState {
@@ -36,6 +36,8 @@ pub struct AppState {
     pub metadata: Arc<MetadataStore>,
     pub start_time: Instant,
     pub metrics: Arc<MetricsRecorder>,
+    #[cfg(feature = "cluster")]
+    pub cluster: Option<Arc<ClusterManager>>,
 }
 
 /// S3 Server
@@ -83,6 +85,8 @@ impl S3Server {
             metadata: Arc::new(metadata),
             start_time,
             metrics: metrics.clone(),
+            #[cfg(feature = "cluster")]
+            cluster: None, // Cluster initialized separately if enabled
         };
 
         let app = self.create_router(state, metrics);

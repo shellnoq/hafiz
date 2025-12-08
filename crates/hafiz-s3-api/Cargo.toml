@@ -4,12 +4,17 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[features]
+default = ["cluster"]
+cluster = ["hafiz-cluster"]
+
 [dependencies]
 hafiz-core = { workspace = true }
 hafiz-crypto = { workspace = true }
 hafiz-storage = { workspace = true }
 hafiz-metadata = { workspace = true }
 hafiz-auth = { workspace = true }
+hafiz-cluster = { workspace = true, optional = true }
 
 tokio = { workspace = true }
 axum = { workspace = true }

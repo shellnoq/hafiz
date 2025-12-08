@@ -1,7 +1,12 @@
 //! Authentication for Hafiz
 
+pub mod presigned;
 pub mod signature;
 
+pub use presigned::{
+    generate_presigned_url, verify_presigned_url, 
+    extract_access_key_from_presigned, is_presigned_request,
+};
 pub use signature::{SignatureV4, verify_signature_v4};
 
 use rand::Rng;

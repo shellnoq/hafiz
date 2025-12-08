@@ -42,6 +42,9 @@ pub enum Error {
     #[error("The request signature does not match")]
     SignatureDoesNotMatch,
 
+    #[error("Request has expired")]
+    ExpiredPresignedRequest,
+
     // Validation Errors
     #[error("Invalid bucket name: {0}")]
     InvalidBucketName(String),
@@ -97,6 +100,7 @@ impl Error {
             Error::AccessDenied => "AccessDenied",
             Error::InvalidAccessKeyId => "InvalidAccessKeyId",
             Error::SignatureDoesNotMatch => "SignatureDoesNotMatch",
+            Error::ExpiredPresignedRequest => "AccessDenied",
             Error::InvalidBucketName(_) => "InvalidBucketName",
             Error::InvalidArgument(_) => "InvalidArgument",
             Error::InvalidRequest(_) => "InvalidRequest",
@@ -124,7 +128,8 @@ impl Error {
             
             Error::AccessDenied
             | Error::InvalidAccessKeyId
-            | Error::SignatureDoesNotMatch => 403,
+            | Error::SignatureDoesNotMatch
+            | Error::ExpiredPresignedRequest => 403,
             
             Error::NoSuchBucket 
             | Error::NoSuchKey 

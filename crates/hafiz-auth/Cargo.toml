@@ -13,3 +13,4 @@ urlencoding = { workspace = true }
 percent-encoding = { workspace = true }
 hex = { workspace = true }
 rand = { workspace = true }
+url = { workspace = true }
