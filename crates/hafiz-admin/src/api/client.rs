@@ -1025,3 +1025,62 @@ async fn post_empty<T: serde::de::DeserializeOwned>(endpoint: &str) -> Result<T,
         message: e.to_string(),
     })
 }
+
+// ============= LDAP API =============
+
+/// Get LDAP status
+pub async fn get_ldap_status() -> Result<LdapStatus, ApiError> {
+    let response: ApiResponse<LdapStatus> = get("/ldap/status").await?;
+    response.data.ok_or_else(|| ApiError {
+        code: "NoData".to_string(),
+        message: response.error.unwrap_or_else(|| "No data returned".to_string()),
+    })
+}
+
+/// Get LDAP configuration (sanitized)
+pub async fn get_ldap_config() -> Result<LdapConfig, ApiError> {
+    let response: ApiResponse<LdapConfig> = get("/ldap/config").await?;
+    response.data.ok_or_else(|| ApiError {
+        code: "NoData".to_string(),
+        message: response.error.unwrap_or_else(|| "No data returned".to_string()),
+    })
+}
+
+/// Update LDAP configuration
+pub async fn update_ldap_config(config: &LdapConfig) -> Result<(), ApiError> {
+    let _response: ApiResponse<serde_json::Value> = put("/ldap/config", config).await?;
+    Ok(())
+}
+
+/// Test LDAP connection
+pub async fn test_ldap_connection(request: &TestLdapConnectionRequest) -> Result<TestLdapConnectionResponse, ApiError> {
+    let response: ApiResponse<TestLdapConnectionResponse> = post("/ldap/test-connection", request).await?;
+    response.data.ok_or_else(|| ApiError {
+        code: "NoData".to_string(),
+        message: response.error.unwrap_or_else(|| "No data returned".to_string()),
+    })
+}
+
+/// Test LDAP user search
+pub async fn test_ldap_search(request: &TestLdapSearchRequest) -> Result<TestLdapSearchResponse, ApiError> {
+    let response: ApiResponse<TestLdapSearchResponse> = post("/ldap/test-search", request).await?;
+    response.data.ok_or_else(|| ApiError {
+        code: "NoData".to_string(),
+        message: response.error.unwrap_or_else(|| "No data returned".to_string()),
+    })
+}
+
+/// Test LDAP authentication
+pub async fn test_ldap_auth(request: &TestLdapAuthRequest) -> Result<TestLdapAuthResponse, ApiError> {
+    let response: ApiResponse<TestLdapAuthResponse> = post("/ldap/authenticate", request).await?;
+    response.data.ok_or_else(|| ApiError {
+        code: "NoData".to_string(),
+        message: response.error.unwrap_or_else(|| "No data returned".to_string()),
+    })
+}
+
+/// Clear LDAP cache
+pub async fn clear_ldap_cache() -> Result<(), ApiError> {
+    let _response: ApiResponse<serde_json::Value> = post("/ldap/clear-cache", &()).await?;
+    Ok(())
+}

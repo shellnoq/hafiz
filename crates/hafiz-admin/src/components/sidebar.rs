@@ -61,7 +61,13 @@ pub fn Sidebar() -> impl IntoView {
                         href="/settings" 
                         icon=IconSettings 
                         label="Settings" 
-                        active=Signal::derive(move || is_active("/settings"))
+                        active=Signal::derive(move || is_active("/settings") && !is_active("/settings/ldap"))
+                    />
+                    <NavItem 
+                        href="/settings/ldap" 
+                        icon=IconLdap 
+                        label="LDAP / AD" 
+                        active=Signal::derive(move || is_active("/settings/ldap"))
                     />
                 </div>
             </nav>
@@ -149,6 +155,16 @@ fn IconCluster() -> impl IntoView {
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                 d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+    }
+}
+
+#[component]
+fn IconLdap() -> impl IntoView {
+    view! {
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
         </svg>
     }
 }

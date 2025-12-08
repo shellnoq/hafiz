@@ -211,3 +211,119 @@ pub struct PresignedUrlResponse {
     pub method: String,
     pub expires_at: String,
 }
+
+// ============================================================================
+// LDAP Types
+// ============================================================================
+
+/// LDAP status response
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+pub struct LdapStatus {
+    pub enabled: bool,
+    pub connected: bool,
+    pub server_url: String,
+    pub server_type: String,
+    pub last_connection: Option<String>,
+    pub error: Option<String>,
+    pub cached_users: usize,
+}
+
+/// LDAP configuration (sanitized - no passwords)
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+pub struct LdapConfig {
+    pub enabled: bool,
+    pub server_url: String,
+    pub start_tls: bool,
+    pub bind_dn: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bind_password: Option<String>,
+    pub user_base_dn: String,
+    pub user_filter: String,
+    pub group_base_dn: Option<String>,
+    pub group_filter: Option<String>,
+    pub username_attribute: String,
+    pub email_attribute: String,
+    pub display_name_attribute: String,
+    pub group_name_attribute: String,
+    pub timeout_seconds: u64,
+    pub cache_ttl_seconds: u64,
+    pub server_type: String,
+    pub group_policies: std::collections::HashMap<String, Vec<String>>,
+    pub default_policies: Vec<String>,
+    pub skip_tls_verify: bool,
+}
+
+/// LDAP connection test request
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct TestLdapConnectionRequest {
+    pub server_url: String,
+    pub bind_dn: String,
+    pub bind_password: String,
+    pub start_tls: bool,
+    pub skip_tls_verify: bool,
+}
+
+/// LDAP connection test response
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct TestLdapConnectionResponse {
+    pub success: bool,
+    pub message: String,
+    pub server_info: Option<LdapServerInfo>,
+}
+
+/// LDAP server information
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+pub struct LdapServerInfo {
+    pub vendor: Option<String>,
+    pub version: Option<String>,
+    pub naming_contexts: Vec<String>,
+    pub supported_ldap_version: Vec<String>,
+}
+
+/// LDAP user search test request
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct TestLdapSearchRequest {
+    pub username: String,
+}
+
+/// LDAP user search test response
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct TestLdapSearchResponse {
+    pub success: bool,
+    pub message: String,
+    pub user: Option<LdapUser>,
+}
+
+/// LDAP authenticate test request
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct TestLdapAuthRequest {
+    pub username: String,
+    pub password: String,
+}
+
+/// LDAP authenticate test response
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct TestLdapAuthResponse {
+    pub success: bool,
+    pub message: String,
+    pub user: Option<LdapUser>,
+}
+
+/// LDAP user information
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+pub struct LdapUser {
+    pub dn: String,
+    pub username: String,
+    pub email: Option<String>,
+    pub display_name: Option<String>,
+    pub groups: Vec<String>,
+    pub policies: Vec<String>,
+}
+
+/// Generic API response wrapper
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ApiResponse<T> {
+    pub success: bool,
+    pub data: Option<T>,
+    pub error: Option<String>,
+}

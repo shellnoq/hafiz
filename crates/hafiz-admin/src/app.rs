@@ -6,8 +6,8 @@ use leptos_router::{Route, Router, Routes, Outlet, use_navigate, A};
 
 use crate::components::{Header, Sidebar};
 use crate::pages::{
-    BucketDetailPage, BucketsPage, ClusterPage, DashboardPage, NotFoundPage, ObjectsPage, 
-    SettingsPage, UsersPage,
+    BucketDetailPage, BucketsPage, ClusterPage, DashboardPage, LdapSettingsPage, 
+    NotFoundPage, ObjectsPage, SettingsPage, UsersPage,
 };
 
 /// Root application component
@@ -26,6 +26,7 @@ pub fn App() -> impl IntoView {
                         <Route path="users" view=UsersPage />
                         <Route path="cluster" view=ClusterPage />
                         <Route path="settings" view=SettingsPage />
+                        <Route path="settings/ldap" view=LdapSettingsPage />
                         <Route path="/*any" view=NotFoundPage />
                     </Route>
                 </Routes>
