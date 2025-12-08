@@ -97,3 +97,26 @@ test-s3-delete-bucket: ## Test: Delete bucket
 
 test-all: test-s3-create-bucket test-s3-upload test-s3-list-objects test-s3-download test-s3-delete test-s3-delete-bucket ## Run all S3 tests
 	@echo "All tests passed!"
+
+# Documentation
+docs-install: ## Install documentation dependencies
+	pip install -r docs/requirements.txt
+
+docs-serve: ## Serve documentation locally
+	mkdocs serve
+
+docs-build: ## Build documentation
+	mkdocs build --strict
+
+docs-deploy: ## Deploy documentation to GitHub Pages
+	mkdocs gh-deploy --force
+
+# Release
+release-patch: ## Create patch release
+	@./scripts/release.sh patch
+
+release-minor: ## Create minor release
+	@./scripts/release.sh minor
+
+release-major: ## Create major release
+	@./scripts/release.sh major
