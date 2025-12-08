@@ -1,0 +1,16 @@
+[package]
+name = "hafiz-metadata"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+hafiz-core = { workspace = true }
+sqlx = { workspace = true }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+tracing = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }

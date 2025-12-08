@@ -1,0 +1,38 @@
+//! Authentication for Hafiz
+
+pub mod signature;
+
+pub use signature::{SignatureV4, verify_signature_v4};
+
+use rand::Rng;
+
+/// Generate new access key and secret key pair
+pub fn generate_credentials() -> (String, String) {
+    let mut rng = rand::thread_rng();
+    
+    // Access key: AKIA + 16 alphanumeric chars (like AWS)
+    let access_key: String = format!(
+        "AKIA{}",
+        (0..16)
+            .map(|_| {
+                let idx = rng.gen_range(0..36);
+                if idx < 10 {
+                    (b'0' + idx) as char
+                } else {
+                    (b'A' + idx - 10) as char
+                }
+            })
+            .collect::<String>()
+    );
+    
+    // Secret key: 40 characters base64-like
+    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let secret_key: String = (0..40)
+        .map(|_| {
+            let idx = rng.gen_range(0..CHARSET.len());
+            CHARSET[idx] as char
+        })
+        .collect();
+    
+    (access_key, secret_key)
+}

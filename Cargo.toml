@@ -1,0 +1,103 @@
+[workspace]
+members = [
+    "crates/hafiz-core",
+    "crates/hafiz-s3-api",
+    "crates/hafiz-storage",
+    "crates/hafiz-metadata",
+    "crates/hafiz-auth",
+    "crates/hafiz-crypto",
+    "crates/hafiz-cli",
+    "crates/hafiz-admin",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+license = "Apache-2.0"
+authors = ["Hafiz Team"]
+repository = "https://github.com/yourorg/hafiz"
+
+[workspace.dependencies]
+# Internal crates
+hafiz-core = { path = "crates/hafiz-core" }
+hafiz-s3-api = { path = "crates/hafiz-s3-api" }
+hafiz-storage = { path = "crates/hafiz-storage" }
+hafiz-metadata = { path = "crates/hafiz-metadata" }
+hafiz-auth = { path = "crates/hafiz-auth" }
+hafiz-crypto = { path = "crates/hafiz-crypto" }
+
+# Async runtime
+tokio = { version = "1.35", features = ["full", "tracing"] }
+tokio-util = { version = "0.7", features = ["io", "codec"] }
+
+# HTTP framework
+axum = { version = "0.7", features = ["macros", "multipart", "tokio"] }
+axum-extra = { version = "0.9", features = ["typed-header"] }
+tower = { version = "0.4", features = ["full"] }
+tower-http = { version = "0.5", features = ["full"] }
+hyper = { version = "1.1", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_urlencoded = "0.7"
+quick-xml = { version = "0.31", features = ["serialize"] }
+toml = "0.8"
+serde_yaml = "0.9"
+
+# Database
+sqlx = { version = "0.7", features = ["runtime-tokio", "tls-rustls", "postgres", "sqlite", "uuid", "chrono", "json", "migrate"] }
+
+# Cryptography
+sha2 = "0.10"
+sha1 = "0.10"
+md-5 = "0.10"
+md5 = "0.7"
+hmac = "0.12"
+base64 = "0.21"
+hex = "0.4"
+rand = "0.8"
+aes-gcm = "0.10"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Logging & tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt"] }
+
+# Metrics
+metrics = "0.22"
+metrics-exporter-prometheus = "0.13"
+
+# Utilities
+uuid = { version = "1.6", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde", "clock"] }
+bytes = "1.5"
+parking_lot = "0.12"
+once_cell = "1.19"
+futures = "0.3"
+async-trait = "0.1"
+url = { version = "2.5", features = ["serde"] }
+regex = "1.10"
+percent-encoding = "2.3"
+mime_guess = "2.0"
+http = "1.0"
+urlencoding = "2.1"
+
+# CLI
+clap = { version = "4.4", features = ["derive", "env"] }
+
+# Config
+dotenvy = "0.15"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+strip = true
+
+[profile.dev]
+opt-level = 1

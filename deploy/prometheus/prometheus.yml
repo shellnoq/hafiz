@@ -1,0 +1,36 @@
+# Prometheus configuration for Hafiz
+# Copy to /etc/prometheus/prometheus.yml or your prometheus config directory
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+rule_files:
+  - "hafiz_alerts.yml"
+
+scrape_configs:
+  # Hafiz S3 server
+  - job_name: 'hafiz'
+    static_configs:
+      - targets: ['localhost:9000']
+    metrics_path: '/metrics'
+    scheme: 'http'
+
+  # If running multiple instances
+  # - job_name: 'hafiz-cluster'
+  #   static_configs:
+  #     - targets:
+  #       - 'node1:9000'
+  #       - 'node2:9000'
+  #       - 'node3:9000'
+
+  # Self monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

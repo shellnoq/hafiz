@@ -1,0 +1,60 @@
+# Hafiz Configuration File
+# Copy to hafiz.toml and customize
+
+[server]
+bind_address = "0.0.0.0"
+port = 9000
+admin_port = 9001
+workers = 0  # 0 = auto-detect CPU count
+max_connections = 10000
+request_timeout_secs = 300
+
+# TLS/HTTPS Configuration
+[tls]
+enabled = false
+# cert_file = "/etc/hafiz/server.crt"
+# key_file = "/etc/hafiz/server.key"
+# min_version = "1.2"  # "1.2" or "1.3"
+# hsts_enabled = true
+# hsts_max_age = 31536000
+# For mTLS (mutual TLS):
+# client_ca_file = "/etc/hafiz/ca.crt"
+# require_client_cert = false
+
+[storage]
+data_dir = "/data/hafiz"
+temp_dir = "/tmp/hafiz"
+max_object_size = 5497558138880  # 5 TiB
+
+[database]
+url = "sqlite:///data/hafiz/hafiz.db?mode=rwc"
+max_connections = 100
+min_connections = 5
+
+[auth]
+enabled = true
+root_access_key = "minioadmin"
+root_secret_key = "minioadmin"
+
+# Server-Side Encryption Configuration
+[encryption]
+enabled = false
+sse_s3_enabled = true   # Allow SSE-S3 (server-managed keys)
+sse_c_enabled = true    # Allow SSE-C (customer-provided keys)
+# Master key for SSE-S3 (32 bytes = 64 hex characters)
+# master_key = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+# Or load from file:
+# master_key_file = "/etc/hafiz/master.key"
+# Or from environment variable:
+# master_key_env = "HAFIZ_MASTER_KEY"
+default_encryption = "None"  # "None" or "AES256"
+
+# Lifecycle worker (for automatic object expiration)
+[lifecycle]
+enabled = true
+scan_interval_secs = 3600  # 1 hour
+batch_size = 1000
+
+[logging]
+level = "info"  # trace, debug, info, warn, error
+format = "pretty"  # pretty, json

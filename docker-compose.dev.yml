@@ -1,0 +1,119 @@
+# ============================================================================
+# Hafiz Development Docker Compose
+# ============================================================================
+#
+# For local development with hot-reload and debugging
+#
+# Usage:
+#   docker-compose -f docker-compose.dev.yml up -d
+#
+# ============================================================================
+
+version: "3.8"
+
+services:
+  # ==========================================================================
+  # PostgreSQL for Development
+  # ==========================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: hafiz-dev-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: hafiz
+      POSTGRES_PASSWORD: hafiz
+      POSTGRES_DB: hafiz
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hafiz -d hafiz"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hafiz-dev-network
+
+  # ==========================================================================
+  # Redis for Session/Cache (Optional)
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: hafiz-dev-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-dev-data:/data
+    networks:
+      - hafiz-dev-network
+
+  # ==========================================================================
+  # MinIO for S3 Compatibility Testing
+  # ==========================================================================
+  minio:
+    image: minio/minio:latest
+    container_name: hafiz-dev-minio
+    restart: unless-stopped
+    ports:
+      - "9100:9000"
+      - "9101:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio-dev-data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - hafiz-dev-network
+
+  # ==========================================================================
+  # LocalStack for AWS Service Emulation (Optional)
+  # ==========================================================================
+  localstack:
+    image: localstack/localstack:latest
+    container_name: hafiz-dev-localstack
+    restart: unless-stopped
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: s3,sqs,sns
+      DEBUG: 1
+    volumes:
+      - localstack-dev-data:/var/lib/localstack
+    networks:
+      - hafiz-dev-network
+
+  # ==========================================================================
+  # Prometheus for Development Metrics
+  # ==========================================================================
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: hafiz-dev-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-dev-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'
+      - '--web.enable-lifecycle'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - hafiz-dev-network
+
+volumes:
+  postgres-dev-data:
+  redis-dev-data:
+  minio-dev-data:
+  localstack-dev-data:
+  prometheus-dev-data:
+
+networks:
+  hafiz-dev-network:
+    driver: bridge

@@ -1,0 +1,165 @@
+# ============================================================================
+# Hafiz Production Docker Compose
+# ============================================================================
+#
+# Quick Start:
+#   docker-compose up -d
+#
+# With PostgreSQL:
+#   docker-compose --profile postgres up -d
+#
+# With full monitoring stack:
+#   docker-compose --profile monitoring up -d
+#
+# All services:
+#   docker-compose --profile postgres --profile monitoring up -d
+#
+# ============================================================================
+
+version: "3.8"
+
+services:
+  # ==========================================================================
+  # Hafiz S3 Server
+  # ==========================================================================
+  hafiz:
+    image: hafiz:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hafiz
+    restart: unless-stopped
+    ports:
+      - "${HAFIZ_PORT:-9000}:9000"
+    volumes:
+      - hafiz-data:/data/hafiz
+      - ./config/config.toml:/etc/hafiz/config.toml:ro
+    environment:
+      HAFIZ_BIND_ADDRESS: "0.0.0.0"
+      HAFIZ_PORT: "9000"
+      HAFIZ_DATA_DIR: "/data/hafiz"
+      HAFIZ_DATABASE_URL: "${HAFIZ_DATABASE_URL:-sqlite:///data/hafiz/hafiz.db?mode=rwc}"
+      HAFIZ_ROOT_ACCESS_KEY: "${HAFIZ_ROOT_ACCESS_KEY:-minioadmin}"
+      HAFIZ_ROOT_SECRET_KEY: "${HAFIZ_ROOT_SECRET_KEY:-minioadmin}"
+      HAFIZ_LOG_LEVEL: "${HAFIZ_LOG_LEVEL:-info}"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - hafiz-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.hafiz.rule=Host(`storage.localhost`)"
+      - "traefik.http.services.hafiz.loadbalancer.server.port=9000"
+
+  # ==========================================================================
+  # PostgreSQL Database (Optional - use profile)
+  # ==========================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: hafiz-postgres
+    profiles: ["postgres", "full"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hafiz}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hafiz}
+      POSTGRES_DB: ${POSTGRES_DB:-hafiz}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./deploy/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hafiz} -d ${POSTGRES_DB:-hafiz}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hafiz-network
+
+  # ==========================================================================
+  # Prometheus (Monitoring - use profile)
+  # ==========================================================================
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: hafiz-prometheus
+    profiles: ["monitoring", "full"]
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/prometheus/hafiz_alerts.yml:/etc/prometheus/hafiz_alerts.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    networks:
+      - hafiz-network
+
+  # ==========================================================================
+  # Grafana (Dashboards - use profile)
+  # ==========================================================================
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: hafiz-grafana
+    profiles: ["monitoring", "full"]
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/hafiz-dashboard.json:/var/lib/grafana/dashboards/hafiz.json:ro
+    depends_on:
+      - prometheus
+    networks:
+      - hafiz-network
+
+  # ==========================================================================
+  # Alertmanager (Alerts - use profile)
+  # ==========================================================================
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: hafiz-alertmanager
+    profiles: ["monitoring", "full"]
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./deploy/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - hafiz-network
+
+# ============================================================================
+# Volumes
+# ============================================================================
+volumes:
+  hafiz-data:
+    driver: local
+  postgres-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  alertmanager-data:
+    driver: local
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  hafiz-network:
+    driver: bridge

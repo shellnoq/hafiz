@@ -1,0 +1,100 @@
+# Hafiz TLS Docker Compose
+#
+# Prerequisites:
+# 1. Generate certificates:
+#    ./scripts/tls-certs.sh generate-self-signed --domain localhost
+#
+# 2. Start the stack:
+#    docker-compose -f docker-compose.tls.yml up -d
+#
+# 3. Test HTTPS:
+#    curl -k https://localhost:9443/
+
+version: "3.8"
+
+services:
+  hafiz:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: hafiz-tls
+    restart: unless-stopped
+    ports:
+      - "9443:9443"  # HTTPS
+      - "9080:9080"  # HTTP redirect (optional)
+    volumes:
+      - hafiz-data:/data/hafiz
+      - ./certs:/certs:ro
+      - ./config.toml:/etc/hafiz/config.toml:ro
+    environment:
+      # Server
+      HAFIZ_BIND_ADDRESS: "0.0.0.0"
+      HAFIZ_PORT: "9443"
+      
+      # TLS
+      HAFIZ_TLS_CERT: "/certs/server.crt"
+      HAFIZ_TLS_KEY: "/certs/server.key"
+      
+      # Database
+      HAFIZ_DATABASE_URL: "postgresql://hafiz:hafiz@postgres:5432/hafiz"
+      
+      # Auth (change in production!)
+      HAFIZ_ROOT_ACCESS_KEY: "minioadmin"
+      HAFIZ_ROOT_SECRET_KEY: "minioadmin"
+      
+      # Logging
+      HAFIZ_LOG_LEVEL: "info"
+      
+      # Optional: Encryption
+      # HAFIZ_ENCRYPTION_KEY: "${HAFIZ_ENCRYPTION_KEY}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-k", "-f", "https://localhost:9443/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - hafiz-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: hafiz-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hafiz
+      POSTGRES_PASSWORD: hafiz
+      POSTGRES_DB: hafiz
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hafiz -d hafiz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hafiz-network
+
+  # Optional: nginx for TLS termination (alternative approach)
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: hafiz-nginx
+  #   ports:
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./certs:/certs:ro
+  #   depends_on:
+  #     - hafiz
+  #   networks:
+  #     - hafiz-network
+
+volumes:
+  hafiz-data:
+  postgres-data:
+
+networks:
+  hafiz-network:
+    driver: bridge

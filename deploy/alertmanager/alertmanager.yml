@@ -1,0 +1,74 @@
+# Alertmanager Configuration
+# Configure your notification channels here
+
+global:
+  # SMTP configuration for email notifications
+  # smtp_smarthost: 'smtp.example.com:587'
+  # smtp_from: 'alertmanager@example.com'
+  # smtp_auth_username: 'alertmanager@example.com'
+  # smtp_auth_password: 'password'
+
+route:
+  # Default receiver
+  receiver: 'default-receiver'
+  
+  # Group alerts by these labels
+  group_by: ['alertname', 'severity']
+  
+  # Wait before sending first notification
+  group_wait: 30s
+  
+  # Wait before sending notification about new alerts in group
+  group_interval: 5m
+  
+  # Wait before re-sending notification
+  repeat_interval: 4h
+  
+  routes:
+    # Critical alerts get immediate attention
+    - match:
+        severity: critical
+      receiver: 'critical-receiver'
+      group_wait: 10s
+      repeat_interval: 1h
+    
+    # Warning alerts
+    - match:
+        severity: warning
+      receiver: 'warning-receiver'
+      group_wait: 1m
+
+receivers:
+  - name: 'default-receiver'
+    # Configure your notification channel here
+    # webhook_configs:
+    #   - url: 'http://localhost:8080/webhook'
+    #     send_resolved: true
+    
+  - name: 'critical-receiver'
+    # Email for critical alerts
+    # email_configs:
+    #   - to: 'ops-team@example.com'
+    #     send_resolved: true
+    #
+    # Slack for critical alerts
+    # slack_configs:
+    #   - api_url: 'https://hooks.slack.com/services/xxx/yyy/zzz'
+    #     channel: '#alerts-critical'
+    #     send_resolved: true
+    
+  - name: 'warning-receiver'
+    # Slack for warnings
+    # slack_configs:
+    #   - api_url: 'https://hooks.slack.com/services/xxx/yyy/zzz'
+    #     channel: '#alerts-warning'
+    #     send_resolved: true
+
+# Inhibit rules - prevent notifications for less severe alerts
+# when more severe alert is firing
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname']

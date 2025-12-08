@@ -1,0 +1,54 @@
+# Build artifacts
+target/
+*.rs.bk
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+.github/
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Development files
+.env
+.env.*
+*.log
+*.tmp
+
+# Test files
+**/tests/
+**/*_test.rs
+*.test
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Local configuration
+config/config.toml
+*.local.toml
+
+# Temporary
+tmp/
+temp/
+*.bak
+
+# Deployment configs (not needed in image)
+deploy/
+deployments/
+scripts/

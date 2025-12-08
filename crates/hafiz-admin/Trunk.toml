@@ -1,0 +1,25 @@
+# Trunk configuration for Hafiz Admin UI
+
+[build]
+# Output directory
+dist = "dist"
+# Public URL path
+public_url = "/"
+
+[watch]
+# Files to watch for changes
+watch = ["src", "index.html", "style"]
+# Ignore patterns
+ignore = ["dist", "target"]
+
+[serve]
+# Development server settings
+address = "127.0.0.1"
+port = 8080
+# Enable WebSocket for hot reload
+ws_protocol = "ws"
+
+# Proxy API requests to the backend during development
+[[proxy]]
+rewrite = "/api/"
+backend = "http://localhost:9001/api/"

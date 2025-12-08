@@ -1,0 +1,147 @@
+# Hafiz Configuration
+# Copy this file to config.toml and customize as needed
+
+# Server settings
+[server]
+bind_address = "0.0.0.0"
+port = 9000
+admin_port = 9001
+workers = 4  # Number of worker threads (default: CPU cores)
+max_connections = 10000
+request_timeout_secs = 300
+
+# TLS/HTTPS Configuration
+[tls]
+enabled = false
+
+# Certificate file (PEM format)
+# cert_file = "/data/hafiz/certs/server.crt"
+
+# Private key file (PEM format)  
+# key_file = "/data/hafiz/certs/server.key"
+
+# Minimum TLS version: "1.2" or "1.3"
+min_version = "1.2"
+
+# HSTS (HTTP Strict Transport Security)
+hsts_enabled = true
+hsts_max_age = 31536000  # 1 year in seconds
+
+# mTLS (Mutual TLS) - require client certificates
+require_client_cert = false
+# client_ca_file = "/data/hafiz/certs/ca.crt"
+
+# Storage settings
+[storage]
+data_dir = "/data/hafiz"
+temp_dir = "/tmp/hafiz"
+max_object_size = 5368709120  # 5 GB
+
+# Database settings
+[database]
+# SQLite (development)
+url = "sqlite:///data/hafiz/hafiz.db?mode=rwc"
+
+# PostgreSQL (production)
+# url = "postgresql://user:password@localhost:5432/hafiz"
+
+max_connections = 100
+min_connections = 5
+
+# Authentication
+[auth]
+enabled = true
+root_access_key = "minioadmin"
+root_secret_key = "minioadmin"  # Change in production!
+
+# Encryption (Server-Side Encryption)
+[encryption]
+enabled = false
+
+# SSE-S3: Server-managed encryption keys
+sse_s3_enabled = true
+
+# SSE-C: Customer-provided encryption keys
+sse_c_enabled = true
+
+# Master encryption key (32 bytes = 64 hex chars)
+# Generate with: openssl rand -hex 32
+# master_key = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+# Or load from file
+# master_key_file = "/etc/hafiz/master.key"
+
+# Or load from environment variable
+# master_key_env = "HAFIZ_MASTER_KEY"
+
+# Default encryption for new objects: "None" or "AES256"
+default_encryption = "None"
+
+# Logging
+[logging]
+level = "info"  # trace, debug, info, warn, error
+format = "pretty"  # pretty, json
+
+# Lifecycle worker (automatic object expiration)
+[lifecycle]
+enabled = true
+scan_interval_secs = 3600  # 1 hour
+batch_size = 1000
+
+# =============================================================================
+# Environment Variable Overrides
+# =============================================================================
+# All settings can be overridden with environment variables:
+#
+# HAFIZ_BIND_ADDRESS      - Server bind address
+# HAFIZ_PORT              - Server port
+# HAFIZ_DATA_DIR          - Storage data directory
+# HAFIZ_DATABASE_URL      - Database connection URL
+# HAFIZ_ROOT_ACCESS_KEY   - Root user access key
+# HAFIZ_ROOT_SECRET_KEY   - Root user secret key
+# HAFIZ_LOG_LEVEL         - Logging level
+# HAFIZ_TLS_CERT          - TLS certificate file path
+# HAFIZ_TLS_KEY           - TLS private key file path
+# HAFIZ_ENCRYPTION_KEY    - Master encryption key (hex)
+# HAFIZ_SSE_S3_ENABLED    - Enable SSE-S3 (true/false)
+# HAFIZ_SSE_C_ENABLED     - Enable SSE-C (true/false)
+#
+# =============================================================================
+# TLS Quick Start
+# =============================================================================
+#
+# 1. Generate self-signed certificate for development:
+#    ./scripts/tls-certs.sh generate-self-signed --domain localhost
+#
+# 2. Enable TLS in config:
+#    [tls]
+#    enabled = true
+#    cert_file = "/data/hafiz/certs/server.crt"
+#    key_file = "/data/hafiz/certs/server.key"
+#
+# 3. Or use environment variables:
+#    export HAFIZ_TLS_CERT=/data/hafiz/certs/server.crt
+#    export HAFIZ_TLS_KEY=/data/hafiz/certs/server.key
+#
+# For production, use certificates from a proper CA (Let's Encrypt, etc.)
+#
+# =============================================================================
+# mTLS (Mutual TLS) Setup
+# =============================================================================
+#
+# 1. Generate CA and server certificates:
+#    ./scripts/tls-certs.sh generate-ca
+#    ./scripts/tls-certs.sh generate-server --domain storage.example.com
+#
+# 2. Generate client certificates:
+#    ./scripts/tls-certs.sh generate-client --client-name app1
+#
+# 3. Enable mTLS:
+#    [tls]
+#    enabled = true
+#    cert_file = "/data/hafiz/certs/server.crt"
+#    key_file = "/data/hafiz/certs/server.key"
+#    require_client_cert = true
+#    client_ca_file = "/data/hafiz/certs/ca.crt"
+#
+# =============================================================================

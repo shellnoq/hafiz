@@ -1,0 +1,15 @@
+[package]
+name = "hafiz-auth"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+hafiz-core = { workspace = true }
+hafiz-crypto = { workspace = true }
+chrono = { workspace = true }
+tracing = { workspace = true }
+urlencoding = { workspace = true }
+percent-encoding = { workspace = true }
+hex = { workspace = true }
+rand = { workspace = true }
