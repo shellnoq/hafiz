@@ -17,3 +17,6 @@ url = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }
+
+# LDAP support
+ldap3 = { version = "0.11", default-features = false, features = ["tls-rustls"] }
