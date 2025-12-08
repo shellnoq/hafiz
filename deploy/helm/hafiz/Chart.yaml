@@ -1,0 +1,51 @@
+apiVersion: v2
+name: hafiz
+description: Enterprise S3-Compatible Object Storage
+
+# Chart type: application or library
+type: application
+
+# Chart version - independent of app version
+version: 0.1.0
+
+# Application version
+appVersion: "0.1.0"
+
+# Keywords for searching
+keywords:
+  - s3
+  - object-storage
+  - storage
+  - minio-alternative
+  - cloud-native
+
+# Home page
+home: https://github.com/hafiz
+
+# Sources
+sources:
+  - https://github.com/hafiz
+
+# Maintainers
+maintainers:
+  - name: Hafiz Team
+    email: team@hafiz.io
+
+# Icon (optional)
+# icon: https://hafiz.io/logo.png
+
+# Dependencies (if any)
+dependencies: []
+
+# Annotations
+annotations:
+  # Artifact Hub annotations
+  artifacthub.io/license: Apache-2.0
+  artifacthub.io/category: storage
+  
+  # Links
+  artifacthub.io/links: |
+    - name: Documentation
+      url: https://hafiz.io/docs
+    - name: GitHub
+      url: https://github.com/hafiz

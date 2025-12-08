@@ -1,19 +1,49 @@
 [package]
 name = "hafiz-cli"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
+version = "0.1.0"
+edition = "2021"
+description = "Command-line interface for Hafiz S3-compatible storage"
+authors = ["Hafiz Team"]
+license = "MIT"
 
 [[bin]]
 name = "hafiz"
 path = "src/main.rs"
 
 [dependencies]
-hafiz-core = { workspace = true }
-hafiz-s3-api = { workspace = true }
+# AWS SDK for S3 operations
+aws-config = { version = "1.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = "1.0"
+aws-credential-types = "1.0"
 
-tokio = { workspace = true }
-clap = { workspace = true }
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
-dotenvy = { workspace = true }
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }
+
+# CLI framework
+clap = { version = "4.4", features = ["derive", "env"] }
+
+# Progress bars and formatting
+indicatif = "0.17"
+console = "0.15"
+humansize = "2.1"
+chrono = "0.4"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# File handling
+walkdir = "2.4"
+glob = "0.3"
+
+# Config
+directories = "5.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Colored output
+colored = "2.0"
+
+# URL parsing
+url = "2.4"
