@@ -2,7 +2,7 @@
 # https://squidfunk.github.io/mkdocs-material/
 
 site_name: Hafiz
-site_url: https://shellnoq.github.io/hafiz
+site_url: https://docs.hafiz.e2esolutions.tech
 site_author: Shellnoq
 site_description: Enterprise-grade S3-compatible object storage written in Rust
 

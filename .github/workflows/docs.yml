@@ -55,4 +55,5 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./site
           publish_branch: gh-pages
+          cname: docs.hafiz.e2esolutions.tech
           commit_message: 'docs: deploy ${{ github.sha }}'
