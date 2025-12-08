@@ -902,3 +902,126 @@ pub async fn download_object(bucket: &str, key: &str) -> Result<Vec<u8>, ApiErro
         message: e.to_string(),
     })
 }
+
+// ============================================================================
+// Cluster API
+// ============================================================================
+
+/// Get cluster status
+pub async fn get_cluster_status() -> Result<ClusterStatus, ApiError> {
+    get("/cluster/status").await
+}
+
+/// Get cluster health
+pub async fn get_cluster_health() -> Result<ClusterHealth, ApiError> {
+    get("/cluster/health").await
+}
+
+/// List cluster nodes
+pub async fn list_cluster_nodes() -> Result<NodesList, ApiError> {
+    get("/cluster/nodes").await
+}
+
+/// Get a specific node
+pub async fn get_cluster_node(node_id: &str) -> Result<NodeInfo, ApiError> {
+    get(&format!("/cluster/nodes/{}", node_id)).await
+}
+
+/// Drain a node
+pub async fn drain_cluster_node(node_id: &str) -> Result<serde_json::Value, ApiError> {
+    post(&format!("/cluster/nodes/{}/drain", node_id), &serde_json::json!({})).await
+}
+
+/// Remove a node from cluster
+pub async fn remove_cluster_node(node_id: &str) -> Result<(), ApiError> {
+    delete(&format!("/cluster/nodes/{}", node_id)).await
+}
+
+/// List replication rules
+pub async fn list_replication_rules() -> Result<ReplicationRulesList, ApiError> {
+    get("/cluster/replication/rules").await
+}
+
+/// Create a replication rule
+pub async fn create_replication_rule(request: &CreateReplicationRuleRequest) -> Result<ReplicationRule, ApiError> {
+    post("/cluster/replication/rules", request).await
+}
+
+/// Get a specific replication rule
+pub async fn get_replication_rule(rule_id: &str) -> Result<ReplicationRule, ApiError> {
+    get(&format!("/cluster/replication/rules/{}", rule_id)).await
+}
+
+/// Delete a replication rule
+pub async fn delete_replication_rule(rule_id: &str) -> Result<(), ApiError> {
+    delete(&format!("/cluster/replication/rules/{}", rule_id)).await
+}
+
+/// Get replication statistics
+pub async fn get_replication_stats() -> Result<ReplicationStats, ApiError> {
+    get("/cluster/replication/stats").await
+}
+
+// ============================================================================
+// Pre-signed URLs API
+// ============================================================================
+
+/// Generate a pre-signed URL
+pub async fn generate_presigned_url(request: &PresignedUrlRequest) -> Result<PresignedUrlResponse, ApiError> {
+    post("/presigned", request).await
+}
+
+/// Generate a pre-signed download URL (shortcut)
+pub async fn generate_presigned_download(bucket: &str, key: &str) -> Result<PresignedUrlResponse, ApiError> {
+    let encoded_key = urlencoding::encode(key);
+    post_empty(&format!("/presigned/download/{}/{}", bucket, encoded_key)).await
+}
+
+/// Generate a pre-signed upload URL (shortcut)
+pub async fn generate_presigned_upload(bucket: &str, key: &str) -> Result<PresignedUrlResponse, ApiError> {
+    let encoded_key = urlencoding::encode(key);
+    post_empty(&format!("/presigned/upload/{}/{}", bucket, encoded_key)).await
+}
+
+/// POST request without body
+async fn post_empty<T: serde::de::DeserializeOwned>(endpoint: &str) -> Result<T, ApiError> {
+    let url = format!("{}{}", api_base(), endpoint);
+    
+    let mut request = Request::post(&url)
+        .header("Content-Type", "application/json");
+    
+    if let Some(auth) = get_auth_header() {
+        request = request.header("Authorization", &auth);
+    }
+    
+    let response = request
+        .body("{}")
+        .map_err(|e| ApiError {
+            code: "RequestError".to_string(),
+            message: e.to_string(),
+        })?
+        .send()
+        .await
+        .map_err(|e| ApiError {
+            code: "NetworkError".to_string(),
+            message: e.to_string(),
+        })?;
+    
+    if !response.ok() {
+        let status = response.status();
+        let text = response.text().await.unwrap_or_default();
+        return Err(ApiError {
+            code: format!("HTTP{}", status),
+            message: if text.is_empty() {
+                format!("Request failed with status {}", status)
+            } else {
+                text
+            },
+        });
+    }
+    
+    response.json().await.map_err(|e| ApiError {
+        code: "ParseError".to_string(),
+        message: e.to_string(),
+    })
+}

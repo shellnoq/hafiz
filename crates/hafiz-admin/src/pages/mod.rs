@@ -1,5 +1,6 @@
 //! Page components
 
+mod cluster;
 mod dashboard;
 mod buckets;
 mod objects;
@@ -7,6 +8,7 @@ mod users;
 mod settings;
 mod not_found;
 
+pub use cluster::ClusterPage;
 pub use dashboard::DashboardPage;
 pub use buckets::{BucketsPage, BucketDetailPage};
 pub use objects::ObjectsPage;

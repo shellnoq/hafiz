@@ -88,3 +88,126 @@ impl std::fmt::Display for ApiError {
 }
 
 impl std::error::Error for ApiError {}
+
+// ============================================================================
+// Cluster Types
+// ============================================================================
+
+/// Cluster status response
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+pub struct ClusterStatus {
+    pub enabled: bool,
+    pub cluster_name: String,
+    pub local_node: NodeInfo,
+    pub stats: ClusterStats,
+}
+
+/// Node information
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+pub struct NodeInfo {
+    pub id: String,
+    pub name: String,
+    pub endpoint: String,
+    pub role: String,
+    pub status: String,
+    pub region: Option<String>,
+    pub zone: Option<String>,
+    pub joined_at: String,
+    pub last_heartbeat: String,
+    pub version: String,
+}
+
+/// Cluster statistics
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+pub struct ClusterStats {
+    pub total_nodes: u32,
+    pub healthy_nodes: u32,
+    pub primary_nodes: u32,
+    pub replica_nodes: u32,
+    pub total_objects: u64,
+    pub total_storage_bytes: u64,
+    pub pending_replications: u64,
+    pub failed_replications: u64,
+    pub replication_lag_secs: u64,
+}
+
+/// Nodes list response
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+pub struct NodesList {
+    pub nodes: Vec<NodeInfo>,
+    pub total: usize,
+    pub healthy: usize,
+}
+
+/// Replication rule
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ReplicationRule {
+    pub id: String,
+    pub enabled: bool,
+    pub source_bucket: String,
+    pub destination_bucket: String,
+    pub target_nodes: Vec<String>,
+    pub prefix_filter: Option<String>,
+    pub mode: String,
+    pub priority: i32,
+    pub replicate_deletes: bool,
+    pub replicate_existing: bool,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+/// Replication rules list
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+pub struct ReplicationRulesList {
+    pub rules: Vec<ReplicationRule>,
+    pub total: usize,
+}
+
+/// Replication statistics
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+pub struct ReplicationStats {
+    pub events_processed: u64,
+    pub successful: u64,
+    pub failed: u64,
+    pub pending: u64,
+    pub in_progress: u64,
+    pub bytes_replicated: u64,
+    pub avg_latency_ms: f64,
+}
+
+/// Create replication rule request
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct CreateReplicationRuleRequest {
+    pub source_bucket: String,
+    pub destination_bucket: Option<String>,
+    pub target_nodes: Option<Vec<String>>,
+    pub prefix_filter: Option<String>,
+    pub mode: Option<String>,
+    pub replicate_deletes: Option<bool>,
+}
+
+/// Cluster health response
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+pub struct ClusterHealth {
+    pub status: String,
+    pub cluster_enabled: bool,
+    pub node_count: usize,
+    pub timestamp: String,
+}
+
+/// Pre-signed URL request
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PresignedUrlRequest {
+    pub method: String,
+    pub bucket: String,
+    pub key: String,
+    pub expires_in: u64,
+}
+
+/// Pre-signed URL response
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PresignedUrlResponse {
+    pub url: String,
+    pub method: String,
+    pub expires_at: String,
+}
