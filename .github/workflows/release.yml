@@ -73,7 +73,7 @@ jobs:
           tar czf ../hafiz-${{ matrix.name }}.tar.gz *
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: hafiz-${{ matrix.name }}
           path: hafiz-${{ matrix.name }}.tar.gz
