@@ -1,0 +1,43 @@
+[package]
+name = "hafiz-cluster"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Cluster management and replication for Hafiz"
+
+[dependencies]
+# Internal crates
+hafiz-core = { workspace = true }
+hafiz-storage = { workspace = true }
+hafiz-metadata = { workspace = true }
+
+# Async runtime
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+futures = { workspace = true }
+async-trait = { workspace = true }
+
+# HTTP client for node communication
+reqwest = { version = "0.11", features = ["json", "rustls-tls"], default-features = false }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# Utilities
+uuid = { workspace = true }
+chrono = { workspace = true }
+tracing = { workspace = true }
+parking_lot = { workspace = true }
+bytes = { workspace = true }
+
+# Checksums
+sha2 = { workspace = true }
+hex = { workspace = true }
+
+# Metrics
+metrics = { workspace = true }

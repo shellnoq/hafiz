@@ -28,6 +28,9 @@ pub struct HafizConfig {
     
     #[serde(default)]
     pub lifecycle: LifecycleWorkerConfig,
+    
+    #[serde(default)]
+    pub cluster: ClusterConfigSection,
 }
 
 impl Default for HafizConfig {
@@ -41,6 +44,7 @@ impl Default for HafizConfig {
             encryption: EncryptionConfig::default(),
             logging: LoggingConfig::default(),
             lifecycle: LifecycleWorkerConfig::default(),
+            cluster: ClusterConfigSection::default(),
         }
     }
 }
@@ -430,6 +434,110 @@ impl Default for LifecycleWorkerConfig {
             enabled: true,
             scan_interval_secs: 3600, // 1 hour
             batch_size: 1000,
+        }
+    }
+}
+
+/// Cluster configuration for multi-node setup
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClusterConfigSection {
+    /// Enable cluster mode
+    pub enabled: bool,
+    /// Cluster name (must match across all nodes)
+    pub name: String,
+    /// This node's unique ID (auto-generated if not set)
+    pub node_id: Option<String>,
+    /// This node's human-readable name
+    pub node_name: Option<String>,
+    /// This node's advertised API endpoint
+    pub advertise_endpoint: Option<String>,
+    /// This node's cluster communication port
+    pub cluster_port: u16,
+    /// Seed nodes for cluster discovery
+    pub seed_nodes: Vec<String>,
+    /// Heartbeat interval in seconds
+    pub heartbeat_interval_secs: u64,
+    /// Node timeout in seconds
+    pub node_timeout_secs: u64,
+    /// Default replication mode (none, async, sync)
+    pub default_replication_mode: String,
+    /// Default replication factor
+    pub default_replication_factor: u32,
+    /// Enable TLS for cluster communication
+    pub cluster_tls_enabled: bool,
+    /// Cluster TLS certificate path
+    pub cluster_tls_cert: Option<String>,
+    /// Cluster TLS key path  
+    pub cluster_tls_key: Option<String>,
+    /// Cluster CA certificate path
+    pub cluster_ca_cert: Option<String>,
+}
+
+impl Default for ClusterConfigSection {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            name: "hafiz-cluster".to_string(),
+            node_id: None,
+            node_name: None,
+            advertise_endpoint: None,
+            cluster_port: 9001,
+            seed_nodes: Vec::new(),
+            heartbeat_interval_secs: 5,
+            node_timeout_secs: 30,
+            default_replication_mode: "async".to_string(),
+            default_replication_factor: 2,
+            cluster_tls_enabled: false,
+            cluster_tls_cert: None,
+            cluster_tls_key: None,
+            cluster_ca_cert: None,
+        }
+    }
+}
+
+impl ClusterConfigSection {
+    /// Convert to ClusterConfig for the cluster module
+    pub fn to_cluster_config(&self, server_config: &ServerConfig) -> crate::types::ClusterConfig {
+        let node_id = self.node_id.clone().unwrap_or_else(|| {
+            uuid::Uuid::new_v4().to_string()
+        });
+        
+        let node_name = self.node_name.clone().unwrap_or_else(|| {
+            hostname::get()
+                .map(|h| h.to_string_lossy().to_string())
+                .unwrap_or_else(|_| "hafiz-node".to_string())
+        });
+        
+        let advertise_endpoint = self.advertise_endpoint.clone().unwrap_or_else(|| {
+            format!("http://{}:{}", server_config.bind_address, server_config.port)
+        });
+        
+        let cluster_endpoint = format!(
+            "http://{}:{}",
+            server_config.bind_address,
+            self.cluster_port
+        );
+        
+        crate::types::ClusterConfig {
+            name: self.name.clone(),
+            node_id,
+            node_name,
+            advertise_endpoint,
+            cluster_endpoint,
+            seed_nodes: self.seed_nodes.clone(),
+            heartbeat_interval_secs: self.heartbeat_interval_secs,
+            node_timeout_secs: self.node_timeout_secs,
+            default_replication_mode: match self.default_replication_mode.as_str() {
+                "sync" => crate::types::ReplicationMode::Sync,
+                "async" => crate::types::ReplicationMode::Async,
+                _ => crate::types::ReplicationMode::None,
+            },
+            default_replication_factor: self.default_replication_factor,
+            default_consistency_level: crate::types::ConsistencyLevel::One,
+            cluster_tls_enabled: self.cluster_tls_enabled,
+            cluster_tls_cert: self.cluster_tls_cert.clone(),
+            cluster_tls_key: self.cluster_tls_key.clone(),
+            cluster_ca_cert: self.cluster_ca_cert.clone(),
         }
     }
 }

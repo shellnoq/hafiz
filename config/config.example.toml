@@ -89,6 +89,46 @@ scan_interval_secs = 3600  # 1 hour
 batch_size = 1000
 
 # =============================================================================
+# Cluster Configuration (Multi-node Setup)
+# =============================================================================
+[cluster]
+# Enable cluster mode
+enabled = false
+
+# Cluster name - must match across all nodes
+name = "hafiz-cluster"
+
+# Node identification (auto-generated if not set)
+# node_id = "node-1"
+# node_name = "hafiz-node-1"
+
+# Advertised endpoint for this node (how other nodes reach us)
+# advertise_endpoint = "http://192.168.1.10:9000"
+
+# Cluster communication port (separate from S3 API)
+cluster_port = 9001
+
+# Seed nodes for cluster discovery (comma-separated)
+# When starting a new cluster, leave empty on the first node
+# seed_nodes = ["http://192.168.1.10:9001", "http://192.168.1.11:9001"]
+seed_nodes = []
+
+# Heartbeat and health check intervals
+heartbeat_interval_secs = 5
+node_timeout_secs = 30
+
+# Default replication settings for new buckets
+# Modes: "none", "async", "sync"
+default_replication_mode = "async"
+default_replication_factor = 2
+
+# Cluster TLS (recommended for production)
+cluster_tls_enabled = false
+# cluster_tls_cert = "/data/hafiz/certs/cluster.crt"
+# cluster_tls_key = "/data/hafiz/certs/cluster.key"
+# cluster_ca_cert = "/data/hafiz/certs/cluster-ca.crt"
+
+# =============================================================================
 # Environment Variable Overrides
 # =============================================================================
 # All settings can be overridden with environment variables:
@@ -105,6 +145,32 @@ batch_size = 1000
 # HAFIZ_ENCRYPTION_KEY    - Master encryption key (hex)
 # HAFIZ_SSE_S3_ENABLED    - Enable SSE-S3 (true/false)
 # HAFIZ_SSE_C_ENABLED     - Enable SSE-C (true/false)
+#
+# Cluster environment variables:
+# HAFIZ_CLUSTER_ENABLED   - Enable cluster mode (true/false)
+# HAFIZ_CLUSTER_NAME      - Cluster name
+# HAFIZ_CLUSTER_SEED_NODES - Comma-separated seed node endpoints
+#
+# =============================================================================
+# Cluster Quick Start
+# =============================================================================
+#
+# 1. Start first node (becomes the seed):
+#    [cluster]
+#    enabled = true
+#    name = "my-cluster"
+#    advertise_endpoint = "http://node1.example.com:9000"
+#    seed_nodes = []
+#
+# 2. Start additional nodes pointing to first node:
+#    [cluster]
+#    enabled = true
+#    name = "my-cluster"
+#    advertise_endpoint = "http://node2.example.com:9000"
+#    seed_nodes = ["http://node1.example.com:9001"]
+#
+# 3. View cluster status:
+#    curl http://localhost:9000/api/v1/cluster/status
 #
 # =============================================================================
 # TLS Quick Start

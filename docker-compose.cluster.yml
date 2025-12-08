@@ -1,0 +1,194 @@
+# ============================================================================
+# Hafiz Cluster Docker Compose
+# ============================================================================
+#
+# Multi-node Hafiz cluster with 3 nodes
+#
+# Usage:
+#   docker-compose -f docker-compose.cluster.yml up -d
+#
+# Scale:
+#   docker-compose -f docker-compose.cluster.yml up -d --scale hafiz-node=5
+#
+# ============================================================================
+
+version: "3.8"
+
+services:
+  # ==========================================================================
+  # Shared PostgreSQL for metadata (production: use separate instances)
+  # ==========================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: hafiz-cluster-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hafiz
+      POSTGRES_PASSWORD: hafiz
+      POSTGRES_DB: hafiz
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hafiz -d hafiz"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hafiz-cluster
+
+  # ==========================================================================
+  # Hafiz Node 1 (Seed Node)
+  # ==========================================================================
+  hafiz-node1:
+    image: hafiz:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hafiz-node1
+    hostname: hafiz-node1
+    restart: unless-stopped
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Cluster port
+    volumes:
+      - node1-data:/data/hafiz
+    environment:
+      HAFIZ_BIND_ADDRESS: "0.0.0.0"
+      HAFIZ_PORT: "9000"
+      HAFIZ_DATABASE_URL: "postgresql://hafiz:hafiz@postgres:5432/hafiz"
+      HAFIZ_ROOT_ACCESS_KEY: "${HAFIZ_ROOT_ACCESS_KEY:-minioadmin}"
+      HAFIZ_ROOT_SECRET_KEY: "${HAFIZ_ROOT_SECRET_KEY:-minioadmin}"
+      HAFIZ_LOG_LEVEL: "info"
+      # Cluster config
+      HAFIZ_CLUSTER_ENABLED: "true"
+      HAFIZ_CLUSTER_NAME: "hafiz-cluster"
+      HAFIZ_CLUSTER_NODE_ID: "node-1"
+      HAFIZ_CLUSTER_NODE_NAME: "hafiz-node1"
+      HAFIZ_CLUSTER_ADVERTISE_ENDPOINT: "http://hafiz-node1:9000"
+      HAFIZ_CLUSTER_PORT: "9001"
+      # First node - no seed nodes
+      HAFIZ_CLUSTER_SEED_NODES: ""
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - hafiz-cluster
+
+  # ==========================================================================
+  # Hafiz Node 2
+  # ==========================================================================
+  hafiz-node2:
+    image: hafiz:latest
+    container_name: hafiz-node2
+    hostname: hafiz-node2
+    restart: unless-stopped
+    ports:
+      - "9010:9000"   # S3 API
+      - "9011:9001"   # Cluster port
+    volumes:
+      - node2-data:/data/hafiz
+    environment:
+      HAFIZ_BIND_ADDRESS: "0.0.0.0"
+      HAFIZ_PORT: "9000"
+      HAFIZ_DATABASE_URL: "postgresql://hafiz:hafiz@postgres:5432/hafiz"
+      HAFIZ_ROOT_ACCESS_KEY: "${HAFIZ_ROOT_ACCESS_KEY:-minioadmin}"
+      HAFIZ_ROOT_SECRET_KEY: "${HAFIZ_ROOT_SECRET_KEY:-minioadmin}"
+      HAFIZ_LOG_LEVEL: "info"
+      # Cluster config
+      HAFIZ_CLUSTER_ENABLED: "true"
+      HAFIZ_CLUSTER_NAME: "hafiz-cluster"
+      HAFIZ_CLUSTER_NODE_ID: "node-2"
+      HAFIZ_CLUSTER_NODE_NAME: "hafiz-node2"
+      HAFIZ_CLUSTER_ADVERTISE_ENDPOINT: "http://hafiz-node2:9000"
+      HAFIZ_CLUSTER_PORT: "9001"
+      # Join via node1
+      HAFIZ_CLUSTER_SEED_NODES: "http://hafiz-node1:9001"
+    depends_on:
+      - hafiz-node1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - hafiz-cluster
+
+  # ==========================================================================
+  # Hafiz Node 3
+  # ==========================================================================
+  hafiz-node3:
+    image: hafiz:latest
+    container_name: hafiz-node3
+    hostname: hafiz-node3
+    restart: unless-stopped
+    ports:
+      - "9020:9000"   # S3 API
+      - "9021:9001"   # Cluster port
+    volumes:
+      - node3-data:/data/hafiz
+    environment:
+      HAFIZ_BIND_ADDRESS: "0.0.0.0"
+      HAFIZ_PORT: "9000"
+      HAFIZ_DATABASE_URL: "postgresql://hafiz:hafiz@postgres:5432/hafiz"
+      HAFIZ_ROOT_ACCESS_KEY: "${HAFIZ_ROOT_ACCESS_KEY:-minioadmin}"
+      HAFIZ_ROOT_SECRET_KEY: "${HAFIZ_ROOT_SECRET_KEY:-minioadmin}"
+      HAFIZ_LOG_LEVEL: "info"
+      # Cluster config
+      HAFIZ_CLUSTER_ENABLED: "true"
+      HAFIZ_CLUSTER_NAME: "hafiz-cluster"
+      HAFIZ_CLUSTER_NODE_ID: "node-3"
+      HAFIZ_CLUSTER_NODE_NAME: "hafiz-node3"
+      HAFIZ_CLUSTER_ADVERTISE_ENDPOINT: "http://hafiz-node3:9000"
+      HAFIZ_CLUSTER_PORT: "9001"
+      # Join via node1
+      HAFIZ_CLUSTER_SEED_NODES: "http://hafiz-node1:9001"
+    depends_on:
+      - hafiz-node1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - hafiz-cluster
+
+  # ==========================================================================
+  # Load Balancer (HAProxy)
+  # ==========================================================================
+  haproxy:
+    image: haproxy:2.9-alpine
+    container_name: hafiz-lb
+    restart: unless-stopped
+    ports:
+      - "80:80"       # HTTP (redirects to HTTPS in production)
+      - "443:443"     # HTTPS
+      - "8404:8404"   # HAProxy stats
+    volumes:
+      - ./deploy/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - hafiz-node1
+      - hafiz-node2
+      - hafiz-node3
+    networks:
+      - hafiz-cluster
+
+# ============================================================================
+# Volumes
+# ============================================================================
+volumes:
+  postgres-data:
+  node1-data:
+  node2-data:
+  node3-data:
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  hafiz-cluster:
+    driver: bridge

@@ -6,6 +6,7 @@ members = [
     "crates/hafiz-metadata",
     "crates/hafiz-auth",
     "crates/hafiz-crypto",
+    "crates/hafiz-cluster",
     "crates/hafiz-cli",
     "crates/hafiz-admin",
 ]
@@ -27,6 +28,7 @@ hafiz-storage = { path = "crates/hafiz-storage" }
 hafiz-metadata = { path = "crates/hafiz-metadata" }
 hafiz-auth = { path = "crates/hafiz-auth" }
 hafiz-crypto = { path = "crates/hafiz-crypto" }
+hafiz-cluster = { path = "crates/hafiz-cluster" }
 
 # Async runtime
 tokio = { version = "1.35", features = ["full", "tracing"] }

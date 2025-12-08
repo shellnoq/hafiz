@@ -1,0 +1,149 @@
+# Hafiz Alerting Rules
+# Copy to /etc/prometheus/hafiz_alerts.yml
+
+groups:
+  - name: hafiz_alerts
+    interval: 30s
+    rules:
+      # Server availability
+      - alert: HafizDown
+        expr: up{job="hafiz"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Hafiz server is down"
+          description: "Hafiz instance {{ $labels.instance }} has been down for more than 1 minute."
+
+      # High error rate
+      - alert: HafizHighErrorRate
+        expr: |
+          sum(rate(hafiz_http_requests_total{status_class="5xx"}[5m])) 
+          / sum(rate(hafiz_http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on Hafiz"
+          description: "More than 5% of requests are failing with 5xx errors."
+
+      # High latency
+      - alert: HafizHighLatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(hafiz_http_request_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High latency on Hafiz"
+          description: "95th percentile latency is above 1 second."
+
+      # High latency critical
+      - alert: HafizHighLatencyCritical
+        expr: |
+          histogram_quantile(0.99, sum(rate(hafiz_http_request_duration_seconds_bucket[5m])) by (le)) > 5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical latency on Hafiz"
+          description: "99th percentile latency is above 5 seconds."
+
+      # Storage capacity warning
+      - alert: HafizStorageWarning
+        expr: hafiz_storage_used_bytes > 100 * 1024 * 1024 * 1024  # 100GB
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Hafiz storage usage high"
+          description: "Storage usage has exceeded 100GB."
+
+      # S3 operation errors
+      - alert: HafizS3OperationErrors
+        expr: |
+          sum(rate(hafiz_s3_operation_errors_total[5m])) by (operation) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "S3 operation errors detected"
+          description: "Operation {{ $labels.operation }} has error rate > 1/sec."
+
+      # GetObject latency (critical for performance)
+      - alert: HafizGetObjectSlow
+        expr: |
+          histogram_quantile(0.95, sum(rate(hafiz_s3_operation_duration_seconds_bucket{operation="GetObject"}[5m])) by (le)) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "GetObject operations are slow"
+          description: "95th percentile GetObject latency is above 500ms."
+
+      # PutObject latency
+      - alert: HafizPutObjectSlow
+        expr: |
+          histogram_quantile(0.95, sum(rate(hafiz_s3_operation_duration_seconds_bucket{operation="PutObject"}[5m])) by (le)) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PutObject operations are slow"
+          description: "95th percentile PutObject latency is above 2 seconds."
+
+      # No requests (might indicate connectivity issues)
+      - alert: HafizNoTraffic
+        expr: |
+          sum(rate(hafiz_http_requests_total[15m])) == 0
+        for: 30m
+        labels:
+          severity: info
+        annotations:
+          summary: "No traffic to Hafiz"
+          description: "Hafiz has received no requests in the last 30 minutes."
+
+      # Too many active multipart uploads
+      - alert: HafizTooManyMultipartUploads
+        expr: hafiz_multipart_uploads_active > 100
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Too many active multipart uploads"
+          description: "There are {{ $value }} active multipart uploads. Consider cleaning up stale uploads."
+
+  - name: hafiz_slo
+    interval: 1m
+    rules:
+      # SLO: 99.9% availability
+      - record: hafiz:availability:ratio_5m
+        expr: |
+          1 - (
+            sum(rate(hafiz_http_requests_total{status_class="5xx"}[5m])) 
+            / sum(rate(hafiz_http_requests_total[5m]))
+          )
+
+      # SLO: 99% of requests under 500ms
+      - record: hafiz:latency_slo:ratio_5m
+        expr: |
+          sum(rate(hafiz_http_request_duration_seconds_bucket{le="0.5"}[5m])) 
+          / sum(rate(hafiz_http_request_duration_seconds_count[5m]))
+
+      - alert: HafizAvailabilitySLOBreach
+        expr: hafiz:availability:ratio_5m < 0.999
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Availability SLO breach"
+          description: "Availability dropped below 99.9% SLO target."
+
+      - alert: HafizLatencySLOBreach
+        expr: hafiz:latency_slo:ratio_5m < 0.99
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Latency SLO breach"
+          description: "Less than 99% of requests are completing under 500ms."
