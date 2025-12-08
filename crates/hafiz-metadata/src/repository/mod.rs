@@ -184,7 +184,21 @@ impl MetadataStore {
         .await
         .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
-        info!("Metadata store initialized with versioning, tagging, lifecycle, policy, and ACL support");
+        // Bucket notification configuration table
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS bucket_notifications (
+                bucket TEXT PRIMARY KEY,
+                config_json TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        info!("Metadata store initialized with versioning, tagging, lifecycle, policy, ACL, and notification support");
         Ok(())
     }
 
@@ -1349,6 +1363,43 @@ impl MetadataStore {
 
         Ok(row.map(|r| r.0))
     }
+
+    /// Store bucket notification configuration JSON
+    pub async fn put_bucket_notification(&self, bucket: &str, config_json: &str) -> Result<()> {
+        let now = Utc::now().to_rfc3339();
+        
+        sqlx::query(
+            r#"
+            INSERT INTO bucket_notifications (bucket, config_json, updated_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(bucket) DO UPDATE SET config_json = ?, updated_at = ?
+            "#,
+        )
+        .bind(bucket)
+        .bind(config_json)
+        .bind(&now)
+        .bind(config_json)
+        .bind(&now)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        debug!("Stored bucket notification config for: {}", bucket);
+        Ok(())
+    }
+
+    /// Get bucket notification configuration JSON
+    pub async fn get_bucket_notification(&self, bucket: &str) -> Result<Option<String>> {
+        let row: Option<(String,)> = sqlx::query_as(
+            r#"SELECT config_json FROM bucket_notifications WHERE bucket = ?"#,
+        )
+        .bind(bucket)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        Ok(row.map(|r| r.0))
+    }
 }
 
 // ============= Credentials Operations for Admin API =============
@@ -1898,5 +1949,15 @@ impl MetadataRepository for MetadataStore {
 
     async fn get_object_acl(&self, bucket: &str, key: &str, version_id: Option<&str>) -> Result<Option<String>> {
         MetadataStore::get_object_acl(self, bucket, key, version_id).await
+    }
+
+    // ============= Notification Operations =============
+
+    async fn put_bucket_notification(&self, bucket: &str, config_json: &str) -> Result<()> {
+        MetadataStore::put_bucket_notification(self, bucket, config_json).await
+    }
+
+    async fn get_bucket_notification(&self, bucket: &str) -> Result<Option<String>> {
+        MetadataStore::get_bucket_notification(self, bucket).await
     }
 }

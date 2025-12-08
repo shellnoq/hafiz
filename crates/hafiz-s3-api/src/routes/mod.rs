@@ -1,5 +1,6 @@
 //! S3 API Routes
 
+mod notification;
 mod policy;
 
 use axum::{
@@ -64,7 +65,7 @@ pub struct DispatchQuery {
     delete: Option<String>,
 }
 
-/// Bucket GET dispatcher - ListObjects, ListMultipartUploads, GetBucketVersioning, GetBucketLifecycle, ListObjectVersions, GetBucketPolicy, or GetBucketAcl
+/// Bucket GET dispatcher - ListObjects, ListMultipartUploads, GetBucketVersioning, GetBucketLifecycle, ListObjectVersions, GetBucketPolicy, GetBucketAcl, or GetBucketNotification
 pub async fn bucket_get_handler(
     state: State<AppState>,
     path: Path<String>,
@@ -93,6 +94,11 @@ pub async fn bucket_get_handler(
         return policy::get_bucket_acl(state, path).await.into_response();
     }
     
+    // Check if this is a get bucket notification request
+    if query_str == "notification" || query_str.starts_with("notification&") {
+        return notification::get_bucket_notification(state, path).await.into_response();
+    }
+    
     // Check if this is a list object versions request
     if query_str.contains("versions") {
         let params: ListObjectVersionsQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
@@ -110,7 +116,7 @@ pub async fn bucket_get_handler(
     get_bucket(state, path, query).await.into_response()
 }
 
-/// Bucket PUT dispatcher - CreateBucket, PutBucketVersioning, PutBucketLifecycle, PutBucketPolicy, or PutBucketAcl
+/// Bucket PUT dispatcher - CreateBucket, PutBucketVersioning, PutBucketLifecycle, PutBucketPolicy, PutBucketAcl, or PutBucketNotification
 pub async fn bucket_put_handler(
     state: State<AppState>,
     path: Path<String>,
@@ -138,6 +144,11 @@ pub async fn bucket_put_handler(
     // Check if this is a put bucket ACL request
     if query_str == "acl" || query_str.starts_with("acl&") {
         return policy::put_bucket_acl(state, path, headers, body).await.into_response();
+    }
+    
+    // Check if this is a put bucket notification request
+    if query_str == "notification" || query_str.starts_with("notification&") {
+        return notification::put_bucket_notification(state, path, body).await.into_response();
     }
     
     // Default: CreateBucket

@@ -144,4 +144,12 @@ pub trait MetadataRepository: Send + Sync {
     
     /// Get object ACL XML
     async fn get_object_acl(&self, bucket: &str, key: &str, version_id: Option<&str>) -> Result<Option<String>>;
+
+    // ============= Notification Operations =============
+    
+    /// Store bucket notification configuration JSON
+    async fn put_bucket_notification(&self, bucket: &str, config_json: &str) -> Result<()>;
+    
+    /// Get bucket notification configuration JSON
+    async fn get_bucket_notification(&self, bucket: &str) -> Result<Option<String>>;
 }

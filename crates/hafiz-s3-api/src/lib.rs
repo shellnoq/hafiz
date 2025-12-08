@@ -7,7 +7,9 @@ pub mod xml;
 pub mod admin;
 pub mod metrics;
 pub mod tls;
+pub mod events;
 
 pub use server::S3Server;
 pub use metrics::MetricsRecorder;
 pub use tls::TlsAcceptor;
+pub use events::{EventDispatcher, EventDispatcherConfig, S3Event};
