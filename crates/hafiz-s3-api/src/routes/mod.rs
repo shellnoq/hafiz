@@ -1,5 +1,7 @@
 //! S3 API Routes
 
+mod policy;
+
 use axum::{
     body::Body,
     extract::{Path, Query, RawQuery, State},
@@ -62,7 +64,7 @@ pub struct DispatchQuery {
     delete: Option<String>,
 }
 
-/// Bucket GET dispatcher - ListObjects, ListMultipartUploads, GetBucketVersioning, GetBucketLifecycle, or ListObjectVersions
+/// Bucket GET dispatcher - ListObjects, ListMultipartUploads, GetBucketVersioning, GetBucketLifecycle, ListObjectVersions, GetBucketPolicy, or GetBucketAcl
 pub async fn bucket_get_handler(
     state: State<AppState>,
     path: Path<String>,
@@ -79,6 +81,16 @@ pub async fn bucket_get_handler(
     // Check if this is a get bucket lifecycle request
     if query_str == "lifecycle" || query_str.starts_with("lifecycle&") {
         return get_bucket_lifecycle(state, path).await.into_response();
+    }
+    
+    // Check if this is a get bucket policy request
+    if query_str == "policy" || query_str.starts_with("policy&") {
+        return policy::get_bucket_policy(state, path).await.into_response();
+    }
+    
+    // Check if this is a get bucket ACL request
+    if query_str == "acl" || query_str.starts_with("acl&") {
+        return policy::get_bucket_acl(state, path).await.into_response();
     }
     
     // Check if this is a list object versions request
@@ -98,10 +110,11 @@ pub async fn bucket_get_handler(
     get_bucket(state, path, query).await.into_response()
 }
 
-/// Bucket PUT dispatcher - CreateBucket, PutBucketVersioning, or PutBucketLifecycle
+/// Bucket PUT dispatcher - CreateBucket, PutBucketVersioning, PutBucketLifecycle, PutBucketPolicy, or PutBucketAcl
 pub async fn bucket_put_handler(
     state: State<AppState>,
     path: Path<String>,
+    headers: HeaderMap,
     raw_query: RawQuery,
     body: Bytes,
 ) -> impl IntoResponse {
@@ -117,11 +130,21 @@ pub async fn bucket_put_handler(
         return put_bucket_lifecycle(state, path, body).await.into_response();
     }
     
+    // Check if this is a put bucket policy request
+    if query_str == "policy" || query_str.starts_with("policy&") {
+        return policy::put_bucket_policy(state, path, body).await.into_response();
+    }
+    
+    // Check if this is a put bucket ACL request
+    if query_str == "acl" || query_str.starts_with("acl&") {
+        return policy::put_bucket_acl(state, path, headers, body).await.into_response();
+    }
+    
     // Default: CreateBucket
     create_bucket(state, path).await.into_response()
 }
 
-/// Bucket DELETE dispatcher - DeleteBucket or DeleteBucketLifecycle
+/// Bucket DELETE dispatcher - DeleteBucket, DeleteBucketLifecycle, or DeleteBucketPolicy
 pub async fn bucket_delete_handler(
     state: State<AppState>,
     path: Path<String>,
@@ -132,6 +155,11 @@ pub async fn bucket_delete_handler(
     // Check if this is a delete bucket lifecycle request
     if query_str == "lifecycle" || query_str.starts_with("lifecycle&") {
         return delete_bucket_lifecycle(state, path).await.into_response();
+    }
+    
+    // Check if this is a delete bucket policy request
+    if query_str == "policy" || query_str.starts_with("policy&") {
+        return policy::delete_bucket_policy(state, path).await.into_response();
     }
     
     // Default: DeleteBucket
@@ -157,7 +185,7 @@ pub async fn bucket_post_handler(
     error_response(Error::InvalidRequest("Unknown bucket POST operation".into()), &request_id)
 }
 
-/// Object GET dispatcher - GetObject, ListParts, or GetObjectTagging
+/// Object GET dispatcher - GetObject, ListParts, GetObjectTagging, or GetObjectAcl
 pub async fn object_get_handler(
     state: State<AppState>,
     path: Path<(String, String)>,
@@ -172,6 +200,14 @@ pub async fn object_get_handler(
             .ok()
             .and_then(|m| m.get("versionId").cloned());
         return get_object_tagging(state, path, version_id).await.into_response();
+    }
+    
+    // Check if this is a get object ACL request
+    if query_str == "acl" || query_str.starts_with("acl&") || query_str.contains("&acl") {
+        let version_id: Option<String> = serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
+            .ok()
+            .and_then(|m| m.get("versionId").cloned());
+        return policy::get_object_acl(state, path, version_id).await.into_response();
     }
     
     // Check if this is a list parts request
@@ -189,7 +225,7 @@ pub async fn object_get_handler(
     get_object_versioned(state, path, headers, version_id).await.into_response()
 }
 
-/// Object PUT dispatcher - PutObject, CopyObject, UploadPart, or PutObjectTagging
+/// Object PUT dispatcher - PutObject, CopyObject, UploadPart, PutObjectTagging, or PutObjectAcl
 pub async fn object_put_handler(
     state: State<AppState>,
     path: Path<(String, String)>,
@@ -205,6 +241,14 @@ pub async fn object_put_handler(
             .ok()
             .and_then(|m| m.get("versionId").cloned());
         return put_object_tagging(state, path, version_id, body).await.into_response();
+    }
+    
+    // Check if this is a put object ACL request
+    if query_str == "acl" || query_str.starts_with("acl&") || query_str.contains("&acl") {
+        let version_id: Option<String> = serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
+            .ok()
+            .and_then(|m| m.get("versionId").cloned());
+        return policy::put_object_acl(state, path, headers, version_id, body).await.into_response();
     }
     
     // Check if this is an upload part request

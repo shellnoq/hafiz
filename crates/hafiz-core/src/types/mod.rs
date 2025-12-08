@@ -1,5 +1,6 @@
 //! Core types for Hafiz
 
+mod acl;
 mod bucket;
 mod common;
 mod lifecycle;
@@ -10,6 +11,7 @@ mod replication;
 mod storage;
 mod user;
 
+pub use acl::*;
 pub use bucket::*;
 pub use common::*;
 pub use lifecycle::*;

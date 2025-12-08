@@ -139,7 +139,52 @@ impl MetadataStore {
         .await
         .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
-        info!("Metadata store initialized with versioning, tagging, and lifecycle support");
+        // Bucket policy table
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS bucket_policies (
+                bucket TEXT PRIMARY KEY,
+                policy_json TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        // Bucket ACL table
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS bucket_acls (
+                bucket TEXT PRIMARY KEY,
+                acl_xml TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        // Object ACL table
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS object_acls (
+                bucket TEXT NOT NULL,
+                key TEXT NOT NULL,
+                version_id TEXT NOT NULL DEFAULT 'null',
+                acl_xml TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                PRIMARY KEY (bucket, key, version_id)
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        info!("Metadata store initialized with versioning, tagging, lifecycle, policy, and ACL support");
         Ok(())
     }
 
@@ -1161,6 +1206,151 @@ pub struct ObjectWithTags {
     pub tags: TagSet,
 }
 
+// ============= Policy and ACL Operations =============
+
+impl MetadataStore {
+    /// Store bucket policy JSON
+    pub async fn put_bucket_policy(&self, bucket: &str, policy_json: &str) -> Result<()> {
+        let now = Utc::now().to_rfc3339();
+        
+        sqlx::query(
+            r#"
+            INSERT INTO bucket_policies (bucket, policy_json, updated_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(bucket) DO UPDATE SET policy_json = ?, updated_at = ?
+            "#,
+        )
+        .bind(bucket)
+        .bind(policy_json)
+        .bind(&now)
+        .bind(policy_json)
+        .bind(&now)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        debug!("Stored bucket policy for: {}", bucket);
+        Ok(())
+    }
+
+    /// Get bucket policy JSON
+    pub async fn get_bucket_policy(&self, bucket: &str) -> Result<Option<String>> {
+        let row: Option<(String,)> = sqlx::query_as(
+            r#"SELECT policy_json FROM bucket_policies WHERE bucket = ?"#,
+        )
+        .bind(bucket)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        Ok(row.map(|r| r.0))
+    }
+
+    /// Delete bucket policy
+    pub async fn delete_bucket_policy(&self, bucket: &str) -> Result<()> {
+        sqlx::query(r#"DELETE FROM bucket_policies WHERE bucket = ?"#)
+            .bind(bucket)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        debug!("Deleted bucket policy for: {}", bucket);
+        Ok(())
+    }
+
+    /// Store bucket ACL XML
+    pub async fn put_bucket_acl(&self, bucket: &str, acl_xml: &str) -> Result<()> {
+        let now = Utc::now().to_rfc3339();
+        
+        sqlx::query(
+            r#"
+            INSERT INTO bucket_acls (bucket, acl_xml, updated_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(bucket) DO UPDATE SET acl_xml = ?, updated_at = ?
+            "#,
+        )
+        .bind(bucket)
+        .bind(acl_xml)
+        .bind(&now)
+        .bind(acl_xml)
+        .bind(&now)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        debug!("Stored bucket ACL for: {}", bucket);
+        Ok(())
+    }
+
+    /// Get bucket ACL XML
+    pub async fn get_bucket_acl(&self, bucket: &str) -> Result<Option<String>> {
+        let row: Option<(String,)> = sqlx::query_as(
+            r#"SELECT acl_xml FROM bucket_acls WHERE bucket = ?"#,
+        )
+        .bind(bucket)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        Ok(row.map(|r| r.0))
+    }
+
+    /// Store object ACL XML
+    pub async fn put_object_acl(
+        &self,
+        bucket: &str,
+        key: &str,
+        version_id: Option<&str>,
+        acl_xml: &str,
+    ) -> Result<()> {
+        let now = Utc::now().to_rfc3339();
+        let version = version_id.unwrap_or("null");
+        
+        sqlx::query(
+            r#"
+            INSERT INTO object_acls (bucket, key, version_id, acl_xml, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(bucket, key, version_id) DO UPDATE SET acl_xml = ?, updated_at = ?
+            "#,
+        )
+        .bind(bucket)
+        .bind(key)
+        .bind(version)
+        .bind(acl_xml)
+        .bind(&now)
+        .bind(acl_xml)
+        .bind(&now)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        debug!("Stored object ACL for: {}/{}", bucket, key);
+        Ok(())
+    }
+
+    /// Get object ACL XML
+    pub async fn get_object_acl(
+        &self,
+        bucket: &str,
+        key: &str,
+        version_id: Option<&str>,
+    ) -> Result<Option<String>> {
+        let version = version_id.unwrap_or("null");
+        
+        let row: Option<(String,)> = sqlx::query_as(
+            r#"SELECT acl_xml FROM object_acls WHERE bucket = ? AND key = ? AND version_id = ?"#,
+        )
+        .bind(bucket)
+        .bind(key)
+        .bind(version)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+        Ok(row.map(|r| r.0))
+    }
+}
+
 // ============= Credentials Operations for Admin API =============
 
 use hafiz_core::types::Credentials;
@@ -1676,5 +1866,37 @@ impl MetadataRepository for MetadataStore {
                 last_modified: p.last_modified,
             })
             .collect())
+    }
+
+    // ============= Policy Operations =============
+
+    async fn put_bucket_policy(&self, bucket: &str, policy_json: &str) -> Result<()> {
+        MetadataStore::put_bucket_policy(self, bucket, policy_json).await
+    }
+
+    async fn get_bucket_policy(&self, bucket: &str) -> Result<Option<String>> {
+        MetadataStore::get_bucket_policy(self, bucket).await
+    }
+
+    async fn delete_bucket_policy(&self, bucket: &str) -> Result<()> {
+        MetadataStore::delete_bucket_policy(self, bucket).await
+    }
+
+    // ============= ACL Operations =============
+
+    async fn put_bucket_acl(&self, bucket: &str, acl_xml: &str) -> Result<()> {
+        MetadataStore::put_bucket_acl(self, bucket, acl_xml).await
+    }
+
+    async fn get_bucket_acl(&self, bucket: &str) -> Result<Option<String>> {
+        MetadataStore::get_bucket_acl(self, bucket).await
+    }
+
+    async fn put_object_acl(&self, bucket: &str, key: &str, version_id: Option<&str>, acl_xml: &str) -> Result<()> {
+        MetadataStore::put_object_acl(self, bucket, key, version_id, acl_xml).await
+    }
+
+    async fn get_object_acl(&self, bucket: &str, key: &str, version_id: Option<&str>) -> Result<Option<String>> {
+        MetadataStore::get_object_acl(self, bucket, key, version_id).await
     }
 }

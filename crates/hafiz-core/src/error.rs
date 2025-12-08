@@ -10,15 +10,24 @@ pub enum Error {
     #[error("The specified bucket does not exist")]
     NoSuchBucket,
 
+    #[error("The specified bucket does not exist: {0}")]
+    NoSuchBucketNamed(String),
+
     #[error("The requested bucket name is not available")]
     BucketAlreadyExists,
 
     #[error("The bucket you tried to delete is not empty")]
     BucketNotEmpty,
 
+    #[error("The bucket does not have a policy")]
+    NoSuchBucketPolicy,
+
     // Object Errors
     #[error("The specified key does not exist")]
     NoSuchKey,
+
+    #[error("The specified key does not exist: {0}")]
+    NoSuchKeyNamed(String),
 
     #[error("The specified multipart upload does not exist")]
     NoSuchUpload,
@@ -44,6 +53,13 @@ pub enum Error {
 
     #[error("Request has expired")]
     ExpiredPresignedRequest,
+
+    // Policy and ACL Errors
+    #[error("Malformed policy document: {0}")]
+    MalformedPolicy(String),
+
+    #[error("Malformed ACL: {0}")]
+    MalformedACL(String),
 
     // Validation Errors
     #[error("Invalid bucket name: {0}")]
@@ -89,10 +105,11 @@ pub enum Error {
 impl Error {
     pub fn code(&self) -> &'static str {
         match self {
-            Error::NoSuchBucket => "NoSuchBucket",
+            Error::NoSuchBucket | Error::NoSuchBucketNamed(_) => "NoSuchBucket",
             Error::BucketAlreadyExists => "BucketAlreadyExists",
             Error::BucketNotEmpty => "BucketNotEmpty",
-            Error::NoSuchKey => "NoSuchKey",
+            Error::NoSuchBucketPolicy => "NoSuchBucketPolicy",
+            Error::NoSuchKey | Error::NoSuchKeyNamed(_) => "NoSuchKey",
             Error::NoSuchUpload => "NoSuchUpload",
             Error::NoSuchLifecycleConfiguration => "NoSuchLifecycleConfiguration",
             Error::InvalidPart(_) => "InvalidPart",
@@ -101,6 +118,8 @@ impl Error {
             Error::InvalidAccessKeyId => "InvalidAccessKeyId",
             Error::SignatureDoesNotMatch => "SignatureDoesNotMatch",
             Error::ExpiredPresignedRequest => "AccessDenied",
+            Error::MalformedPolicy(_) => "MalformedPolicy",
+            Error::MalformedACL(_) => "MalformedACLError",
             Error::InvalidBucketName(_) => "InvalidBucketName",
             Error::InvalidArgument(_) => "InvalidArgument",
             Error::InvalidRequest(_) => "InvalidRequest",
@@ -122,6 +141,8 @@ impl Error {
             | Error::InvalidArgument(_)
             | Error::InvalidRequest(_)
             | Error::MalformedXML(_)
+            | Error::MalformedPolicy(_)
+            | Error::MalformedACL(_)
             | Error::MissingHeader(_)
             | Error::InvalidPart(_)
             | Error::EntityTooLarge => 400,
@@ -132,9 +153,12 @@ impl Error {
             | Error::ExpiredPresignedRequest => 403,
             
             Error::NoSuchBucket 
+            | Error::NoSuchBucketNamed(_)
             | Error::NoSuchKey 
+            | Error::NoSuchKeyNamed(_)
             | Error::NoSuchUpload 
-            | Error::NoSuchLifecycleConfiguration => 404,
+            | Error::NoSuchLifecycleConfiguration
+            | Error::NoSuchBucketPolicy => 404,
             
             Error::BucketAlreadyExists | Error::BucketNotEmpty => 409,
             

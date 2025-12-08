@@ -119,4 +119,29 @@ pub trait MetadataRepository: Send + Sync {
     async fn delete_multipart_upload(&self, bucket: &str, key: &str, upload_id: &str) -> Result<()>;
     async fn create_upload_part(&self, bucket: &str, key: &str, upload_id: &str, part: &UploadPart) -> Result<()>;
     async fn get_upload_parts(&self, bucket: &str, key: &str, upload_id: &str) -> Result<Vec<UploadPart>>;
+
+    // ============= Policy Operations =============
+    
+    /// Store bucket policy JSON
+    async fn put_bucket_policy(&self, bucket: &str, policy_json: &str) -> Result<()>;
+    
+    /// Get bucket policy JSON
+    async fn get_bucket_policy(&self, bucket: &str) -> Result<Option<String>>;
+    
+    /// Delete bucket policy
+    async fn delete_bucket_policy(&self, bucket: &str) -> Result<()>;
+
+    // ============= ACL Operations =============
+    
+    /// Store bucket ACL XML
+    async fn put_bucket_acl(&self, bucket: &str, acl_xml: &str) -> Result<()>;
+    
+    /// Get bucket ACL XML
+    async fn get_bucket_acl(&self, bucket: &str) -> Result<Option<String>>;
+    
+    /// Store object ACL XML
+    async fn put_object_acl(&self, bucket: &str, key: &str, version_id: Option<&str>, acl_xml: &str) -> Result<()>;
+    
+    /// Get object ACL XML
+    async fn get_object_acl(&self, bucket: &str, key: &str, version_id: Option<&str>) -> Result<Option<String>>;
 }
