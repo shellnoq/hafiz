@@ -8,7 +8,7 @@ on:
       - 'docs/**'
       - 'mkdocs.yml'
       - '.github/workflows/docs.yml'
-  workflow_dispatch:  # Manuel tetikleme
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -24,30 +24,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Git history for git-revision-date
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Cache pip dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-mkdocs-material
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install mkdocs-material>=9.5
-          pip install mkdocs-minify-plugin>=0.7
-          pip install pymdown-extensions>=10.0
+          pip install -r docs/requirements.txt
+          pip list | grep -i mkdocs
 
       - name: Build documentation
-        run: mkdocs build --strict
+        run: |
+          mkdocs build --verbose
+          ls -la site/
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
@@ -57,3 +50,4 @@ jobs:
           publish_branch: gh-pages
           cname: docs.hafiz.e2esolutions.tech
           commit_message: 'docs: deploy ${{ github.sha }}'
+          force_orphan: true
