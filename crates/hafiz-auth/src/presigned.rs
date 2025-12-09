@@ -33,21 +33,21 @@ pub fn generate_presigned_url(
 ) -> Result<PresignedUrl> {
     let now = Utc::now();
     let expires_at = now + Duration::seconds(request.expires_in as i64);
-    
+
     // Format date for signing
     let amz_date = now.format("%Y%m%dT%H%M%SZ").to_string();
     let date_stamp = now.format("%Y%m%d").to_string();
-    
+
     // Build the credential scope
     let credential_scope = format!("{}/{}/s3/aws4_request", date_stamp, region);
     let credential = format!("{}/{}", access_key, credential_scope);
-    
+
     // Build canonical URI
-    let canonical_uri = format!("/{}/{}", 
+    let canonical_uri = format!("/{}/{}",
         uri_encode(&request.bucket, false),
         uri_encode(&request.key, false)
     );
-    
+
     // Build query string
     let mut query_params: BTreeMap<String, String> = BTreeMap::new();
     query_params.insert(X_AMZ_ALGORITHM.to_string(), "AWS4-HMAC-SHA256".to_string());
@@ -55,19 +55,19 @@ pub fn generate_presigned_url(
     query_params.insert(X_AMZ_DATE.to_string(), amz_date.clone());
     query_params.insert(X_AMZ_EXPIRES.to_string(), request.expires_in.to_string());
     query_params.insert(X_AMZ_SIGNED_HEADERS.to_string(), "host".to_string());
-    
+
     if let Some(version_id) = &request.version_id {
         query_params.insert("versionId".to_string(), version_id.clone());
     }
-    
+
     // Build canonical query string (sorted and URL encoded)
     let canonical_query_string = build_canonical_query_string(&query_params);
-    
+
     // Build canonical headers
     let host = extract_host(endpoint)?;
     let canonical_headers = format!("host:{}\n", host);
     let signed_headers = "host";
-    
+
     // Create canonical request
     let canonical_request = format!(
         "{}\n{}\n{}\n{}\n{}\n{}",
@@ -78,27 +78,27 @@ pub fn generate_presigned_url(
         signed_headers,
         UNSIGNED_PAYLOAD
     );
-    
+
     debug!("Canonical request for presigning:\n{}", canonical_request);
-    
+
     // Create string to sign
     let canonical_request_hash = sha256_hash(canonical_request.as_bytes());
     let string_to_sign = format!(
         "AWS4-HMAC-SHA256\n{}\n{}\n{}",
         amz_date, credential_scope, canonical_request_hash
     );
-    
+
     debug!("String to sign:\n{}", string_to_sign);
-    
+
     // Calculate signature
     let signature = calculate_signature(secret_key, &date_stamp, region, &string_to_sign);
-    
+
     // Build final URL
     let mut final_url = format!("{}{}", endpoint.trim_end_matches('/'), canonical_uri);
     final_url.push('?');
     final_url.push_str(&canonical_query_string);
     final_url.push_str(&format!("&{}={}", X_AMZ_SIGNATURE, signature));
-    
+
     // Prepare headers for PUT requests
     let headers = if request.method == PresignedMethod::Put {
         let mut h = Vec::new();
@@ -112,7 +112,7 @@ pub fn generate_presigned_url(
     } else {
         None
     };
-    
+
     Ok(PresignedUrl {
         url: final_url,
         method: request.method.to_string(),
@@ -132,7 +132,7 @@ pub fn verify_presigned_url(
 ) -> Result<bool> {
     // Parse query parameters
     let params = parse_query_string(query_string);
-    
+
     // Extract required parameters
     let algorithm = params.get(X_AMZ_ALGORITHM)
         .ok_or_else(|| Error::InvalidRequest("Missing X-Amz-Algorithm".into()))?;
@@ -146,22 +146,22 @@ pub fn verify_presigned_url(
         .ok_or_else(|| Error::InvalidRequest("Missing X-Amz-SignedHeaders".into()))?;
     let provided_signature = params.get(X_AMZ_SIGNATURE)
         .ok_or_else(|| Error::InvalidRequest("Missing X-Amz-Signature".into()))?;
-    
+
     // Verify algorithm
     if algorithm != "AWS4-HMAC-SHA256" {
         return Err(Error::InvalidRequest("Unsupported algorithm".into()));
     }
-    
+
     // Parse and verify expiration
     let request_time = parse_amz_date(amz_date)?;
     let expires_secs: u64 = expires.parse()
         .map_err(|_| Error::InvalidRequest("Invalid expires value".into()))?;
     let expiration_time = request_time + Duration::seconds(expires_secs as i64);
-    
+
     if Utc::now() > expiration_time {
         return Err(Error::ExpiredPresignedRequest);
     }
-    
+
     // Extract date stamp from credential
     let cred_parts: Vec<&str> = credential.split('/').collect();
     if cred_parts.len() != 5 {
@@ -169,21 +169,21 @@ pub fn verify_presigned_url(
     }
     let date_stamp = cred_parts[1];
     let cred_region = cred_parts[2];
-    
+
     // Verify region matches
     if cred_region != region {
         return Err(Error::InvalidRequest("Region mismatch".into()));
     }
-    
+
     // Build canonical query string without signature
     let mut query_params: BTreeMap<String, String> = params.clone();
     query_params.remove(X_AMZ_SIGNATURE);
     let canonical_query_string = build_canonical_query_string(&query_params);
-    
+
     // Build canonical headers
     let signed_header_list: Vec<&str> = signed_headers.split(';').collect();
     let canonical_headers = build_canonical_headers(headers, &signed_header_list);
-    
+
     // Create canonical request
     let canonical_request = format!(
         "{}\n{}\n{}\n{}\n{}\n{}",
@@ -194,9 +194,9 @@ pub fn verify_presigned_url(
         signed_headers,
         UNSIGNED_PAYLOAD
     );
-    
+
     debug!("Canonical request for verification:\n{}", canonical_request);
-    
+
     // Create string to sign
     let canonical_request_hash = sha256_hash(canonical_request.as_bytes());
     let credential_scope = format!("{}/{}/s3/aws4_request", date_stamp, region);
@@ -204,28 +204,28 @@ pub fn verify_presigned_url(
         "AWS4-HMAC-SHA256\n{}\n{}\n{}",
         amz_date, credential_scope, canonical_request_hash
     );
-    
+
     // Calculate expected signature
     let expected_signature = calculate_signature(secret_key, date_stamp, region, &string_to_sign);
-    
+
     debug!("Expected signature: {}", expected_signature);
     debug!("Provided signature: {}", provided_signature);
-    
+
     Ok(expected_signature == *provided_signature)
 }
 
 /// Extract access key from pre-signed URL query parameters
 pub fn extract_access_key_from_presigned(query_string: &str) -> Result<String> {
     let params = parse_query_string(query_string);
-    
+
     let credential = params.get(X_AMZ_CREDENTIAL)
         .ok_or_else(|| Error::InvalidRequest("Missing X-Amz-Credential".into()))?;
-    
+
     let cred_parts: Vec<&str> = credential.split('/').collect();
     if cred_parts.is_empty() {
         return Err(Error::InvalidRequest("Invalid credential format".into()));
     }
-    
+
     Ok(cred_parts[0].to_string())
 }
 

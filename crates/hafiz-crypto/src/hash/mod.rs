@@ -44,7 +44,7 @@ pub fn md5_base64(data: &[u8]) -> String {
 /// Format: MD5(concat(part_md5s))-part_count
 pub fn multipart_etag(part_etags: &[String], part_count: usize) -> String {
     let mut hasher = Md5::new();
-    
+
     for etag in part_etags {
         // Remove quotes and decode hex
         let clean = etag.trim_matches('"');
@@ -52,7 +52,7 @@ pub fn multipart_etag(part_etags: &[String], part_count: usize) -> String {
             hasher.update(&bytes);
         }
     }
-    
+
     let hash = hasher.finalize();
     format!("{}-{}", hex::encode(hash), part_count)
 }

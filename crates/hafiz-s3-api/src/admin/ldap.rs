@@ -129,7 +129,7 @@ pub async fn get_ldap_config(
     debug!("GET /api/v1/ldap/config");
 
     let config = state.config.read().await;
-    
+
     // Return sanitized config (no passwords)
     let sanitized = SanitizedLdapConfig {
         enabled: config.enabled,
@@ -168,7 +168,7 @@ pub async fn update_ldap_config(
 
     // Update configuration
     state.update_config(request.config.clone()).await;
-    
+
     info!("LDAP configuration updated");
 
     (
@@ -278,7 +278,7 @@ pub async fn test_ldap_authenticate(
 
     let response = if let Some(ref provider) = *provider {
         let result = provider.authenticate(&request.username, &request.password).await;
-        
+
         match result {
             hafiz_auth::LdapAuthResult::Success(user) => TestAuthenticateResponse {
                 success: true,

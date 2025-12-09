@@ -431,7 +431,7 @@ mod tests {
             IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)),
             9001,
         );
-        
+
         assert_eq!(node.hostname, "node1.local");
         assert_eq!(node.grpc_endpoint(), "192.168.1.10:9001");
         assert_eq!(node.status, NodeStatus::Joining);
@@ -457,7 +457,7 @@ mod tests {
         );
         node.capacity_bytes = 1000;
         node.used_bytes = 250;
-        
+
         assert_eq!(node.available_bytes(), 750);
         assert!((node.usage_percent() - 25.0).abs() < 0.01);
     }

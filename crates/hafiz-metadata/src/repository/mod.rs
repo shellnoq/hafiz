@@ -2,7 +2,7 @@
 
 use chrono::{DateTime, Utc};
 use hafiz_core::types::{
-    Bucket, BucketInfo, Object, ObjectInfo, User, VersioningStatus, 
+    Bucket, BucketInfo, Object, ObjectInfo, User, VersioningStatus,
     ObjectVersion, DeleteMarker, Tag, TagSet, LifecycleConfiguration, LifecycleRule,
     EncryptionInfo, EncryptionType
 };
@@ -25,7 +25,7 @@ impl MetadataStore {
 
         let store = Self { pool };
         store.init().await?;
-        
+
         Ok(store)
     }
 
@@ -433,7 +433,7 @@ impl MetadataStore {
     pub async fn put_object(&self, object: &Object) -> Result<()> {
         let metadata_json = serde_json::to_string(&object.metadata)
             .map_err(|e| Error::InternalError(e.to_string()))?;
-        
+
         let encryption_json = serde_json::to_string(&object.encryption)
             .map_err(|e| Error::InternalError(e.to_string()))?;
 
@@ -449,7 +449,7 @@ impl MetadataStore {
 
         sqlx::query(
             r#"
-            INSERT OR REPLACE INTO objects 
+            INSERT OR REPLACE INTO objects
             (bucket, key, version_id, size, etag, content_type, metadata, last_modified, is_latest, is_delete_marker, encryption)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#,
@@ -469,7 +469,7 @@ impl MetadataStore {
         .await
         .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
-        debug!("Put object: {}/{} version={} encrypted={}", 
+        debug!("Put object: {}/{} version={} encrypted={}",
             object.bucket, object.key, object.version_id, object.encryption.is_encrypted());
         Ok(())
     }
@@ -481,7 +481,7 @@ impl MetadataStore {
 
     /// Get a specific version of an object
     pub async fn get_object_version(&self, bucket: &str, key: &str, version_id: Option<&str>) -> Result<Option<Object>> {
-        let row: Option<(String, String, String, i64, String, String, Option<String>, String, i32, i32, Option<String>)> = 
+        let row: Option<(String, String, String, i64, String, String, Option<String>, String, i32, i32, Option<String>)> =
             if let Some(vid) = version_id {
                 sqlx::query_as(
                     r#"
@@ -514,7 +514,7 @@ impl MetadataStore {
                 .6
                 .and_then(|m| serde_json::from_str(&m).ok())
                 .unwrap_or_default();
-            
+
             let encryption: EncryptionInfo = r
                 .10
                 .and_then(|e| serde_json::from_str(&e).ok())
@@ -568,7 +568,7 @@ impl MetadataStore {
         let rows: Vec<(String, String, i64, String, String)> = sqlx::query_as(
             r#"
             SELECT key, version_id, size, etag, last_modified
-            FROM objects 
+            FROM objects
             WHERE bucket = ? AND key LIKE ? AND key > ? AND is_latest = 1 AND is_delete_marker = 0
             ORDER BY key
             LIMIT ?
@@ -584,7 +584,7 @@ impl MetadataStore {
 
         let is_truncated = rows.len() > max_keys as usize;
         let rows: Vec<_> = rows.into_iter().take(max_keys as usize).collect();
-        
+
         let next_token = if is_truncated {
             rows.last().map(|r| r.0.clone())
         } else {
@@ -596,7 +596,7 @@ impl MetadataStore {
 
         for row in rows {
             let key = row.0;
-            
+
             if let Some(delim) = delimiter {
                 let suffix = key.strip_prefix(prefix).unwrap_or(&key);
                 if let Some(idx) = suffix.find(delim) {
@@ -641,7 +641,7 @@ impl MetadataStore {
         let rows: Vec<(String, String, i64, String, String, i32, i32)> = sqlx::query_as(
             r#"
             SELECT key, version_id, size, etag, last_modified, is_latest, is_delete_marker
-            FROM objects 
+            FROM objects
             WHERE bucket = ? AND key LIKE ? AND key >= ?
             ORDER BY key, last_modified DESC
             LIMIT ?
@@ -657,7 +657,7 @@ impl MetadataStore {
 
         let is_truncated = rows.len() > max_keys as usize;
         let rows: Vec<_> = rows.into_iter().take(max_keys as usize).collect();
-        
+
         let (next_key_marker, next_version_id_marker) = if is_truncated {
             rows.last().map(|r| (Some(r.0.clone()), Some(r.1.clone()))).unwrap_or((None, None))
         } else {
@@ -672,7 +672,7 @@ impl MetadataStore {
             let key = row.0;
             let version_id = row.1;
             let is_delete_marker = row.6 != 0;
-            
+
             if let Some(delim) = delimiter {
                 let suffix = key.strip_prefix(prefix).unwrap_or(&key);
                 if let Some(idx) = suffix.find(delim) {
@@ -729,9 +729,9 @@ impl MetadataStore {
         if result.rows_affected() > 0 {
             sqlx::query(
                 r#"
-                UPDATE objects SET is_latest = 1 
+                UPDATE objects SET is_latest = 1
                 WHERE bucket = ? AND key = ? AND version_id = (
-                    SELECT version_id FROM objects 
+                    SELECT version_id FROM objects
                     WHERE bucket = ? AND key = ?
                     ORDER BY last_modified DESC
                     LIMIT 1
@@ -1288,7 +1288,7 @@ impl MetadataStore {
     /// Store bucket policy JSON
     pub async fn put_bucket_policy(&self, bucket: &str, policy_json: &str) -> Result<()> {
         let now = Utc::now().to_rfc3339();
-        
+
         sqlx::query(
             r#"
             INSERT INTO bucket_policies (bucket, policy_json, updated_at)
@@ -1337,7 +1337,7 @@ impl MetadataStore {
     /// Store bucket ACL XML
     pub async fn put_bucket_acl(&self, bucket: &str, acl_xml: &str) -> Result<()> {
         let now = Utc::now().to_rfc3339();
-        
+
         sqlx::query(
             r#"
             INSERT INTO bucket_acls (bucket, acl_xml, updated_at)
@@ -1381,7 +1381,7 @@ impl MetadataStore {
     ) -> Result<()> {
         let now = Utc::now().to_rfc3339();
         let version = version_id.unwrap_or("null");
-        
+
         sqlx::query(
             r#"
             INSERT INTO object_acls (bucket, key, version_id, acl_xml, updated_at)
@@ -1412,7 +1412,7 @@ impl MetadataStore {
         version_id: Option<&str>,
     ) -> Result<Option<String>> {
         let version = version_id.unwrap_or("null");
-        
+
         let row: Option<(String,)> = sqlx::query_as(
             r#"SELECT acl_xml FROM object_acls WHERE bucket = ? AND key = ? AND version_id = ?"#,
         )
@@ -1429,7 +1429,7 @@ impl MetadataStore {
     /// Store bucket notification configuration JSON
     pub async fn put_bucket_notification(&self, bucket: &str, config_json: &str) -> Result<()> {
         let now = Utc::now().to_rfc3339();
-        
+
         sqlx::query(
             r#"
             INSERT INTO bucket_notifications (bucket, config_json, updated_at)
@@ -1468,7 +1468,7 @@ impl MetadataStore {
     /// Store bucket CORS configuration XML
     pub async fn put_bucket_cors(&self, bucket: &str, cors_xml: &str) -> Result<()> {
         let now = Utc::now().to_rfc3339();
-        
+
         sqlx::query(
             r#"
             INSERT INTO bucket_cors (bucket, cors_xml, updated_at)
@@ -1519,7 +1519,7 @@ impl MetadataStore {
     /// Store bucket Object Lock configuration
     pub async fn put_bucket_object_lock_config(&self, bucket: &str, config_xml: &str) -> Result<()> {
         let now = Utc::now().to_rfc3339();
-        
+
         sqlx::query(
             r#"
             INSERT INTO bucket_object_lock (bucket, config_xml, updated_at)
@@ -1563,7 +1563,7 @@ impl MetadataStore {
     ) -> Result<()> {
         let now = Utc::now().to_rfc3339();
         let vid = version_id.unwrap_or("");
-        
+
         sqlx::query(
             r#"
             INSERT INTO object_retention (bucket, key, version_id, retention_xml, updated_at)
@@ -1594,7 +1594,7 @@ impl MetadataStore {
         version_id: Option<&str>,
     ) -> Result<Option<String>> {
         let vid = version_id.unwrap_or("");
-        
+
         let row: Option<(String,)> = sqlx::query_as(
             r#"SELECT retention_xml FROM object_retention WHERE bucket = ? AND key = ? AND version_id = ?"#,
         )
@@ -1618,7 +1618,7 @@ impl MetadataStore {
     ) -> Result<()> {
         let now = Utc::now().to_rfc3339();
         let vid = version_id.unwrap_or("");
-        
+
         sqlx::query(
             r#"
             INSERT INTO object_legal_hold (bucket, key, version_id, hold_xml, updated_at)
@@ -1649,7 +1649,7 @@ impl MetadataStore {
         version_id: Option<&str>,
     ) -> Result<Option<String>> {
         let vid = version_id.unwrap_or("");
-        
+
         let row: Option<(String,)> = sqlx::query_as(
             r#"SELECT hold_xml FROM object_legal_hold WHERE bucket = ? AND key = ? AND version_id = ?"#,
         )

@@ -230,7 +230,7 @@ impl Replicator {
                                 let mut s = stats.write();
                                 s.events_processed += 1;
                                 s.pending = s.pending.saturating_sub(1);
-                                
+
                                 match result {
                                     Ok(bytes) => {
                                         s.successful += 1;

@@ -177,7 +177,7 @@ impl ETag {
     /// Create ETag for multipart upload
     pub fn from_multipart(part_etags: &[String], part_count: usize) -> Self {
         use md5::{Md5, Digest};
-        
+
         let mut hasher = Md5::new();
         for etag in part_etags {
             // Remove quotes and decode hex
@@ -252,7 +252,7 @@ impl ByteSize {
     /// Parse from string like "10MB", "1.5GB"
     pub fn parse(s: &str) -> Result<Self, crate::error::Error> {
         let s = s.trim().to_uppercase();
-        
+
         let (num_str, unit) = if s.ends_with("PB") || s.ends_with("PIB") {
             (&s[..s.len()-2], Self::PB)
         } else if s.ends_with("TB") || s.ends_with("TIB") {

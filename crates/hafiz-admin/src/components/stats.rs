@@ -11,7 +11,7 @@ pub fn StatCard(
     #[prop(optional)] icon: Option<&'static str>,
 ) -> impl IntoView {
     let color = color.unwrap_or("blue");
-    
+
     let bg_class = match color {
         "blue" => "bg-blue-600/20",
         "green" => "bg-green-600/20",

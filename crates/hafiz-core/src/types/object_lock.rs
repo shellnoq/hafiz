@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 // ============================================================================
 
 /// Object Lock configuration for a bucket
-/// 
+///
 /// Once enabled on a bucket, Object Lock cannot be disabled.
 /// All objects in the bucket can have retention settings.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -63,7 +63,7 @@ pub struct DefaultRetention {
 // ============================================================================
 
 /// Object Lock retention mode
-/// 
+///
 /// - GOVERNANCE: Users with specific IAM permissions can delete/modify
 /// - COMPLIANCE: No one (including root) can delete until retention expires
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -101,7 +101,7 @@ impl std::str::FromStr for RetentionMode {
 // ============================================================================
 
 /// Object retention settings
-/// 
+///
 /// Applied to individual objects to prevent deletion/modification
 /// until the retain-until date has passed.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -162,7 +162,7 @@ impl ObjectRetention {
 // ============================================================================
 
 /// Legal Hold status for an object
-/// 
+///
 /// Legal holds are independent of retention settings and can be applied
 /// or removed at any time. Objects with legal hold cannot be deleted
 /// regardless of retention settings.
@@ -231,13 +231,13 @@ impl ObjectLegalHold {
 // ============================================================================
 
 /// Combined Object Lock state for an object
-/// 
+///
 /// Tracks both retention settings and legal hold status.
 #[derive(Debug, Clone, Default)]
 pub struct ObjectLockState {
     /// Retention settings (if any)
     pub retention: Option<ObjectRetention>,
-    
+
     /// Legal hold status (if any)
     pub legal_hold: Option<ObjectLegalHold>,
 }
@@ -348,7 +348,7 @@ impl ObjectLockConfiguration {
 impl DefaultRetention {
     /// Maximum retention period in days (100 years)
     pub const MAX_DAYS: u32 = 36500;
-    
+
     /// Maximum retention period in years
     pub const MAX_YEARS: u32 = 100;
 
@@ -402,7 +402,7 @@ impl DefaultRetention {
     /// Calculate retain until date from now
     pub fn calculate_retain_until(&self) -> DateTime<Utc> {
         let now = Utc::now();
-        
+
         if let Some(days) = self.days {
             now + Duration::days(days as i64)
         } else if let Some(years) = self.years {
@@ -465,11 +465,11 @@ impl ObjectLockConfiguration {
     pub fn to_xml(&self) -> Result<String, String> {
         let mut xml = String::from(r#"<?xml version="1.0" encoding="UTF-8"?>"#);
         xml.push('\n');
-        
+
         let body = quick_xml::se::to_string(self)
             .map_err(|e| format!("Failed to serialize Object Lock: {}", e))?;
         xml.push_str(&body);
-        
+
         Ok(xml)
     }
 }
@@ -484,11 +484,11 @@ impl ObjectRetention {
     pub fn to_xml(&self) -> Result<String, String> {
         let mut xml = String::from(r#"<?xml version="1.0" encoding="UTF-8"?>"#);
         xml.push('\n');
-        
+
         let body = quick_xml::se::to_string(self)
             .map_err(|e| format!("Failed to serialize Retention: {}", e))?;
         xml.push_str(&body);
-        
+
         Ok(xml)
     }
 }
@@ -503,11 +503,11 @@ impl ObjectLegalHold {
     pub fn to_xml(&self) -> Result<String, String> {
         let mut xml = String::from(r#"<?xml version="1.0" encoding="UTF-8"?>"#);
         xml.push('\n');
-        
+
         let body = quick_xml::se::to_string(self)
             .map_err(|e| format!("Failed to serialize Legal Hold: {}", e))?;
         xml.push_str(&body);
-        
+
         Ok(xml)
     }
 }

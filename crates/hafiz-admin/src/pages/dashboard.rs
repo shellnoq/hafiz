@@ -21,26 +21,26 @@ pub fn DashboardPage() -> impl IntoView {
                     {move || stats.get().map(|result| match result {
                         Ok(s) => view! {
                             <>
-                                <StatCardItem 
-                                    title="Total Buckets" 
+                                <StatCardItem
+                                    title="Total Buckets"
                                     value=s.total_buckets.to_string()
                                     icon=IconBucket
                                     color="blue"
                                 />
-                                <StatCardItem 
-                                    title="Total Objects" 
+                                <StatCardItem
+                                    title="Total Objects"
                                     value=format_number(s.total_objects)
                                     icon=IconFile
                                     color="green"
                                 />
-                                <StatCardItem 
-                                    title="Total Storage" 
+                                <StatCardItem
+                                    title="Total Storage"
                                     value=format_bytes(s.total_size)
                                     icon=IconStorage
                                     color="purple"
                                 />
-                                <StatCardItem 
-                                    title="Total Users" 
+                                <StatCardItem
+                                    title="Total Users"
                                     value=s.total_users.to_string()
                                     icon=IconUsers
                                     color="orange"
@@ -66,7 +66,7 @@ pub fn DashboardPage() -> impl IntoView {
                             Ok(s) => view! {
                                 <div class="space-y-3">
                                     {s.recent_buckets.into_iter().map(|bucket| view! {
-                                        <a 
+                                        <a
                                             href=format!("/buckets/{}", bucket.name)
                                             class="flex items-center justify-between p-3 bg-gray-750 rounded-lg hover:bg-gray-700 transition-colors"
                                         >
@@ -100,25 +100,25 @@ pub fn DashboardPage() -> impl IntoView {
                 <div class="bg-gray-800 rounded-xl border border-gray-700 p-6">
                     <h2 class="text-lg font-semibold text-white mb-4">"Quick Actions"</h2>
                     <div class="grid grid-cols-2 gap-4">
-                        <QuickAction 
+                        <QuickAction
                             href="/buckets?action=create"
                             icon=IconPlus
                             title="Create Bucket"
                             description="Add a new storage bucket"
                         />
-                        <QuickAction 
+                        <QuickAction
                             href="/users?action=create"
                             icon=IconUserPlus
                             title="Add User"
                             description="Create a new user account"
                         />
-                        <QuickAction 
+                        <QuickAction
                             href="/settings"
                             icon=IconSettings
                             title="Settings"
                             description="Configure your storage"
                         />
-                        <QuickAction 
+                        <QuickAction
                             href="/buckets"
                             icon=IconBucket
                             title="Browse Buckets"
@@ -156,7 +156,7 @@ fn StatCardItem(
         "orange" => "bg-orange-600/20",
         _ => "bg-gray-600/20",
     };
-    
+
     let icon_class = match color {
         "blue" => "text-blue-400",
         "green" => "text-green-400",
@@ -190,7 +190,7 @@ fn QuickAction(
     description: &'static str,
 ) -> impl IntoView {
     view! {
-        <a 
+        <a
             href=href
             class="flex items-start space-x-3 p-4 bg-gray-750 rounded-lg hover:bg-gray-700 transition-colors"
         >
@@ -207,7 +207,7 @@ fn QuickAction(
 
 #[component]
 fn SystemInfoItem(
-    label: &'static str, 
+    label: &'static str,
     value: &'static str,
     #[prop(optional)] status: Option<&'static str>,
 ) -> impl IntoView {
@@ -256,7 +256,7 @@ fn TableSkeleton(rows: usize) -> impl IntoView {
 fn IconBucket() -> impl IntoView {
     view! {
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
         </svg>
     }
@@ -266,7 +266,7 @@ fn IconBucket() -> impl IntoView {
 fn IconFile() -> impl IntoView {
     view! {
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
     }
@@ -276,7 +276,7 @@ fn IconFile() -> impl IntoView {
 fn IconStorage() -> impl IntoView {
     view! {
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
         </svg>
     }
@@ -286,7 +286,7 @@ fn IconStorage() -> impl IntoView {
 fn IconUsers() -> impl IntoView {
     view! {
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
         </svg>
     }
@@ -305,7 +305,7 @@ fn IconPlus() -> impl IntoView {
 fn IconUserPlus() -> impl IntoView {
     view! {
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
         </svg>
     }
@@ -315,7 +315,7 @@ fn IconUserPlus() -> impl IntoView {
 fn IconSettings() -> impl IntoView {
     view! {
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>

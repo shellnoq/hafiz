@@ -16,7 +16,7 @@ pub fn Header() -> impl IntoView {
             let _ = storage.remove_item("hafiz_access_key");
             let _ = storage.remove_item("hafiz_secret_key");
         }
-        
+
         // Redirect to login
         if let Some(window) = web_sys::window() {
             let _ = window.location().set_href("/login");
@@ -28,14 +28,14 @@ pub fn Header() -> impl IntoView {
             // Search
             <div class="flex-1 max-w-xl">
                 <div class="relative">
-                    <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" 
+                    <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
                          fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                     <input
                         type="text"
-                        class="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg 
+                        class="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg
                                text-white placeholder-gray-400 focus:outline-none focus:border-blue-500
                                transition-colors"
                         placeholder="Search buckets, objects..."
@@ -50,14 +50,14 @@ pub fn Header() -> impl IntoView {
                 // Notifications
                 <button class="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-gray-800">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                     </svg>
                 </button>
 
                 // User menu
                 <div class="relative">
-                    <button 
+                    <button
                         class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-800 transition-colors"
                         on:click=move |_| set_show_user_menu.update(|v| *v = !*v)
                     >
@@ -77,7 +77,7 @@ pub fn Header() -> impl IntoView {
                                 "Settings"
                             </a>
                             <hr class="my-1 border-gray-700" />
-                            <button 
+                            <button
                                 class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-700"
                                 on:click=on_logout
                             >

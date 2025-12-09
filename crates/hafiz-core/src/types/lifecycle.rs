@@ -16,7 +16,7 @@ impl LifecycleConfiguration {
 
     pub fn add_rule(&mut self, rule: LifecycleRule) -> Result<(), crate::Error> {
         rule.validate()?;
-        
+
         // Check for duplicate rule IDs
         if self.rules.iter().any(|r| r.id == rule.id) {
             return Err(crate::Error::InvalidArgument(format!(
@@ -24,14 +24,14 @@ impl LifecycleConfiguration {
                 rule.id
             )));
         }
-        
+
         // Max 1000 rules
         if self.rules.len() >= 1000 {
             return Err(crate::Error::InvalidArgument(
                 "Maximum 1000 lifecycle rules per bucket".into(),
             ));
         }
-        
+
         self.rules.push(rule);
         Ok(())
     }
@@ -339,7 +339,7 @@ mod tests {
         let exp = Expiration::Days(30);
         let old_date = Utc::now() - chrono::Duration::days(31);
         let recent_date = Utc::now() - chrono::Duration::days(1);
-        
+
         assert!(exp.should_expire(&old_date));
         assert!(!exp.should_expire(&recent_date));
     }

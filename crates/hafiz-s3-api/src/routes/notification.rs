@@ -25,7 +25,7 @@ use crate::server::AppState;
 fn error_response(err: Error, request_id: &str) -> Response {
     let status = StatusCode::from_u16(err.http_status()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
     let s3_error = hafiz_core::error::S3Error::from(err).with_request_id(request_id);
-    
+
     Response::builder()
         .status(status)
         .header("Content-Type", "application/xml")
@@ -222,11 +222,11 @@ fn notification_config_to_xml(config: &NotificationConfiguration) -> String {
         xml.push_str("<WebhookConfiguration>");
         xml.push_str(&format!("<Id>{}</Id>", xml_escape(&webhook.id)));
         xml.push_str(&format!("<Url>{}</Url>", xml_escape(&webhook.url)));
-        
+
         for event in &webhook.events {
             xml.push_str(&format!("<Event>{}</Event>", event));
         }
-        
+
         if let Some(ref filter) = webhook.filter {
             xml.push_str("<Filter>");
             if let Some(ref key_filter) = filter.key {
@@ -241,7 +241,7 @@ fn notification_config_to_xml(config: &NotificationConfiguration) -> String {
             }
             xml.push_str("</Filter>");
         }
-        
+
         xml.push_str("</WebhookConfiguration>");
     }
 
@@ -250,11 +250,11 @@ fn notification_config_to_xml(config: &NotificationConfiguration) -> String {
         xml.push_str("<QueueConfiguration>");
         xml.push_str(&format!("<Id>{}</Id>", xml_escape(&queue.id)));
         xml.push_str(&format!("<Queue>{}</Queue>", xml_escape(&queue.queue_arn)));
-        
+
         for event in &queue.events {
             xml.push_str(&format!("<Event>{}</Event>", event));
         }
-        
+
         if let Some(ref filter) = queue.filter {
             xml.push_str("<Filter>");
             if let Some(ref key_filter) = filter.key {
@@ -269,7 +269,7 @@ fn notification_config_to_xml(config: &NotificationConfiguration) -> String {
             }
             xml.push_str("</Filter>");
         }
-        
+
         xml.push_str("</QueueConfiguration>");
     }
 
@@ -278,11 +278,11 @@ fn notification_config_to_xml(config: &NotificationConfiguration) -> String {
         xml.push_str("<TopicConfiguration>");
         xml.push_str(&format!("<Id>{}</Id>", xml_escape(&topic.id)));
         xml.push_str(&format!("<Topic>{}</Topic>", xml_escape(&topic.topic_arn)));
-        
+
         for event in &topic.events {
             xml.push_str(&format!("<Event>{}</Event>", event));
         }
-        
+
         if let Some(ref filter) = topic.filter {
             xml.push_str("<Filter>");
             if let Some(ref key_filter) = filter.key {
@@ -297,7 +297,7 @@ fn notification_config_to_xml(config: &NotificationConfiguration) -> String {
             }
             xml.push_str("</Filter>");
         }
-        
+
         xml.push_str("</TopicConfiguration>");
     }
 
@@ -320,15 +320,15 @@ fn parse_notification_config_xml(xml: &str) -> Result<NotificationConfiguration,
     // Parse WebhookConfigurations
     let webhook_re = regex::Regex::new(r"<WebhookConfiguration>(.*?)</WebhookConfiguration>")
         .map_err(|e| e.to_string())?;
-    
+
     for cap in webhook_re.captures_iter(xml) {
         let content = &cap[1];
-        
+
         let id = extract_xml_value(content, "Id").unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
         let url = extract_xml_value(content, "Url").ok_or("Missing Url in WebhookConfiguration")?;
         let events = extract_events(content)?;
         let filter = extract_filter(content);
-        
+
         config.webhook_configurations.push(WebhookConfiguration {
             id,
             url,
@@ -342,15 +342,15 @@ fn parse_notification_config_xml(xml: &str) -> Result<NotificationConfiguration,
     // Parse QueueConfigurations
     let queue_re = regex::Regex::new(r"<QueueConfiguration>(.*?)</QueueConfiguration>")
         .map_err(|e| e.to_string())?;
-    
+
     for cap in queue_re.captures_iter(xml) {
         let content = &cap[1];
-        
+
         let id = extract_xml_value(content, "Id").unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
         let queue_arn = extract_xml_value(content, "Queue").ok_or("Missing Queue in QueueConfiguration")?;
         let events = extract_events(content)?;
         let filter = extract_filter(content);
-        
+
         config.queue_configurations.push(QueueConfiguration {
             id,
             queue_arn,
@@ -362,15 +362,15 @@ fn parse_notification_config_xml(xml: &str) -> Result<NotificationConfiguration,
     // Parse TopicConfigurations
     let topic_re = regex::Regex::new(r"<TopicConfiguration>(.*?)</TopicConfiguration>")
         .map_err(|e| e.to_string())?;
-    
+
     for cap in topic_re.captures_iter(xml) {
         let content = &cap[1];
-        
+
         let id = extract_xml_value(content, "Id").unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
         let topic_arn = extract_xml_value(content, "Topic").ok_or("Missing Topic in TopicConfiguration")?;
         let events = extract_events(content)?;
         let filter = extract_filter(content);
-        
+
         config.topic_configurations.push(TopicConfiguration {
             id,
             topic_arn,
@@ -389,10 +389,10 @@ fn extract_xml_value(content: &str, tag: &str) -> Option<String> {
 
 fn extract_events(content: &str) -> Result<Vec<hafiz_core::types::S3EventType>, String> {
     use hafiz_core::types::S3EventType;
-    
+
     let re = regex::Regex::new(r"<Event>(.*?)</Event>").map_err(|e| e.to_string())?;
     let mut events = Vec::new();
-    
+
     for cap in re.captures_iter(content) {
         let event_str = &cap[1];
         let event = match event_str {
@@ -412,25 +412,25 @@ fn extract_events(content: &str) -> Result<Vec<hafiz_core::types::S3EventType>, 
         };
         events.push(event);
     }
-    
+
     if events.is_empty() {
         return Err("No events specified".to_string());
     }
-    
+
     Ok(events)
 }
 
 fn extract_filter(content: &str) -> Option<hafiz_core::types::NotificationFilter> {
     use hafiz_core::types::{FilterRule, NotificationFilter, S3KeyFilter};
-    
+
     let filter_re = regex::Regex::new(r"<Filter>(.*?)</Filter>").ok()?;
     let filter_content = filter_re.captures(content)?[1].to_string();
-    
+
     let s3key_re = regex::Regex::new(r"<S3Key>(.*?)</S3Key>").ok()?;
     let s3key_content = s3key_re.captures(&filter_content)?[1].to_string();
-    
+
     let rule_re = regex::Regex::new(r"<FilterRule>.*?<Name>(.*?)</Name>.*?<Value>(.*?)</Value>.*?</FilterRule>").ok()?;
-    
+
     let mut filter_rules = Vec::new();
     for cap in rule_re.captures_iter(&s3key_content) {
         filter_rules.push(FilterRule {
@@ -438,11 +438,11 @@ fn extract_filter(content: &str) -> Option<hafiz_core::types::NotificationFilter
             value: cap[2].to_string(),
         });
     }
-    
+
     if filter_rules.is_empty() {
         return None;
     }
-    
+
     Some(NotificationFilter {
         key: Some(S3KeyFilter { filter_rules }),
     })
@@ -454,34 +454,34 @@ fn validate_notification_config(config: &NotificationConfiguration) -> Result<()
         if !webhook.url.starts_with("http://") && !webhook.url.starts_with("https://") {
             return Err(format!("Invalid webhook URL: {}", webhook.url));
         }
-        
+
         if webhook.events.is_empty() {
             return Err(format!("Webhook {} has no events configured", webhook.id));
         }
     }
-    
+
     // Validate queue ARNs
     for queue in &config.queue_configurations {
         if !queue.queue_arn.starts_with("arn:") {
             return Err(format!("Invalid queue ARN: {}", queue.queue_arn));
         }
-        
+
         if queue.events.is_empty() {
             return Err(format!("Queue {} has no events configured", queue.id));
         }
     }
-    
+
     // Validate topic ARNs
     for topic in &config.topic_configurations {
         if !topic.topic_arn.starts_with("arn:") {
             return Err(format!("Invalid topic ARN: {}", topic.topic_arn));
         }
-        
+
         if topic.events.is_empty() {
             return Err(format!("Topic {} has no events configured", topic.id));
         }
     }
-    
+
     Ok(())
 }
 

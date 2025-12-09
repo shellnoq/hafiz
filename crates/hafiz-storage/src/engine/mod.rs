@@ -13,28 +13,28 @@ use tracing::{debug, info, warn};
 pub trait StorageEngine: Send + Sync {
     /// Store object data
     async fn put(&self, bucket: &str, key: &str, data: Bytes) -> Result<String>;
-    
+
     /// Retrieve object data
     async fn get(&self, bucket: &str, key: &str) -> Result<Bytes>;
-    
+
     /// Retrieve partial object data
     async fn get_range(&self, bucket: &str, key: &str, start: i64, end: i64) -> Result<Bytes>;
-    
+
     /// Delete object
     async fn delete(&self, bucket: &str, key: &str) -> Result<()>;
-    
+
     /// Check if object exists
     async fn exists(&self, bucket: &str, key: &str) -> Result<bool>;
-    
+
     /// Get object size
     async fn size(&self, bucket: &str, key: &str) -> Result<i64>;
-    
+
     /// Create bucket directory
     async fn create_bucket(&self, bucket: &str) -> Result<()>;
-    
+
     /// Delete bucket directory
     async fn delete_bucket(&self, bucket: &str) -> Result<()>;
-    
+
     /// Check if bucket exists
     async fn bucket_exists(&self, bucket: &str) -> Result<bool>;
 }
@@ -95,60 +95,60 @@ impl LocalStorage {
 impl StorageEngine for LocalStorage {
     async fn put(&self, bucket: &str, key: &str, data: Bytes) -> Result<String> {
         let path = self.object_path(bucket, key);
-        
+
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).await?;
         }
-        
+
         let mut file = fs::File::create(&path).await?;
         file.write_all(&data).await?;
         file.sync_all().await?;
-        
+
         let etag = hafiz_crypto::md5_hash(&data);
         debug!("Stored object {}/{} ({} bytes)", bucket, key, data.len());
-        
+
         Ok(etag)
     }
 
     async fn get(&self, bucket: &str, key: &str) -> Result<Bytes> {
         let path = self.object_path(bucket, key);
-        
+
         if !path.exists() {
             return Err(Error::NoSuchKey);
         }
-        
+
         let data = fs::read(&path).await?;
         debug!("Retrieved object {}/{} ({} bytes)", bucket, key, data.len());
-        
+
         Ok(Bytes::from(data))
     }
 
     async fn get_range(&self, bucket: &str, key: &str, start: i64, end: i64) -> Result<Bytes> {
         let path = self.object_path(bucket, key);
-        
+
         if !path.exists() {
             return Err(Error::NoSuchKey);
         }
-        
+
         let mut file = fs::File::open(&path).await?;
         let len = (end - start + 1) as usize;
-        
+
         file.seek(std::io::SeekFrom::Start(start as u64)).await?;
-        
+
         let mut buffer = vec![0u8; len];
         file.read_exact(&mut buffer).await?;
-        
+
         Ok(Bytes::from(buffer))
     }
 
     async fn delete(&self, bucket: &str, key: &str) -> Result<()> {
         let path = self.object_path(bucket, key);
-        
+
         if path.exists() {
             fs::remove_file(&path).await?;
             debug!("Deleted object {}/{}", bucket, key);
         }
-        
+
         Ok(())
     }
 
@@ -159,11 +159,11 @@ impl StorageEngine for LocalStorage {
 
     async fn size(&self, bucket: &str, key: &str) -> Result<i64> {
         let path = self.object_path(bucket, key);
-        
+
         if !path.exists() {
             return Err(Error::NoSuchKey);
         }
-        
+
         let metadata = fs::metadata(&path).await?;
         Ok(metadata.len() as i64)
     }
@@ -177,7 +177,7 @@ impl StorageEngine for LocalStorage {
 
     async fn delete_bucket(&self, bucket: &str) -> Result<()> {
         let path = self.bucket_path(bucket);
-        
+
         if path.exists() {
             // Check if bucket is empty
             let objects_path = path.join("objects");
@@ -187,11 +187,11 @@ impl StorageEngine for LocalStorage {
                     return Err(Error::BucketNotEmpty);
                 }
             }
-            
+
             fs::remove_dir_all(&path).await?;
             info!("Deleted bucket {}", bucket);
         }
-        
+
         Ok(())
     }
 

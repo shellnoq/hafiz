@@ -39,7 +39,7 @@ impl IntoResponse for S3Response {
 fn error_response(err: Error, request_id: &str) -> Response {
     let status = StatusCode::from_u16(err.http_status()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
     let s3_error = hafiz_core::error::S3Error::from(err).with_request_id(request_id);
-    
+
     Response::builder()
         .status(status)
         .header("Content-Type", "application/xml")
@@ -78,55 +78,55 @@ pub async fn bucket_get_handler(
     query: Query<ListObjectsQuery>,
 ) -> impl IntoResponse {
     let query_str = raw_query.0.unwrap_or_default();
-    
+
     // Check if this is a get bucket versioning request
     if query_str == "versioning" || query_str.starts_with("versioning&") {
         return get_bucket_versioning(state, path).await.into_response();
     }
-    
+
     // Check if this is a get bucket lifecycle request
     if query_str == "lifecycle" || query_str.starts_with("lifecycle&") {
         return get_bucket_lifecycle(state, path).await.into_response();
     }
-    
+
     // Check if this is a get bucket policy request
     if query_str == "policy" || query_str.starts_with("policy&") {
         return policy::get_bucket_policy(state, path).await.into_response();
     }
-    
+
     // Check if this is a get bucket ACL request
     if query_str == "acl" || query_str.starts_with("acl&") {
         return policy::get_bucket_acl(state, path).await.into_response();
     }
-    
+
     // Check if this is a get bucket notification request
     if query_str == "notification" || query_str.starts_with("notification&") {
         return notification::get_bucket_notification(state, path).await.into_response();
     }
-    
+
     // Check if this is a get bucket CORS request
     if query_str == "cors" || query_str.starts_with("cors&") {
         return cors::get_bucket_cors(state, path).await.into_response();
     }
-    
+
     // Check if this is a get bucket Object Lock request
     if query_str == "object-lock" || query_str.starts_with("object-lock&") {
         return object_lock::get_bucket_object_lock_config(state, path).await.into_response();
     }
-    
+
     // Check if this is a list object versions request
     if query_str.contains("versions") {
         let params: ListObjectVersionsQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
         return list_object_versions(state, path, Query(params)).await.into_response();
     }
-    
+
     // Check if this is a list multipart uploads request
     if query_str.contains("uploads") && !query_str.contains("uploadId") {
         // Parse as ListMultipartUploadsQuery
         let params: ListMultipartUploadsQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
         return list_multipart_uploads(state, path, Query(params)).await.into_response();
     }
-    
+
     // Default: ListObjects
     get_bucket(state, path, query).await.into_response()
 }
@@ -140,42 +140,42 @@ pub async fn bucket_put_handler(
     body: Bytes,
 ) -> impl IntoResponse {
     let query_str = raw_query.0.unwrap_or_default();
-    
+
     // Check if this is a put bucket versioning request
     if query_str == "versioning" || query_str.starts_with("versioning&") {
         return put_bucket_versioning(state, path, body).await.into_response();
     }
-    
+
     // Check if this is a put bucket lifecycle request
     if query_str == "lifecycle" || query_str.starts_with("lifecycle&") {
         return put_bucket_lifecycle(state, path, body).await.into_response();
     }
-    
+
     // Check if this is a put bucket policy request
     if query_str == "policy" || query_str.starts_with("policy&") {
         return policy::put_bucket_policy(state, path, body).await.into_response();
     }
-    
+
     // Check if this is a put bucket ACL request
     if query_str == "acl" || query_str.starts_with("acl&") {
         return policy::put_bucket_acl(state, path, headers, body).await.into_response();
     }
-    
+
     // Check if this is a put bucket notification request
     if query_str == "notification" || query_str.starts_with("notification&") {
         return notification::put_bucket_notification(state, path, body).await.into_response();
     }
-    
+
     // Check if this is a put bucket CORS request
     if query_str == "cors" || query_str.starts_with("cors&") {
         return cors::put_bucket_cors(state, path, body).await.into_response();
     }
-    
+
     // Check if this is a put bucket Object Lock request
     if query_str == "object-lock" || query_str.starts_with("object-lock&") {
         return object_lock::put_bucket_object_lock_config(state, path, body).await.into_response();
     }
-    
+
     // Default: CreateBucket
     create_bucket(state, path).await.into_response()
 }
@@ -187,22 +187,22 @@ pub async fn bucket_delete_handler(
     raw_query: RawQuery,
 ) -> impl IntoResponse {
     let query_str = raw_query.0.unwrap_or_default();
-    
+
     // Check if this is a delete bucket lifecycle request
     if query_str == "lifecycle" || query_str.starts_with("lifecycle&") {
         return delete_bucket_lifecycle(state, path).await.into_response();
     }
-    
+
     // Check if this is a delete bucket policy request
     if query_str == "policy" || query_str.starts_with("policy&") {
         return policy::delete_bucket_policy(state, path).await.into_response();
     }
-    
+
     // Check if this is a delete bucket CORS request
     if query_str == "cors" || query_str.starts_with("cors&") {
         return cors::delete_bucket_cors(state, path).await.into_response();
     }
-    
+
     // Default: DeleteBucket
     delete_bucket(state, path).await.into_response()
 }
@@ -215,12 +215,12 @@ pub async fn bucket_post_handler(
     body: Bytes,
 ) -> impl IntoResponse {
     let query_str = raw_query.0.unwrap_or_default();
-    
+
     if query_str.contains("delete") {
         let params: DeleteObjectsQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
         return delete_objects(state, path, Query(params), body).await.into_response();
     }
-    
+
     // Unknown POST operation
     let request_id = generate_request_id();
     error_response(Error::InvalidRequest("Unknown bucket POST operation".into()), &request_id)
@@ -234,7 +234,7 @@ pub async fn object_get_handler(
     raw_query: RawQuery,
 ) -> impl IntoResponse {
     let query_str = raw_query.0.unwrap_or_default();
-    
+
     // Check if this is a get object tagging request
     if query_str == "tagging" || query_str.starts_with("tagging&") || query_str.contains("&tagging") {
         let version_id: Option<String> = serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
@@ -242,7 +242,7 @@ pub async fn object_get_handler(
             .and_then(|m| m.get("versionId").cloned());
         return get_object_tagging(state, path, version_id).await.into_response();
     }
-    
+
     // Check if this is a get object ACL request
     if query_str == "acl" || query_str.starts_with("acl&") || query_str.contains("&acl") {
         let version_id: Option<String> = serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
@@ -250,30 +250,30 @@ pub async fn object_get_handler(
             .and_then(|m| m.get("versionId").cloned());
         return policy::get_object_acl(state, path, version_id).await.into_response();
     }
-    
+
     // Check if this is a get object retention request
     if query_str == "retention" || query_str.starts_with("retention&") || query_str.contains("&retention") {
         let query: object_lock::RetentionQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
         return object_lock::get_object_retention(state, path, Query(query)).await.into_response();
     }
-    
+
     // Check if this is a get object legal hold request
     if query_str == "legal-hold" || query_str.starts_with("legal-hold&") || query_str.contains("&legal-hold") {
         let query: object_lock::RetentionQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
         return object_lock::get_object_legal_hold(state, path, Query(query)).await.into_response();
     }
-    
+
     // Check if this is a list parts request
     if query_str.contains("uploadId") && !query_str.contains("partNumber") {
         let params: ListPartsQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
         return list_parts(state, path, Query(params)).await.into_response();
     }
-    
+
     // Check for versionId query param
     let version_id: Option<String> = serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
         .ok()
         .and_then(|m| m.get("versionId").cloned());
-    
+
     // Default: GetObject (with optional version)
     get_object_versioned(state, path, headers, version_id).await.into_response()
 }
@@ -287,7 +287,7 @@ pub async fn object_put_handler(
     body: Bytes,
 ) -> impl IntoResponse {
     let query_str = raw_query.0.unwrap_or_default();
-    
+
     // Check if this is a put object tagging request
     if query_str == "tagging" || query_str.starts_with("tagging&") || query_str.contains("&tagging") {
         let version_id: Option<String> = serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
@@ -295,7 +295,7 @@ pub async fn object_put_handler(
             .and_then(|m| m.get("versionId").cloned());
         return put_object_tagging(state, path, version_id, body).await.into_response();
     }
-    
+
     // Check if this is a put object ACL request
     if query_str == "acl" || query_str.starts_with("acl&") || query_str.contains("&acl") {
         let version_id: Option<String> = serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
@@ -303,30 +303,30 @@ pub async fn object_put_handler(
             .and_then(|m| m.get("versionId").cloned());
         return policy::put_object_acl(state, path, headers.clone(), version_id, body).await.into_response();
     }
-    
+
     // Check if this is a put object retention request
     if query_str == "retention" || query_str.starts_with("retention&") || query_str.contains("&retention") {
         let query: object_lock::RetentionQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
         return object_lock::put_object_retention(state, path, headers, Query(query), body).await.into_response();
     }
-    
+
     // Check if this is a put object legal hold request
     if query_str == "legal-hold" || query_str.starts_with("legal-hold&") || query_str.contains("&legal-hold") {
         let query: object_lock::RetentionQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
         return object_lock::put_object_legal_hold(state, path, Query(query), body).await.into_response();
     }
-    
+
     // Check if this is an upload part request
     if query_str.contains("uploadId") && query_str.contains("partNumber") {
         let params: UploadPartQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
         return upload_part(state, path, Query(params), body).await.into_response();
     }
-    
+
     // Check if this is a copy request
     if headers.contains_key("x-amz-copy-source") {
         return copy_object(state, path, headers).await.into_response();
     }
-    
+
     // Default: PutObject
     put_object(state, path, headers, body).await.into_response()
 }
@@ -338,7 +338,7 @@ pub async fn object_delete_handler(
     raw_query: RawQuery,
 ) -> impl IntoResponse {
     let query_str = raw_query.0.unwrap_or_default();
-    
+
     // Check if this is a delete object tagging request
     if query_str == "tagging" || query_str.starts_with("tagging&") || query_str.contains("&tagging") {
         let version_id: Option<String> = serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
@@ -346,18 +346,18 @@ pub async fn object_delete_handler(
             .and_then(|m| m.get("versionId").cloned());
         return delete_object_tagging(state, path, version_id).await.into_response();
     }
-    
+
     // Check if this is an abort multipart upload request
     if query_str.contains("uploadId") && !query_str.contains("versionId") {
         let params: AbortMultipartQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
         return abort_multipart_upload(state, path, Query(params)).await.into_response();
     }
-    
+
     // Check for versionId query param
     let version_id: Option<String> = serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
         .ok()
         .and_then(|m| m.get("versionId").cloned());
-    
+
     // Default: DeleteObject (with optional version)
     delete_object_versioned(state, path, version_id).await.into_response()
 }
@@ -371,19 +371,19 @@ pub async fn object_post_handler(
     body: Bytes,
 ) -> impl IntoResponse {
     let query_str = raw_query.0.unwrap_or_default();
-    
+
     // Check if this is a complete multipart upload request
     if query_str.contains("uploadId") {
         let params: CompleteMultipartQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
         return complete_multipart_upload(state, path, Query(params), body).await.into_response();
     }
-    
+
     // Check if this is a create multipart upload request
     if query_str.contains("uploads") {
         let params: CreateMultipartQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
         return create_multipart_upload(state, path, headers, Query(params)).await.into_response();
     }
-    
+
     // Unknown POST operation
     let request_id = generate_request_id();
     error_response(Error::InvalidRequest("Unknown object POST operation".into()), &request_id)
@@ -493,7 +493,7 @@ pub async fn get_bucket(
             } else {
                 xml::list_objects_response(&result)
             };
-            
+
             success_response(StatusCode::OK, xml, &request_id)
         }
         Err(e) => {
@@ -686,11 +686,11 @@ pub async fn put_object(
     let sse_header = headers
         .get("x-amz-server-side-encryption")
         .and_then(|v| v.to_str().ok());
-    
+
     let sse_c_key = headers
         .get("x-amz-server-side-encryption-customer-key")
         .and_then(|v| v.to_str().ok());
-    
+
     let sse_c_key_md5 = headers
         .get("x-amz-server-side-encryption-customer-key-md5")
         .and_then(|v| v.to_str().ok());
@@ -739,7 +739,7 @@ pub async fn put_object(
         .status(StatusCode::OK)
         .header("ETag", generate_etag(&etag))
         .header("x-amz-request-id", &request_id);
-    
+
     // Add SSE response headers
     if encryption.encryption_type != hafiz_core::types::EncryptionType::None {
         builder = builder.header("x-amz-server-side-encryption", encryption.encryption_type.as_str());
@@ -785,7 +785,7 @@ pub async fn copy_object(
     headers: HeaderMap,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    
+
     // Get copy source header
     let copy_source = match headers.get("x-amz-copy-source") {
         Some(v) => v.to_str().unwrap_or(""),
@@ -1115,7 +1115,7 @@ pub async fn complete_multipart_upload(
 
     for (i, completed_part) in completion.parts.iter().enumerate() {
         let stored_part = parts.get(i);
-        
+
         match stored_part {
             Some(sp) if sp.part_number == completed_part.part_number => {
                 // Read part data
@@ -1606,11 +1606,11 @@ pub async fn delete_object_versioned(
                     .status(StatusCode::NO_CONTENT)
                     .header("x-amz-request-id", &request_id)
                     .header("x-amz-version-id", &vid);
-                
+
                 if deleted {
                     builder = builder.header("x-amz-delete-marker", "true");
                 }
-                
+
                 builder.body(Body::empty()).unwrap()
             }
             Err(e) => error_response(e, &request_id),
@@ -1675,11 +1675,11 @@ pub async fn get_object_tagging(
                 .status(StatusCode::OK)
                 .header("Content-Type", "application/xml")
                 .header("x-amz-request-id", &request_id);
-            
+
             if let Some(vid) = version_id {
                 builder = builder.header("x-amz-version-id", vid);
             }
-            
+
             builder.body(Body::from(xml)).unwrap()
         }
         Err(e) => error_response(e, &request_id),
@@ -1726,11 +1726,11 @@ pub async fn put_object_tagging(
     let mut builder = Response::builder()
         .status(StatusCode::OK)
         .header("x-amz-request-id", &request_id);
-    
+
     if let Some(vid) = version_id {
         builder = builder.header("x-amz-version-id", vid);
     }
-    
+
     builder.body(Body::empty()).unwrap()
 }
 
@@ -1760,11 +1760,11 @@ pub async fn delete_object_tagging(
     let mut builder = Response::builder()
         .status(StatusCode::NO_CONTENT)
         .header("x-amz-request-id", &request_id);
-    
+
     if let Some(vid) = version_id {
         builder = builder.header("x-amz-version-id", vid);
     }
-    
+
     builder.body(Body::empty()).unwrap()
 }
 

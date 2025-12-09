@@ -9,7 +9,7 @@ pub use ldap::{
     LdapStatus, LdapServerType, AttributeMappings,
 };
 pub use presigned::{
-    generate_presigned_url, verify_presigned_url, 
+    generate_presigned_url, verify_presigned_url,
     extract_access_key_from_presigned, is_presigned_request,
 };
 pub use signature::{SignatureV4, verify_signature_v4};
@@ -19,7 +19,7 @@ use rand::Rng;
 /// Generate new access key and secret key pair
 pub fn generate_credentials() -> (String, String) {
     let mut rng = rand::thread_rng();
-    
+
     // Access key: AKIA + 16 alphanumeric chars (like AWS)
     let access_key: String = format!(
         "AKIA{}",
@@ -34,7 +34,7 @@ pub fn generate_credentials() -> (String, String) {
             })
             .collect::<String>()
     );
-    
+
     // Secret key: 40 characters base64-like
     const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let secret_key: String = (0..40)
@@ -43,6 +43,6 @@ pub fn generate_credentials() -> (String, String) {
             CHARSET[idx] as char
         })
         .collect();
-    
+
     (access_key, secret_key)
 }

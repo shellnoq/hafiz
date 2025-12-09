@@ -9,7 +9,7 @@ use crate::components::{Button, ButtonVariant, Modal};
 pub fn UsersPage() -> impl IntoView {
     let (show_create_modal, set_show_create_modal) = create_signal(false);
     let (refresh_trigger, set_refresh_trigger) = create_signal(0);
-    
+
     let users = create_resource(
         move || refresh_trigger.get(),
         |_| async move { api::list_users().await }
@@ -29,7 +29,7 @@ pub fn UsersPage() -> impl IntoView {
                 </div>
                 <Button on_click=Callback::new(move |_| set_show_create_modal.set(true))>
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                     </svg>
                     "Create User"
@@ -45,7 +45,7 @@ pub fn UsersPage() -> impl IntoView {
                                 view! {
                                     <div class="p-12 text-center">
                                         <svg class="w-16 h-16 mx-auto text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                         </svg>
                                         <h3 class="text-xl font-semibold text-white mb-2">"No users yet"</h3>
@@ -85,7 +85,7 @@ pub fn UsersPage() -> impl IntoView {
             </div>
 
             // Create user modal
-            <CreateUserModal 
+            <CreateUserModal
                 show=show_create_modal
                 on_close=Callback::new(move |_| set_show_create_modal.set(false))
                 on_created=Callback::new(move |_| {
@@ -103,26 +103,26 @@ fn UserRow(
     #[prop(into)] on_refresh: Callback<()>,
 ) -> impl IntoView {
     use wasm_bindgen_futures::spawn_local;
-    
+
     let access_key = user.access_key.clone();
     let access_key_for_delete = access_key.clone();
     let access_key_for_toggle = access_key.clone();
     let is_enabled = user.enabled;
     let user_name = user.name.clone();
-    
+
     let (is_deleting, set_is_deleting) = create_signal(false);
     let (is_toggling, set_is_toggling) = create_signal(false);
-    
+
     let handle_delete = move |_| {
         let key = access_key_for_delete.clone();
         let name = user_name.clone();
         let on_refresh = on_refresh.clone();
-        
+
         let window = web_sys::window().unwrap();
         if !window.confirm_with_message(&format!("Delete user '{}'?\n\nThis will revoke all access for this user.", name)).unwrap_or(false) {
             return;
         }
-        
+
         set_is_deleting.set(true);
         spawn_local(async move {
             match api::delete_credentials(&key).await {
@@ -137,12 +137,12 @@ fn UserRow(
             set_is_deleting.set(false);
         });
     };
-    
+
     let handle_toggle = move |_| {
         let key = access_key_for_toggle.clone();
         let new_status = !is_enabled;
         let on_refresh = on_refresh.clone();
-        
+
         set_is_toggling.set(true);
         spawn_local(async move {
             match api::update_credentials(&key, new_status).await {
@@ -157,7 +157,7 @@ fn UserRow(
             set_is_toggling.set(false);
         });
     };
-    
+
     view! {
         <tr class="hover:bg-gray-750 transition-colors">
             <td class="px-4 py-3">
@@ -205,8 +205,8 @@ fn UserRow(
             </td>
             <td class="px-4 py-3">
                 <div class="flex items-center space-x-2">
-                    <button 
-                        class="p-2 text-gray-400 hover:text-red-400 transition-colors disabled:opacity-50" 
+                    <button
+                        class="p-2 text-gray-400 hover:text-red-400 transition-colors disabled:opacity-50"
                         title="Delete"
                         disabled=is_deleting
                         on:click=handle_delete
@@ -221,7 +221,7 @@ fn UserRow(
                         } else {
                             view! {
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                             }.into_view()
@@ -248,10 +248,10 @@ fn CreateUserModal(
     let on_submit = move |_| {
         set_creating.set(true);
         set_error.set(None);
-        
+
         let n = name.get();
         let e = email.get();
-        
+
         spawn_local(async move {
             match api::create_user(&n, if e.is_empty() { None } else { Some(&e) }).await {
                 Ok((access_key, secret_key)) => {
@@ -274,7 +274,7 @@ fn CreateUserModal(
                             <div class="bg-green-900/20 border border-green-500 rounded-lg p-4">
                                 <p class="text-green-400 font-medium">"User created successfully!"</p>
                             </div>
-                            
+
                             <div class="bg-gray-700 rounded-lg p-4 space-y-3">
                                 <div>
                                     <label class="text-sm text-gray-400">"Access Key"</label>
@@ -289,11 +289,11 @@ fn CreateUserModal(
                                     </code>
                                 </div>
                             </div>
-                            
+
                             <p class="text-sm text-yellow-400">
                                 "⚠️ Save these credentials now. The secret key cannot be retrieved later."
                             </p>
-                            
+
                             <div class="flex justify-end pt-4">
                                 <Button on_click=Callback::new(move |_| {
                                     set_created_user.set(None);
@@ -314,24 +314,24 @@ fn CreateUserModal(
                                     {e}
                                 </div>
                             })}
-                            
+
                             <div>
                                 <label class="block text-sm font-medium text-gray-300 mb-2">"Username"</label>
                                 <input
                                     type="text"
-                                    class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg 
+                                    class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg
                                            text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
                                     placeholder="john"
                                     prop:value=move || name.get()
                                     on:input=move |ev| set_name.set(event_target_value(&ev))
                                 />
                             </div>
-                            
+
                             <div>
                                 <label class="block text-sm font-medium text-gray-300 mb-2">"Email (optional)"</label>
                                 <input
                                     type="email"
-                                    class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg 
+                                    class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg
                                            text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
                                     placeholder="john@example.com"
                                     prop:value=move || email.get()

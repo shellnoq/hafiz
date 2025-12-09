@@ -504,7 +504,7 @@ pub fn parse_versioning_configuration(body: &[u8]) -> Result<VersioningStatus, q
 
     let xml_str = String::from_utf8_lossy(body);
     let config: VersioningConfiguration = from_str(&xml_str)?;
-    
+
     Ok(match config.status.as_deref() {
         Some("Enabled") => VersioningStatus::Enabled,
         Some("Suspended") => VersioningStatus::Suspended,
@@ -709,7 +709,7 @@ pub fn get_bucket_lifecycle_response(config: &LifecycleConfiguration) -> String 
     for rule in &config.rules {
         xml.push_str("\n  <Rule>");
         xml.push_str(&format!("\n    <ID>{}</ID>", xml_escape(&rule.id)));
-        
+
         // Filter
         match &rule.filter {
             LifecycleFilter::All => {
@@ -750,13 +750,13 @@ pub fn get_bucket_lifecycle_response(config: &LifecycleConfiguration) -> String 
                 xml.push_str("\n      </And>\n    </Filter>");
             }
         }
-        
+
         // Status
         xml.push_str(&format!(
             "\n    <Status>{}</Status>",
             if rule.status == RuleStatus::Enabled { "Enabled" } else { "Disabled" }
         ));
-        
+
         // Expiration
         if let Some(ref exp) = rule.expiration {
             match exp {
@@ -771,7 +771,7 @@ pub fn get_bucket_lifecycle_response(config: &LifecycleConfiguration) -> String 
                 }
             }
         }
-        
+
         // NoncurrentVersionExpiration
         if let Some(ref nve) = rule.noncurrent_version_expiration {
             xml.push_str(&format!(
@@ -779,7 +779,7 @@ pub fn get_bucket_lifecycle_response(config: &LifecycleConfiguration) -> String 
                 nve.noncurrent_days
             ));
         }
-        
+
         // AbortIncompleteMultipartUpload
         if let Some(ref abort) = rule.abort_incomplete_multipart_upload {
             xml.push_str(&format!(
@@ -787,7 +787,7 @@ pub fn get_bucket_lifecycle_response(config: &LifecycleConfiguration) -> String 
                 abort.days_after_initiation
             ));
         }
-        
+
         xml.push_str("\n  </Rule>");
     }
 
@@ -864,17 +864,17 @@ pub fn parse_lifecycle_configuration(body: &[u8]) -> Result<LifecycleConfigurati
     let config: LifecycleConfigurationXml = from_str(&xml_str)?;
 
     let mut lifecycle = LifecycleConfiguration::new();
-    
+
     for r in config.rules {
         let mut rule = LifecycleRule::new(&r.id);
-        
+
         // Parse status
         rule.status = if r.status.to_lowercase() == "enabled" {
             RuleStatus::Enabled
         } else {
             RuleStatus::Disabled
         };
-        
+
         // Parse filter
         if let Some(f) = r.filter {
             if let Some(and) = f.and {
@@ -893,7 +893,7 @@ pub fn parse_lifecycle_configuration(body: &[u8]) -> Result<LifecycleConfigurati
                 rule.filter = LifecycleFilter::All;
             }
         }
-        
+
         // Parse expiration
         if let Some(exp) = r.expiration {
             if let Some(days) = exp.days {
@@ -906,7 +906,7 @@ pub fn parse_lifecycle_configuration(body: &[u8]) -> Result<LifecycleConfigurati
                 rule.expiration = Some(Expiration::ExpiredObjectDeleteMarker);
             }
         }
-        
+
         // Parse noncurrent version expiration
         if let Some(nve) = r.noncurrent_version_expiration {
             rule.noncurrent_version_expiration = Some(hafiz_core::types::NoncurrentVersionExpiration {
@@ -914,14 +914,14 @@ pub fn parse_lifecycle_configuration(body: &[u8]) -> Result<LifecycleConfigurati
                 newer_noncurrent_versions: nve.newer_noncurrent_versions,
             });
         }
-        
+
         // Parse abort incomplete multipart upload
         if let Some(abort) = r.abort_incomplete_multipart_upload {
             rule.abort_incomplete_multipart_upload = Some(hafiz_core::types::AbortIncompleteMultipartUpload {
                 days_after_initiation: abort.days_after_initiation,
             });
         }
-        
+
         lifecycle.rules.push(rule);
     }
 

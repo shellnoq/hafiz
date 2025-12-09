@@ -63,20 +63,20 @@ pub async fn get_server_info(
 ) -> Result<Json<ServerInfo>, (StatusCode, String)> {
     // Calculate uptime
     let uptime = format_uptime(state.start_time.elapsed());
-    
+
     // Storage backend is always local filesystem for now
     let storage_backend = "Local Filesystem".to_string();
-    
+
     // Determine database type
     let database_type = if state.config.database.url.contains("postgres") {
         "PostgreSQL".to_string()
-    } else if state.config.database.url.contains("sqlite") || 
+    } else if state.config.database.url.contains("sqlite") ||
               state.config.database.url.ends_with(".db") {
         "SQLite".to_string()
     } else {
         "Unknown".to_string()
     };
-    
+
     Ok(Json(ServerInfo {
         version: env!("CARGO_PKG_VERSION").to_string(),
         s3_endpoint: format!("http://{}:{}", state.config.server.bind_address, state.config.server.port),
@@ -100,25 +100,25 @@ pub async fn health_check(
     State(state): State<AppState>,
 ) -> Result<Json<HealthCheck>, (StatusCode, String)> {
     let mut overall_status = "healthy";
-    
+
     // Check storage
     let storage_check = check_storage(&state).await;
     if storage_check.status != "ok" {
         overall_status = "degraded";
     }
-    
+
     // Check database
     let database_check = check_database(&state).await;
     if database_check.status != "ok" {
         overall_status = "degraded";
     }
-    
+
     // Check memory
     let memory_check = check_memory();
     if memory_check.status != "ok" {
         overall_status = "degraded";
     }
-    
+
     Ok(Json(HealthCheck {
         status: overall_status.to_string(),
         checks: HealthChecks {
@@ -133,10 +133,10 @@ pub async fn health_check(
 /// Check storage health
 async fn check_storage(state: &AppState) -> HealthStatus {
     let start = Instant::now();
-    
+
     // Try to access storage
     let storage = &state.storage;
-    
+
     // Simple check - verify we can get storage info
     match storage.health_check().await {
         Ok(_) => HealthStatus {
@@ -155,9 +155,9 @@ async fn check_storage(state: &AppState) -> HealthStatus {
 /// Check database health
 async fn check_database(state: &AppState) -> HealthStatus {
     let start = Instant::now();
-    
+
     let metadata = &state.metadata;
-    
+
     // Try a simple query
     match metadata.list_buckets().await {
         Ok(_) => HealthStatus {
@@ -189,7 +189,7 @@ fn format_uptime(duration: std::time::Duration) -> String {
     let days = total_secs / 86400;
     let hours = (total_secs % 86400) / 3600;
     let mins = (total_secs % 3600) / 60;
-    
+
     if days > 0 {
         format!("{}d {}h {}m", days, hours, mins)
     } else if hours > 0 {

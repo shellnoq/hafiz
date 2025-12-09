@@ -1,5 +1,5 @@
 //! Hafiz Core Library
-//! 
+//!
 //! Core types, traits, and utilities for the Hafiz object storage system.
 
 pub mod config;
@@ -28,7 +28,7 @@ pub const MIN_PART_SIZE: u64 = 5 * 1024 * 1024;
 /// Maximum bucket name length
 pub const MAX_BUCKET_NAME_LENGTH: usize = 63;
 
-/// Minimum bucket name length  
+/// Minimum bucket name length
 pub const MIN_BUCKET_NAME_LENGTH: usize = 3;
 
 /// Maximum object key length

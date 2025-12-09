@@ -39,7 +39,7 @@ use crate::server::AppState;
 fn error_response(err: Error, request_id: &str) -> Response {
     let status = StatusCode::from_u16(err.http_status()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
     let s3_error = hafiz_core::error::S3Error::from(err).with_request_id(request_id);
-    
+
     Response::builder()
         .status(status)
         .header("Content-Type", "application/xml")
@@ -75,7 +75,7 @@ fn object_lock_error_response(code: &str, message: &str, request_id: &str) -> Re
 </e>"#,
         code, message, request_id
     );
-    
+
     Response::builder()
         .status(StatusCode::BAD_REQUEST)
         .header("Content-Type", "application/xml")
@@ -213,7 +213,7 @@ pub async fn put_bucket_object_lock_config(
     // Store in metadata
     match state.metadata.put_bucket_object_lock_config(&bucket, &clean_xml).await {
         Ok(_) => {
-            info!("PutObjectLockConfiguration success bucket={} enabled={}", 
+            info!("PutObjectLockConfiguration success bucket={} enabled={}",
                   bucket, config.is_enabled());
             no_content_response(&request_id)
         }
@@ -344,7 +344,7 @@ pub async fn put_object_retention(
     // Store retention
     match state.metadata.put_object_retention(&bucket, &key, version_id, &clean_xml).await {
         Ok(_) => {
-            info!("PutObjectRetention success bucket={} key={} mode={}", 
+            info!("PutObjectRetention success bucket={} key={} mode={}",
                   bucket, key, retention.mode);
             no_content_response(&request_id)
         }
@@ -451,7 +451,7 @@ pub async fn put_object_legal_hold(
     // Store legal hold
     match state.metadata.put_object_legal_hold(&bucket, &key, version_id, &clean_xml).await {
         Ok(_) => {
-            info!("PutObjectLegalHold success bucket={} key={} status={}", 
+            info!("PutObjectLegalHold success bucket={} key={} status={}",
                   bucket, key, hold.status);
             no_content_response(&request_id)
         }

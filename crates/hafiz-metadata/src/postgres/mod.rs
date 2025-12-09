@@ -3,7 +3,7 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use hafiz_core::types::{
-    Bucket, Object, User, VersioningStatus, ObjectVersion, DeleteMarker, 
+    Bucket, Object, User, VersioningStatus, ObjectVersion, DeleteMarker,
     Tag, TagSet, LifecycleConfiguration, LifecycleRule, Credentials,
     Owner,
 };
@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use tracing::{debug, info};
 
 use crate::traits::{
-    MetadataRepository, MultipartUpload, MultipartUploadInfo, 
+    MetadataRepository, MultipartUpload, MultipartUploadInfo,
     ObjectWithTags, UploadPart,
 };
 
@@ -32,7 +32,7 @@ impl PostgresStore {
 
         let store = Self { pool };
         store.init().await?;
-        
+
         Ok(store)
     }
 
@@ -398,7 +398,7 @@ impl MetadataRepository for PostgresStore {
     }
 
     async fn get_bucket(&self, name: &str) -> Result<Option<Bucket>> {
-        let row: Option<(String, String, String, Option<String>, Option<bool>, DateTime<Utc>)> = 
+        let row: Option<(String, String, String, Option<String>, Option<bool>, DateTime<Utc>)> =
             sqlx::query_as(
                 r#"
                 SELECT name, owner_id, region, versioning, object_lock_enabled, created_at
@@ -421,7 +421,7 @@ impl MetadataRepository for PostgresStore {
     }
 
     async fn list_buckets(&self) -> Result<Vec<Bucket>> {
-        let rows: Vec<(String, String, String, Option<String>, Option<bool>, DateTime<Utc>)> = 
+        let rows: Vec<(String, String, String, Option<String>, Option<bool>, DateTime<Utc>)> =
             sqlx::query_as(
                 r#"
                 SELECT name, owner_id, region, versioning, object_lock_enabled, created_at

@@ -44,7 +44,7 @@ pub fn ObjectsPage() -> impl IntoView {
                     } else {
                         let parts: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
                         parts.into_iter().enumerate().map(|(i, part)| {
-                            let href = format!("/buckets/{}/objects/{}", bucket_name(), 
+                            let href = format!("/buckets/{}/objects/{}", bucket_name(),
                                 parts[..=i].join("/"));
                             view! {
                                 <>
@@ -68,7 +68,7 @@ pub fn ObjectsPage() -> impl IntoView {
                 <div class="flex items-center space-x-3">
                     <Button variant=ButtonVariant::Secondary>
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                         </svg>
                         "New Folder"
@@ -78,7 +78,7 @@ pub fn ObjectsPage() -> impl IntoView {
                         on:click=move |_| set_show_upload_modal.set(true)
                     >
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                         </svg>
                         "Upload"
@@ -147,14 +147,14 @@ pub fn ObjectsPage() -> impl IntoView {
                                                     </tr>
                                                 }
                                             }).collect_view()}
-                                            
+
                                             // Objects
                                             {list.objects.into_iter().map(|obj| {
                                                 let key = obj.key.clone();
                                                 let file_name = key.rsplit('/').next().unwrap_or(&key).to_string();
                                                 let bucket_clone = bucket.clone();
                                                 view! {
-                                                    <ObjectRow 
+                                                    <ObjectRow
                                                         bucket=bucket_clone
                                                         object=obj
                                                         name=file_name
@@ -184,7 +184,7 @@ fn EmptyState(#[prop(into)] on_upload: Callback<()>) -> impl IntoView {
     view! {
         <div class="p-12 text-center">
             <svg class="w-16 h-16 mx-auto text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
             <h3 class="text-xl font-semibold text-white mb-2">"No objects"</h3>
@@ -194,7 +194,7 @@ fn EmptyState(#[prop(into)] on_upload: Callback<()>) -> impl IntoView {
                 on:click=move |_| on_upload.call(())
             >
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
                 "Upload Files"
@@ -205,13 +205,13 @@ fn EmptyState(#[prop(into)] on_upload: Callback<()>) -> impl IntoView {
 
 #[component]
 fn ObjectRow(
-    bucket: String, 
-    object: ObjectInfo, 
+    bucket: String,
+    object: ObjectInfo,
     name: String,
     #[prop(into)] on_delete: Callback<()>,
 ) -> impl IntoView {
     use wasm_bindgen_futures::spawn_local;
-    
+
     let icon = get_file_icon(&name);
     let key = object.key.clone();
     let key_for_delete = key.clone();
@@ -219,21 +219,21 @@ fn ObjectRow(
     let bucket_for_delete = bucket.clone();
     let bucket_for_download = bucket.clone();
     let name_for_download = name.clone();
-    
+
     let (is_deleting, set_is_deleting) = create_signal(false);
     let (is_downloading, set_is_downloading) = create_signal(false);
-    
+
     let handle_delete = move |_| {
         let bucket = bucket_for_delete.clone();
         let key = key_for_delete.clone();
         let on_delete = on_delete.clone();
-        
+
         // Confirm delete
         let window = web_sys::window().unwrap();
         if !window.confirm_with_message(&format!("Delete {}?", key)).unwrap_or(false) {
             return;
         }
-        
+
         set_is_deleting.set(true);
         spawn_local(async move {
             match api::delete_object(&bucket, &key).await {
@@ -248,12 +248,12 @@ fn ObjectRow(
             set_is_deleting.set(false);
         });
     };
-    
+
     let handle_download = move |_| {
         let bucket = bucket_for_download.clone();
         let key = key_for_download.clone();
         let filename = name_for_download.clone();
-        
+
         set_is_downloading.set(true);
         spawn_local(async move {
             match api::download_object(&bucket, &key).await {
@@ -261,25 +261,25 @@ fn ObjectRow(
                     // Create blob and download
                     use wasm_bindgen::JsCast;
                     use js_sys::{Array, Uint8Array};
-                    
+
                     let uint8_array = Uint8Array::from(&data[..]);
                     let array = Array::new();
                     array.push(&uint8_array);
-                    
+
                     if let Ok(blob) = web_sys::Blob::new_with_u8_array_sequence(&array) {
                         let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap_or_default();
-                        
+
                         let window = web_sys::window().unwrap();
                         let document = window.document().unwrap();
                         let a: web_sys::HtmlAnchorElement = document
                             .create_element("a")
                             .unwrap()
                             .unchecked_into();
-                        
+
                         a.set_href(&url);
                         a.set_download(&filename);
                         a.click();
-                        
+
                         web_sys::Url::revoke_object_url(&url).ok();
                     }
                 }
@@ -293,7 +293,7 @@ fn ObjectRow(
             set_is_downloading.set(false);
         });
     };
-    
+
     view! {
         <tr class="hover:bg-gray-750 transition-colors">
             <td class="px-4 py-3">
@@ -311,8 +311,8 @@ fn ObjectRow(
             <td class="px-4 py-3 text-gray-400">{format_date(&object.last_modified)}</td>
             <td class="px-4 py-3">
                 <div class="flex items-center space-x-2">
-                    <button 
-                        class="p-2 text-gray-400 hover:text-white transition-colors disabled:opacity-50" 
+                    <button
+                        class="p-2 text-gray-400 hover:text-white transition-colors disabled:opacity-50"
                         title="Download"
                         disabled=is_downloading
                         on:click=handle_download
@@ -327,14 +327,14 @@ fn ObjectRow(
                         } else {
                             view! {
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                 </svg>
                             }.into_view()
                         }}
                     </button>
-                    <button 
-                        class="p-2 text-gray-400 hover:text-red-400 transition-colors disabled:opacity-50" 
+                    <button
+                        class="p-2 text-gray-400 hover:text-red-400 transition-colors disabled:opacity-50"
                         title="Delete"
                         disabled=is_deleting
                         on:click=handle_delete
@@ -349,7 +349,7 @@ fn ObjectRow(
                         } else {
                             view! {
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                             }.into_view()

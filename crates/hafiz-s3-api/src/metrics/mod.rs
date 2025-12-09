@@ -54,7 +54,7 @@ pub mod names {
 pub enum S3Operation {
     // Service
     ListBuckets,
-    
+
     // Bucket
     CreateBucket,
     DeleteBucket,
@@ -67,7 +67,7 @@ pub enum S3Operation {
     ListObjects,
     ListObjectVersions,
     ListMultipartUploads,
-    
+
     // Object
     GetObject,
     PutObject,
@@ -77,7 +77,7 @@ pub enum S3Operation {
     GetObjectTagging,
     PutObjectTagging,
     DeleteObjectTagging,
-    
+
     // Multipart
     CreateMultipartUpload,
     UploadPart,
@@ -125,7 +125,7 @@ impl S3Operation {
         match (method, has_key) {
             // Service level
             ("GET", false) if path == "/" => Some(Self::ListBuckets),
-            
+
             // Bucket level (no key)
             ("PUT", false) if !has_key && query.is_empty() => Some(Self::CreateBucket),
             ("DELETE", false) if !has_key && query.is_empty() => Some(Self::DeleteBucket),
@@ -138,7 +138,7 @@ impl S3Operation {
             ("GET", false) if query.contains("versions") => Some(Self::ListObjectVersions),
             ("GET", false) if query.contains("uploads") => Some(Self::ListMultipartUploads),
             ("GET", false) => Some(Self::ListObjects),
-            
+
             // Object level (has key)
             ("GET", true) if query.contains("tagging") => Some(Self::GetObjectTagging),
             ("PUT", true) if query.contains("tagging") => Some(Self::PutObjectTagging),
@@ -152,7 +152,7 @@ impl S3Operation {
             ("PUT", true) => Some(Self::PutObject),
             ("DELETE", true) => Some(Self::DeleteObject),
             ("HEAD", true) => Some(Self::HeadObject),
-            
+
             _ => None,
         }
     }
@@ -186,7 +186,7 @@ impl MetricsRecorder {
     pub fn render(&self) -> String {
         // Update uptime
         gauge!(names::UPTIME_SECONDS).set(self.start_time.elapsed().as_secs_f64());
-        
+
         self.handle.render()
     }
 
@@ -371,22 +371,22 @@ mod tests {
             S3Operation::from_request("GET", "/", None),
             Some(S3Operation::ListBuckets)
         );
-        
+
         assert_eq!(
             S3Operation::from_request("PUT", "/mybucket", None),
             Some(S3Operation::CreateBucket)
         );
-        
+
         assert_eq!(
             S3Operation::from_request("GET", "/mybucket/mykey", None),
             Some(S3Operation::GetObject)
         );
-        
+
         assert_eq!(
             S3Operation::from_request("PUT", "/mybucket/mykey", Some("uploadId=123&partNumber=1")),
             Some(S3Operation::UploadPart)
         );
-        
+
         assert_eq!(
             S3Operation::from_request("GET", "/mybucket", Some("versioning")),
             Some(S3Operation::GetBucketVersioning)

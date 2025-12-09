@@ -21,18 +21,18 @@ pub fn Modal(
         {move || show.get().then(|| view! {
             <div class="fixed inset-0 z-50 overflow-y-auto">
                 // Backdrop
-                <div 
+                <div
                     class="fixed inset-0 bg-black/60 transition-opacity"
                     on:click=move |_| on_close.call(())
                 />
-                
+
                 // Modal
                 <div class="flex min-h-full items-center justify-center p-4">
                     <div class=format!("relative w-full {} bg-gray-800 rounded-xl shadow-2xl border border-gray-700", size_class)>
                         // Header
                         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-700">
                             <h3 class="text-lg font-semibold text-white">{title}</h3>
-                            <button 
+                            <button
                                 class="text-gray-400 hover:text-white transition-colors"
                                 on:click=move |_| on_close.call(())
                             >
@@ -41,7 +41,7 @@ pub fn Modal(
                                 </svg>
                             </button>
                         </div>
-                        
+
                         // Content
                         <div class="px-6 py-4">
                             {children()}

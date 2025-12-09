@@ -28,7 +28,7 @@ use crate::server::AppState;
 fn error_response(err: Error, request_id: &str) -> Response {
     let status = StatusCode::from_u16(err.http_status()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
     let s3_error = hafiz_core::error::S3Error::from(err).with_request_id(request_id);
-    
+
     Response::builder()
         .status(status)
         .header("Content-Type", "application/xml")
@@ -144,7 +144,7 @@ pub async fn put_bucket_policy(
                     &request_id,
                 );
             }
-            
+
             info!("Valid policy with {} statements", policy.statement.len());
         }
         Err(e) => {
@@ -285,7 +285,7 @@ pub async fn put_bucket_acl(
                 );
             }
         };
-        
+
         // Basic validation - check it looks like XML
         if !acl_str.contains("<AccessControlPolicy") {
             return error_response(
@@ -293,7 +293,7 @@ pub async fn put_bucket_acl(
                 &request_id,
             );
         }
-        
+
         acl_str
     } else {
         // Check for grant headers
@@ -454,14 +454,14 @@ pub async fn put_object_acl(
                 );
             }
         };
-        
+
         if !acl_str.contains("<AccessControlPolicy") {
             return error_response(
                 Error::MalformedACL("Invalid ACL XML".into()),
                 &request_id,
             );
         }
-        
+
         acl_str
     } else {
         // Check for grant headers

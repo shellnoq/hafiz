@@ -20,7 +20,7 @@ pub fn BucketsPage() -> impl IntoView {
     let on_create = move |_| {
         set_creating.set(true);
         set_error.set(None);
-        
+
         let name = new_bucket_name.get();
         spawn_local(async move {
             match api::create_bucket(&name).await {
@@ -73,7 +73,7 @@ pub fn BucketsPage() -> impl IntoView {
                             view! {
                                 <div class="bg-gray-800 rounded-xl border border-gray-700 p-12 text-center">
                                     <svg class="w-16 h-16 mx-auto text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                                     </svg>
                                     <h3 class="text-xl font-semibold text-white mb-2">"No buckets yet"</h3>
@@ -90,7 +90,7 @@ pub fn BucketsPage() -> impl IntoView {
                                         let name = bucket.name.clone();
                                         let name_for_delete = bucket.name.clone();
                                         view! {
-                                            <BucketCard 
+                                            <BucketCard
                                                 bucket=bucket
                                                 on_delete=Callback::new(move |_| {
                                                     set_bucket_to_delete.set(Some(name_for_delete.clone()));
@@ -112,9 +112,9 @@ pub fn BucketsPage() -> impl IntoView {
             </Suspense>
 
             // Create bucket modal
-            <Modal 
-                title="Create Bucket" 
-                show=show_create_modal.into() 
+            <Modal
+                title="Create Bucket"
+                show=show_create_modal.into()
                 on_close=Callback::new(move |_| set_show_create_modal.set(false))
             >
                 <div class="space-y-4">
@@ -123,14 +123,14 @@ pub fn BucketsPage() -> impl IntoView {
                             {e}
                         </div>
                     })}
-                    
+
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">
                             "Bucket Name"
                         </label>
                         <input
                             type="text"
-                            class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg 
+                            class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg
                                    text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
                             placeholder="my-bucket"
                             prop:value=move || new_bucket_name.get()
@@ -142,13 +142,13 @@ pub fn BucketsPage() -> impl IntoView {
                     </div>
 
                     <div class="flex justify-end space-x-3 pt-4">
-                        <Button 
+                        <Button
                             variant=ButtonVariant::Secondary
                             on_click=Callback::new(move |_| set_show_create_modal.set(false))
                         >
                             "Cancel"
                         </Button>
-                        <Button 
+                        <Button
                             loading=Some(creating.into())
                             on_click=Callback::new(on_create)
                         >
@@ -159,9 +159,9 @@ pub fn BucketsPage() -> impl IntoView {
             </Modal>
 
             // Delete confirmation modal
-            <Modal 
-                title="Delete Bucket" 
-                show=show_delete_modal.into() 
+            <Modal
+                title="Delete Bucket"
+                show=show_delete_modal.into()
                 on_close=Callback::new(move |_| set_show_delete_modal.set(false))
             >
                 <div class="space-y-4">
@@ -173,13 +173,13 @@ pub fn BucketsPage() -> impl IntoView {
                         "? This action cannot be undone."
                     </p>
                     <div class="flex justify-end space-x-3 pt-4">
-                        <Button 
+                        <Button
                             variant=ButtonVariant::Secondary
                             on_click=Callback::new(move |_| set_show_delete_modal.set(false))
                         >
                             "Cancel"
                         </Button>
-                        <Button 
+                        <Button
                             variant=ButtonVariant::Danger
                             on_click=Callback::new(on_delete_confirm)
                         >
@@ -203,12 +203,12 @@ fn BucketCard(bucket: BucketInfo, on_delete: Callback<()>) -> impl IntoView {
                 <div class="flex items-center space-x-3">
                     <div class="p-2 bg-blue-600/20 rounded-lg">
                         <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                         </svg>
                     </div>
                     <div>
-                        <a 
+                        <a
                             href=format!("/buckets/{}", name_for_link)
                             class="text-lg font-semibold text-white hover:text-blue-400 transition-colors"
                         >
@@ -216,12 +216,12 @@ fn BucketCard(bucket: BucketInfo, on_delete: Callback<()>) -> impl IntoView {
                         </a>
                     </div>
                 </div>
-                <button 
+                <button
                     class="p-2 text-gray-400 hover:text-red-400 transition-colors"
                     on:click=move |_| on_delete.call(())
                 >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                 </button>
@@ -307,7 +307,7 @@ pub fn BucketDetailPage() -> impl IntoView {
                                 <div class="flex items-center space-x-4">
                                     <div class="p-3 bg-blue-600/20 rounded-xl">
                                         <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                                         </svg>
                                     </div>
@@ -319,14 +319,14 @@ pub fn BucketDetailPage() -> impl IntoView {
                                 <div class="flex items-center space-x-3">
                                     <Button variant=ButtonVariant::Secondary>
                                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0..." />
                                         </svg>
                                         "Settings"
                                     </Button>
                                     <Button>
                                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                                         </svg>
                                         "Upload"
@@ -360,7 +360,7 @@ pub fn BucketDetailPage() -> impl IntoView {
 
                             // Objects browser link
                             <div class="bg-gray-800 rounded-xl border border-gray-700 p-6">
-                                <a 
+                                <a
                                     href=format!("/buckets/{}/objects/", info.name)
                                     class="flex items-center justify-between group"
                                 >

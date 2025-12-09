@@ -188,7 +188,7 @@ impl Statement {
 
     fn matches_action(&self, action: &str) -> bool {
         let actions = self.action.as_slice();
-        
+
         for pattern in actions {
             if pattern == "*" || pattern == "s3:*" {
                 return true;
@@ -197,13 +197,13 @@ impl Statement {
                 return true;
             }
         }
-        
+
         false
     }
 
     fn matches_resource(&self, resource: &str) -> bool {
         let resources = self.resource.as_slice();
-        
+
         if resources.is_empty() {
             return true; // No resource restriction
         }
@@ -216,7 +216,7 @@ impl Statement {
                 return true;
             }
         }
-        
+
         false
     }
 }

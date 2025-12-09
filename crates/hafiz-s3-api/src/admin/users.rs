@@ -69,12 +69,12 @@ pub async fn list_users(
     State(state): State<AppState>,
 ) -> Result<Json<UserListResponse>, (StatusCode, String)> {
     let metadata = &state.metadata;
-    
+
     let credentials = metadata
         .list_credentials()
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    
+
     let users: Vec<UserInfo> = credentials
         .into_iter()
         .map(|cred| UserInfo {
@@ -87,9 +87,9 @@ pub async fn list_users(
             policies: cred.policies,
         })
         .collect();
-    
+
     let total = users.len() as i64;
-    
+
     Ok(Json(UserListResponse { users, total }))
 }
 
@@ -99,13 +99,13 @@ pub async fn get_user(
     Path(access_key): Path<String>,
 ) -> Result<Json<UserInfo>, (StatusCode, String)> {
     let metadata = &state.metadata;
-    
+
     let cred = metadata
         .get_credentials(&access_key)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
         .ok_or((StatusCode::NOT_FOUND, format!("User '{}' not found", access_key)))?;
-    
+
     Ok(Json(UserInfo {
         name: cred.name.unwrap_or_else(|| cred.access_key.clone()),
         access_key: cred.access_key,
@@ -126,22 +126,22 @@ pub async fn create_user(
     if req.name.is_empty() {
         return Err((StatusCode::BAD_REQUEST, "Name cannot be empty".to_string()));
     }
-    
+
     if req.name.len() > 64 {
         return Err((StatusCode::BAD_REQUEST, "Name too long (max 64 characters)".to_string()));
     }
-    
+
     // Generate credentials
     let (access_key, secret_key) = generate_credentials();
-    
+
     let metadata = &state.metadata;
-    
+
     // Check if name already exists
     let existing = metadata.list_credentials().await.unwrap_or_default();
     if existing.iter().any(|c| c.name.as_deref() == Some(&req.name)) {
         return Err((StatusCode::CONFLICT, format!("User '{}' already exists", req.name)));
     }
-    
+
     // Create credentials
     let now = chrono::Utc::now();
     let cred = hafiz_core::types::Credentials {
@@ -154,12 +154,12 @@ pub async fn create_user(
         last_used: None,
         policies: req.policies.unwrap_or_default(),
     };
-    
+
     metadata
         .create_credentials(&cred)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    
+
     Ok((StatusCode::CREATED, Json(CreateUserResponse {
         name: req.name,
         access_key,
@@ -175,26 +175,26 @@ pub async fn delete_user(
     Path(access_key): Path<String>,
 ) -> Result<StatusCode, (StatusCode, String)> {
     let metadata = &state.metadata;
-    
+
     // Check user exists
     let cred = metadata
         .get_credentials(&access_key)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
         .ok_or((StatusCode::NOT_FOUND, format!("User '{}' not found", access_key)))?;
-    
+
     // Prevent deleting the last admin user
     let all_users = metadata.list_credentials().await.unwrap_or_default();
     if all_users.len() <= 1 {
         return Err((StatusCode::BAD_REQUEST, "Cannot delete the last user".to_string()));
     }
-    
+
     // Delete
     metadata
         .delete_credentials(&access_key)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    
+
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -204,21 +204,21 @@ pub async fn enable_user(
     Path(access_key): Path<String>,
 ) -> Result<Json<UserInfo>, (StatusCode, String)> {
     let metadata = &state.metadata;
-    
+
     // Get current user
     let mut cred = metadata
         .get_credentials(&access_key)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
         .ok_or((StatusCode::NOT_FOUND, format!("User '{}' not found", access_key)))?;
-    
+
     cred.enabled = true;
-    
+
     metadata
         .update_credentials(&cred)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    
+
     Ok(Json(UserInfo {
         name: cred.name.unwrap_or_else(|| cred.access_key.clone()),
         access_key: cred.access_key,
@@ -236,28 +236,28 @@ pub async fn disable_user(
     Path(access_key): Path<String>,
 ) -> Result<Json<UserInfo>, (StatusCode, String)> {
     let metadata = &state.metadata;
-    
+
     // Get current user
     let mut cred = metadata
         .get_credentials(&access_key)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
         .ok_or((StatusCode::NOT_FOUND, format!("User '{}' not found", access_key)))?;
-    
+
     // Prevent disabling all users
     let all_users = metadata.list_credentials().await.unwrap_or_default();
     let enabled_count = all_users.iter().filter(|u| u.enabled).count();
     if enabled_count <= 1 && cred.enabled {
         return Err((StatusCode::BAD_REQUEST, "Cannot disable the last enabled user".to_string()));
     }
-    
+
     cred.enabled = false;
-    
+
     metadata
         .update_credentials(&cred)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    
+
     Ok(Json(UserInfo {
         name: cred.name.unwrap_or_else(|| cred.access_key.clone()),
         access_key: cred.access_key,
@@ -275,18 +275,18 @@ pub async fn rotate_keys(
     Path(access_key): Path<String>,
 ) -> Result<Json<RotateKeysResponse>, (StatusCode, String)> {
     let metadata = &state.metadata;
-    
+
     // Get current user
     let old_cred = metadata
         .get_credentials(&access_key)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
         .ok_or((StatusCode::NOT_FOUND, format!("User '{}' not found", access_key)))?;
-    
+
     // Generate new credentials
     let (new_access_key, new_secret_key) = generate_credentials();
     let now = chrono::Utc::now();
-    
+
     // Create new credentials with same settings
     let new_cred = hafiz_core::types::Credentials {
         access_key: new_access_key.clone(),
@@ -298,18 +298,18 @@ pub async fn rotate_keys(
         last_used: None,
         policies: old_cred.policies,
     };
-    
+
     // Delete old and create new
     metadata
         .delete_credentials(&access_key)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    
+
     metadata
         .create_credentials(&new_cred)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    
+
     Ok(Json(RotateKeysResponse {
         access_key: new_access_key,
         secret_key: new_secret_key,

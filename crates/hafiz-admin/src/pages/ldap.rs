@@ -11,7 +11,7 @@ pub fn LdapSettingsPage() -> impl IntoView {
     let (loading, set_loading) = create_signal(false);
     let (error_msg, set_error_msg) = create_signal(Option::<String>::None);
     let (success_msg, set_success_msg) = create_signal(Option::<String>::None);
-    
+
     // LDAP Status resource
     let ldap_status = create_resource(|| (), |_| async move { api::get_ldap_status().await });
     let ldap_config = create_resource(|| (), |_| async move { api::get_ldap_config().await });
@@ -89,13 +89,13 @@ pub fn LdapSettingsPage() -> impl IntoView {
     let test_connection = move |_| {
         set_test_result.set(None);
         set_loading.set(true);
-        
+
         let url = server_url.get();
         let dn = bind_dn.get();
         let pw = bind_password.get();
         let tls = start_tls.get();
         let skip_verify = skip_tls_verify.get();
-        
+
         spawn_local(async move {
             let request = TestLdapConnectionRequest {
                 server_url: url,
@@ -104,7 +104,7 @@ pub fn LdapSettingsPage() -> impl IntoView {
                 start_tls: tls,
                 skip_tls_verify: skip_verify,
             };
-            
+
             match api::test_ldap_connection(&request).await {
                 Ok(response) => {
                     set_test_success.set(response.success);
@@ -131,12 +131,12 @@ pub fn LdapSettingsPage() -> impl IntoView {
     let test_search = move |_| {
         set_test_result.set(None);
         set_loading.set(true);
-        
+
         let username = test_username.get();
-        
+
         spawn_local(async move {
             let request = TestLdapSearchRequest { username };
-            
+
             match api::test_ldap_search(&request).await {
                 Ok(response) => {
                     set_test_success.set(response.success);
@@ -169,13 +169,13 @@ pub fn LdapSettingsPage() -> impl IntoView {
     let test_auth = move |_| {
         set_test_result.set(None);
         set_loading.set(true);
-        
+
         let username = test_username.get();
         let password = test_password.get();
-        
+
         spawn_local(async move {
             let request = TestLdapAuthRequest { username, password };
-            
+
             match api::test_ldap_auth(&request).await {
                 Ok(response) => {
                     set_test_success.set(response.success);
@@ -207,18 +207,18 @@ pub fn LdapSettingsPage() -> impl IntoView {
         set_error_msg.set(None);
         set_success_msg.set(None);
         set_loading.set(true);
-        
+
         // Parse group policies JSON
-        let group_policies: std::collections::HashMap<String, Vec<String>> = 
+        let group_policies: std::collections::HashMap<String, Vec<String>> =
             serde_json::from_str(&group_policies_json.get()).unwrap_or_default();
-        
+
         // Parse default policies
         let default_policies_vec: Vec<String> = default_policies.get()
             .split(',')
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
             .collect();
-        
+
         let config = LdapConfig {
             enabled: enabled.get(),
             server_url: server_url.get(),
@@ -240,7 +240,7 @@ pub fn LdapSettingsPage() -> impl IntoView {
             group_policies,
             default_policies: default_policies_vec,
         };
-        
+
         spawn_local(async move {
             match api::update_ldap_config(&config).await {
                 Ok(_) => {
@@ -276,14 +276,14 @@ pub fn LdapSettingsPage() -> impl IntoView {
                     <h1 class="text-2xl font-bold text-white">"LDAP / Active Directory"</h1>
                     <p class="text-gray-400 mt-1">"Configure enterprise authentication"</p>
                 </div>
-                
+
                 // Status indicator
                 <Suspense fallback=move || view! { <StatusBadge status="loading" /> }>
                     {move || ldap_status.get().map(|result| match result {
                         Ok(status) => view! {
-                            <StatusBadge 
-                                status=if !status.enabled { "disabled" } 
-                                       else if status.connected { "connected" } 
+                            <StatusBadge
+                                status=if !status.enabled { "disabled" }
+                                       else if status.connected { "connected" }
                                        else { "error" }
                             />
                         }.into_view(),
@@ -315,7 +315,7 @@ pub fn LdapSettingsPage() -> impl IntoView {
                                 <p class="text-white font-medium">"Enable LDAP"</p>
                                 <p class="text-sm text-gray-400">"Use LDAP/Active Directory for user authentication"</p>
                             </div>
-                            <ToggleSwitch 
+                            <ToggleSwitch
                                 enabled=enabled
                                 on_toggle=move |v| set_enabled.set(v)
                             />
@@ -347,7 +347,7 @@ pub fn LdapSettingsPage() -> impl IntoView {
                                 </label>
                                 <input
                                     type="text"
-                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg 
+                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg
                                            text-white focus:outline-none focus:border-blue-500"
                                     placeholder="ldaps://ldap.example.com:636"
                                     prop:value=move || server_url.get()
@@ -360,8 +360,8 @@ pub fn LdapSettingsPage() -> impl IntoView {
                                 <label class="block text-sm font-medium text-gray-300 mb-2">
                                     "Server Type"
                                 </label>
-                                <select 
-                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg 
+                                <select
+                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg
                                            text-white focus:outline-none focus:border-blue-500"
                                     prop:value=move || server_type.get()
                                     on:change=move |ev| set_server_type.set(event_target_value(&ev))
@@ -405,7 +405,7 @@ pub fn LdapSettingsPage() -> impl IntoView {
                                 </label>
                                 <input
                                     type="text"
-                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg 
+                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg
                                            text-white focus:outline-none focus:border-blue-500"
                                     placeholder="cn=admin,dc=example,dc=com"
                                     prop:value=move || bind_dn.get()
@@ -418,7 +418,7 @@ pub fn LdapSettingsPage() -> impl IntoView {
                                 </label>
                                 <input
                                     type="password"
-                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg 
+                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg
                                            text-white focus:outline-none focus:border-blue-500"
                                     placeholder="••••••••"
                                     prop:value=move || bind_password.get()
@@ -437,7 +437,7 @@ pub fn LdapSettingsPage() -> impl IntoView {
                                 </label>
                                 <input
                                     type="text"
-                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg 
+                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg
                                            text-white focus:outline-none focus:border-blue-500"
                                     placeholder="ou=users,dc=example,dc=com"
                                     prop:value=move || user_base_dn.get()
@@ -450,7 +450,7 @@ pub fn LdapSettingsPage() -> impl IntoView {
                                 </label>
                                 <input
                                     type="text"
-                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg 
+                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg
                                            text-white focus:outline-none focus:border-blue-500"
                                     placeholder="(uid={username})"
                                     prop:value=move || user_filter.get()
@@ -470,7 +470,7 @@ pub fn LdapSettingsPage() -> impl IntoView {
                                 </label>
                                 <input
                                     type="text"
-                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg 
+                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg
                                            text-white focus:outline-none focus:border-blue-500"
                                     placeholder="ou=groups,dc=example,dc=com"
                                     prop:value=move || group_base_dn.get()
@@ -483,7 +483,7 @@ pub fn LdapSettingsPage() -> impl IntoView {
                                 </label>
                                 <input
                                     type="text"
-                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg 
+                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg
                                            text-white focus:outline-none focus:border-blue-500"
                                     placeholder="(member={dn})"
                                     prop:value=move || group_filter.get()
@@ -496,10 +496,10 @@ pub fn LdapSettingsPage() -> impl IntoView {
                                     "Group → Policy Mapping (JSON)"
                                 </label>
                                 <textarea
-                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg 
+                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg
                                            text-white focus:outline-none focus:border-blue-500 font-mono text-sm"
                                     rows="4"
-                                    placeholder='{"admins": ["admin"], "developers": ["readwrite"]}'
+                                    placeholder=r#"{"admins": ["admin"], "developers": ["readwrite"]}"#
                                     prop:value=move || group_policies_json.get()
                                     on:input=move |ev| set_group_policies_json.set(event_target_value(&ev))
                                 ></textarea>
@@ -510,7 +510,7 @@ pub fn LdapSettingsPage() -> impl IntoView {
                                 </label>
                                 <input
                                     type="text"
-                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg 
+                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg
                                            text-white focus:outline-none focus:border-blue-500"
                                     placeholder="readonly"
                                     prop:value=move || default_policies.get()
@@ -530,7 +530,7 @@ pub fn LdapSettingsPage() -> impl IntoView {
                                 </label>
                                 <input
                                     type="text"
-                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg 
+                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg
                                            text-white focus:outline-none focus:border-blue-500"
                                     prop:value=move || username_attr.get()
                                     on:input=move |ev| set_username_attr.set(event_target_value(&ev))
@@ -542,7 +542,7 @@ pub fn LdapSettingsPage() -> impl IntoView {
                                 </label>
                                 <input
                                     type="text"
-                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg 
+                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg
                                            text-white focus:outline-none focus:border-blue-500"
                                     prop:value=move || email_attr.get()
                                     on:input=move |ev| set_email_attr.set(event_target_value(&ev))
@@ -554,7 +554,7 @@ pub fn LdapSettingsPage() -> impl IntoView {
                                 </label>
                                 <input
                                     type="text"
-                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg 
+                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg
                                            text-white focus:outline-none focus:border-blue-500"
                                     prop:value=move || display_name_attr.get()
                                     on:input=move |ev| set_display_name_attr.set(event_target_value(&ev))
@@ -572,7 +572,7 @@ pub fn LdapSettingsPage() -> impl IntoView {
                                 </label>
                                 <input
                                     type="number"
-                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg 
+                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg
                                            text-white focus:outline-none focus:border-blue-500"
                                     prop:value=move || timeout.get().to_string()
                                     on:input=move |ev| {
@@ -588,7 +588,7 @@ pub fn LdapSettingsPage() -> impl IntoView {
                                 </label>
                                 <input
                                     type="number"
-                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg 
+                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg
                                            text-white focus:outline-none focus:border-blue-500"
                                     prop:value=move || cache_ttl.get().to_string()
                                     on:input=move |ev| {
@@ -603,13 +603,13 @@ pub fn LdapSettingsPage() -> impl IntoView {
 
                     // Save button
                     <div class="flex justify-end gap-4">
-                        <Button 
+                        <Button
                             variant=ButtonVariant::Secondary
                             on_click=clear_cache
                         >
                             "Clear Cache"
                         </Button>
-                        <Button 
+                        <Button
                             variant=ButtonVariant::Primary
                             on_click=save_config
                             disabled=loading
@@ -648,7 +648,7 @@ pub fn LdapSettingsPage() -> impl IntoView {
                     // Test Panel
                     <SettingsCard title="Test Connection" description="Verify LDAP settings">
                         <div class="space-y-4">
-                            <Button 
+                            <Button
                                 variant=ButtonVariant::Secondary
                                 on_click=test_connection
                                 disabled=loading
@@ -661,7 +661,7 @@ pub fn LdapSettingsPage() -> impl IntoView {
                                 <p class="text-sm text-gray-400 mb-2">"Test User Search / Auth"</p>
                                 <input
                                     type="text"
-                                    class="w-full px-4 py-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg 
+                                    class="w-full px-4 py-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg
                                            text-white focus:outline-none focus:border-blue-500"
                                     placeholder="Username"
                                     prop:value=move || test_username.get()
@@ -669,14 +669,14 @@ pub fn LdapSettingsPage() -> impl IntoView {
                                 />
                                 <input
                                     type="password"
-                                    class="w-full px-4 py-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg 
+                                    class="w-full px-4 py-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg
                                            text-white focus:outline-none focus:border-blue-500"
                                     placeholder="Password (for auth test)"
                                     prop:value=move || test_password.get()
                                     on:input=move |ev| set_test_password.set(event_target_value(&ev))
                                 />
                                 <div class="flex gap-2">
-                                    <Button 
+                                    <Button
                                         variant=ButtonVariant::Secondary
                                         on_click=test_search
                                         disabled=loading
@@ -684,7 +684,7 @@ pub fn LdapSettingsPage() -> impl IntoView {
                                     >
                                         "Search"
                                     </Button>
-                                    <Button 
+                                    <Button
                                         variant=ButtonVariant::Primary
                                         on_click=test_auth
                                         disabled=loading

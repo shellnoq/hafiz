@@ -17,7 +17,7 @@ pub fn ClusterPage() -> impl IntoView {
     let (loading, set_loading) = create_signal(true);
     let (error, set_error) = create_signal(None::<String>);
     let (active_tab, set_active_tab) = create_signal("overview".to_string());
-    
+
     // Modal state
     let (show_rule_modal, set_show_rule_modal) = create_signal(false);
     let (new_rule_bucket, set_new_rule_bucket) = create_signal(String::new());
@@ -28,7 +28,7 @@ pub fn ClusterPage() -> impl IntoView {
     let load_data = move || {
         set_loading.set(true);
         set_error.set(None);
-        
+
         spawn_local(async move {
             // Load cluster status
             match api::get_cluster_status().await {
@@ -45,25 +45,25 @@ pub fn ClusterPage() -> impl IntoView {
                     }
                 }
             }
-            
+
             // Load nodes
             match api::list_cluster_nodes().await {
                 Ok(list) => set_nodes.set(list.nodes),
                 Err(_) => {} // Ignore if cluster disabled
             }
-            
+
             // Load replication rules
             match api::list_replication_rules().await {
                 Ok(list) => set_rules.set(list.rules),
                 Err(_) => {}
             }
-            
+
             // Load replication stats
             match api::get_replication_stats().await {
                 Ok(stats) => set_replication_stats.set(Some(stats)),
                 Err(_) => {}
             }
-            
+
             set_loading.set(false);
         });
     };
@@ -76,11 +76,11 @@ pub fn ClusterPage() -> impl IntoView {
         let bucket = new_rule_bucket.get();
         let prefix = new_rule_prefix.get();
         let mode = new_rule_mode.get();
-        
+
         if bucket.is_empty() {
             return;
         }
-        
+
         spawn_local(async move {
             let request = api::CreateReplicationRuleRequest {
                 source_bucket: bucket,
@@ -90,7 +90,7 @@ pub fn ClusterPage() -> impl IntoView {
                 mode: Some(mode),
                 replicate_deletes: Some(true),
             };
-            
+
             match api::create_replication_rule(&request).await {
                 Ok(_) => {
                     set_show_rule_modal.set(false);
@@ -175,19 +175,19 @@ pub fn ClusterPage() -> impl IntoView {
                 // Tabs
                 <div class="border-b border-gray-200 dark:border-gray-700 mb-6">
                     <nav class="-mb-px flex space-x-8">
-                        <TabButton 
+                        <TabButton
                             label="Overview"
                             tab="overview"
                             active_tab=active_tab
                             set_active_tab=set_active_tab
                         />
-                        <TabButton 
+                        <TabButton
                             label="Nodes"
                             tab="nodes"
                             active_tab=active_tab
                             set_active_tab=set_active_tab
                         />
-                        <TabButton 
+                        <TabButton
                             label="Replication"
                             tab="replication"
                             active_tab=active_tab
@@ -200,7 +200,7 @@ pub fn ClusterPage() -> impl IntoView {
                 <div>
                     // Overview Tab
                     <Show when=move || active_tab.get() == "overview">
-                        <ClusterOverview 
+                        <ClusterOverview
                             status=cluster_status
                             stats=replication_stats
                             nodes=nodes
@@ -214,7 +214,7 @@ pub fn ClusterPage() -> impl IntoView {
 
                     // Replication Tab
                     <Show when=move || active_tab.get() == "replication">
-                        <ReplicationPanel 
+                        <ReplicationPanel
                             rules=rules
                             stats=replication_stats
                             on_create=move |_| set_show_rule_modal.set(true)
@@ -225,7 +225,7 @@ pub fn ClusterPage() -> impl IntoView {
             </Show>
 
             // Create Rule Modal
-            <Modal 
+            <Modal
                 show=show_rule_modal
                 on_close=move |_| set_show_rule_modal.set(false)
                 title="Create Replication Rule"
@@ -235,7 +235,7 @@ pub fn ClusterPage() -> impl IntoView {
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             "Source Bucket"
                         </label>
-                        <input 
+                        <input
                             type="text"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                             placeholder="my-bucket"
@@ -247,7 +247,7 @@ pub fn ClusterPage() -> impl IntoView {
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             "Prefix Filter (optional)"
                         </label>
-                        <input 
+                        <input
                             type="text"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                             placeholder="logs/"
@@ -259,7 +259,7 @@ pub fn ClusterPage() -> impl IntoView {
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             "Replication Mode"
                         </label>
-                        <select 
+                        <select
                             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                             on:change=move |ev| set_new_rule_mode.set(event_target_value(&ev))
                         >
@@ -290,7 +290,7 @@ fn TabButton(
     set_active_tab: WriteSignal<String>,
 ) -> impl IntoView {
     let is_active = move || active_tab.get() == tab;
-    
+
     view! {
         <button
             class=move || if is_active() {
@@ -350,13 +350,13 @@ fn ClusterOverview(
             // Stats cards
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {move || status.get().map(|s| view! {
-                    <StatCard 
+                    <StatCard
                         title="Total Nodes"
                         value=s.stats.total_nodes.to_string()
                         icon="server"
                         color="blue"
                     />
-                    <StatCard 
+                    <StatCard
                         title="Healthy Nodes"
                         value=s.stats.healthy_nodes.to_string()
                         icon="check-circle"
@@ -364,13 +364,13 @@ fn ClusterOverview(
                     />
                 })}
                 {move || stats.get().map(|s| view! {
-                    <StatCard 
+                    <StatCard
                         title="Pending Replications"
                         value=s.pending.to_string()
                         icon="clock"
                         color="yellow"
                     />
-                    <StatCard 
+                    <StatCard
                         title="Failed Replications"
                         value=s.failed.to_string()
                         icon="x-circle"
@@ -431,7 +431,7 @@ fn NodesTable(nodes: ReadSignal<Vec<NodeInfo>>) -> impl IntoView {
                         } else {
                             "bg-gray-100 text-gray-800"
                         };
-                        
+
                         view! {
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap">
@@ -471,7 +471,7 @@ fn NodesTable(nodes: ReadSignal<Vec<NodeInfo>>) -> impl IntoView {
                     }).collect_view()}
                 </tbody>
             </table>
-            
+
             // Empty state
             <Show when=move || nodes.get().is_empty()>
                 <div class="text-center py-12">
@@ -533,13 +533,13 @@ where
                         "Create Rule"
                     </Button>
                 </div>
-                
+
                 <div class="divide-y divide-gray-200 dark:divide-gray-700">
                     {move || rules.get().iter().map(|rule| {
                         let on_delete = on_delete.clone();
                         let rule_id = rule.id.clone();
                         let mode_class = if rule.mode == "sync" { "bg-purple-100 text-purple-800" } else { "bg-blue-100 text-blue-800" };
-                        
+
                         view! {
                             <div class="px-6 py-4">
                                 <div class="flex items-center justify-between">
@@ -566,7 +566,7 @@ where
                                         </div>
                                     </div>
                                     <div class="flex items-center space-x-2">
-                                        <button 
+                                        <button
                                             class="text-red-600 hover:text-red-800 p-2"
                                             on:click=move |_| on_delete(rule_id.clone())
                                         >

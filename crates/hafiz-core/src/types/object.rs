@@ -128,7 +128,7 @@ impl EncryptionType {
             Self::SseC => "AES256",
         }
     }
-    
+
     pub fn from_header(header: Option<&str>) -> Self {
         match header {
             Some("AES256") => Self::SseS3,
@@ -157,7 +157,7 @@ impl EncryptionInfo {
     pub fn none() -> Self {
         Self::default()
     }
-    
+
     pub fn is_encrypted(&self) -> bool {
         self.encryption_type != EncryptionType::None
     }
@@ -372,7 +372,7 @@ impl ByteRange {
 
         let range_str = &header[6..];
         let parts: Vec<&str> = range_str.split('-').collect();
-        
+
         if parts.len() != 2 {
             return Err(crate::Error::InvalidRange("Invalid range format".into()));
         }

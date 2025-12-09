@@ -13,7 +13,7 @@ use std::collections::HashSet;
 // ============================================================================
 
 /// CORS configuration for a bucket
-/// 
+///
 /// Defines rules that identify origins and HTTP methods allowed
 /// for cross-origin requests to the bucket.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -25,7 +25,7 @@ pub struct CorsConfiguration {
 }
 
 /// Individual CORS rule
-/// 
+///
 /// Each rule specifies allowed origins, methods, headers, and other options.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename = "CORSRule")]
@@ -129,7 +129,7 @@ impl CorsConfiguration {
     /// Find matching CORS rule for a request
     pub fn find_matching_rule(&self, origin: &str, method: &str) -> Option<&CorsRule> {
         let method = method.parse::<CorsMethod>().ok()?;
-        
+
         self.cors_rules.iter().find(|rule| {
             rule.matches_origin(origin) && rule.allowed_methods.contains(&method)
         })
@@ -224,7 +224,7 @@ impl CorsRule {
         if let Some(suffix) = pattern.strip_prefix("https://*.") {
             if let Some(origin_host) = origin.strip_prefix("https://") {
                 // Must be a subdomain of the suffix
-                return origin_host.ends_with(suffix) 
+                return origin_host.ends_with(suffix)
                     && origin_host.len() > suffix.len()
                     && origin_host.as_bytes()[origin_host.len() - suffix.len() - 1] == b'.';
             }
@@ -467,11 +467,11 @@ impl CorsConfiguration {
     pub fn to_xml(&self) -> Result<String, String> {
         let mut xml = String::from(r#"<?xml version="1.0" encoding="UTF-8"?>"#);
         xml.push('\n');
-        
+
         let body = quick_xml::se::to_string(self)
             .map_err(|e| format!("Failed to serialize CORS: {}", e))?;
         xml.push_str(&body);
-        
+
         Ok(xml)
     }
 }

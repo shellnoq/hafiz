@@ -95,39 +95,39 @@ pub async fn get_dashboard_stats(
     State(state): State<AppState>,
 ) -> Result<Json<DashboardStats>, (StatusCode, String)> {
     let metadata = &state.metadata;
-    
+
     // Get all buckets
     let buckets = metadata
         .list_buckets()
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    
+
     let total_buckets = buckets.len() as i64;
     let mut total_objects: i64 = 0;
     let mut total_size: i64 = 0;
     let mut recent_buckets = Vec::new();
     let mut storage_by_bucket = Vec::new();
-    
+
     // Calculate stats for each bucket
     for bucket in &buckets {
         let objects = metadata
             .list_objects(&bucket.name, "", "", 10000)
             .await
             .unwrap_or_default();
-        
+
         let bucket_objects = objects.len() as i64;
         let bucket_size: i64 = objects.iter().map(|o| o.size).sum();
-        
+
         total_objects += bucket_objects;
         total_size += bucket_size;
-        
+
         // Get versioning status
         let versioning = metadata
             .get_bucket_versioning(&bucket.name)
             .await
             .unwrap_or(None);
         let versioning_enabled = versioning.as_deref() == Some("Enabled");
-        
+
         recent_buckets.push(BucketSummary {
             name: bucket.name.clone(),
             object_count: bucket_objects,
@@ -136,32 +136,32 @@ pub async fn get_dashboard_stats(
             versioning_enabled,
             encryption_enabled: false, // TODO: Check encryption config
         });
-        
+
         storage_by_bucket.push(BucketStorageInfo {
             name: bucket.name.clone(),
             size: bucket_size,
             percentage: 0.0, // Will calculate after total is known
         });
     }
-    
+
     // Calculate percentages
     for info in &mut storage_by_bucket {
         if total_size > 0 {
             info.percentage = (info.size as f64 / total_size as f64) * 100.0;
         }
     }
-    
+
     // Sort by creation date (newest first) and take top 5
     recent_buckets.sort_by(|a, b| b.created_at.cmp(&a.created_at));
     recent_buckets.truncate(5);
-    
+
     // Get user count
     let total_users = metadata
         .list_credentials()
         .await
         .map(|c| c.len() as i64)
         .unwrap_or(1); // At least admin user
-    
+
     Ok(Json(DashboardStats {
         total_buckets,
         total_objects,
@@ -177,35 +177,35 @@ pub async fn get_storage_stats(
     State(state): State<AppState>,
 ) -> Result<Json<StorageStats>, (StatusCode, String)> {
     let metadata = &state.metadata;
-    
+
     let buckets = metadata
         .list_buckets()
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    
+
     let mut total_size: i64 = 0;
     let mut total_objects: i64 = 0;
     let mut largest_bucket: Option<String> = None;
     let mut largest_bucket_size: i64 = 0;
     let mut type_stats: std::collections::HashMap<String, (i64, i64)> = std::collections::HashMap::new();
-    
+
     for bucket in &buckets {
         let objects = metadata
             .list_objects(&bucket.name, "", "", 10000)
             .await
             .unwrap_or_default();
-        
+
         let bucket_size: i64 = objects.iter().map(|o| o.size).sum();
         let bucket_objects = objects.len() as i64;
-        
+
         total_size += bucket_size;
         total_objects += bucket_objects;
-        
+
         if bucket_size > largest_bucket_size {
             largest_bucket_size = bucket_size;
             largest_bucket = Some(bucket.name.clone());
         }
-        
+
         // Aggregate by content type
         for obj in &objects {
             let content_type = obj.content_type.clone().unwrap_or_else(|| "application/octet-stream".to_string());
@@ -214,13 +214,13 @@ pub async fn get_storage_stats(
             entry.1 += obj.size;
         }
     }
-    
+
     let average_object_size = if total_objects > 0 {
         total_size / total_objects
     } else {
         0
     };
-    
+
     let mut storage_by_type: Vec<StorageByType> = type_stats
         .into_iter()
         .map(|(content_type, (count, size))| StorageByType {
@@ -229,11 +229,11 @@ pub async fn get_storage_stats(
             size,
         })
         .collect();
-    
+
     // Sort by size descending
     storage_by_type.sort_by(|a, b| b.size.cmp(&a.size));
     storage_by_type.truncate(10);
-    
+
     Ok(Json(StorageStats {
         total_size,
         total_objects,
@@ -249,23 +249,23 @@ pub async fn list_buckets_detailed(
     State(state): State<AppState>,
 ) -> Result<Json<Vec<BucketDetailed>>, (StatusCode, String)> {
     let metadata = &state.metadata;
-    
+
     let buckets = metadata
         .list_buckets()
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    
+
     let mut result = Vec::new();
-    
+
     for bucket in buckets {
         let objects = metadata
             .list_objects(&bucket.name, "", "", 10000)
             .await
             .unwrap_or_default();
-        
+
         let object_count = objects.len() as i64;
         let size: i64 = objects.iter().map(|o| o.size).sum();
-        
+
         // Get versioning status
         let versioning = metadata
             .get_bucket_versioning(&bucket.name)
@@ -273,7 +273,7 @@ pub async fn list_buckets_detailed(
             .unwrap_or(None);
         let versioning_status = versioning.clone().unwrap_or_else(|| "Disabled".to_string());
         let versioning_enabled = versioning.as_deref() == Some("Enabled");
-        
+
         // Get tags
         let tags_map = metadata
             .get_bucket_tags(&bucket.name)
@@ -283,14 +283,14 @@ pub async fn list_buckets_detailed(
             .into_iter()
             .map(|(key, value)| BucketTag { key, value })
             .collect();
-        
+
         // Get lifecycle rules count
         let lifecycle_rules = metadata
             .get_lifecycle_rules(&bucket.name)
             .await
             .map(|rules| rules.len() as i64)
             .unwrap_or(0);
-        
+
         result.push(BucketDetailed {
             name: bucket.name,
             object_count,
@@ -303,10 +303,10 @@ pub async fn list_buckets_detailed(
             tags,
         });
     }
-    
+
     // Sort by name
     result.sort_by(|a, b| a.name.cmp(&b.name));
-    
+
     Ok(Json(result))
 }
 
@@ -316,51 +316,51 @@ pub async fn get_bucket_stats(
     Path(name): Path<String>,
 ) -> Result<Json<BucketStats>, (StatusCode, String)> {
     let metadata = &state.metadata;
-    
+
     // Check bucket exists
     let bucket = metadata
         .get_bucket(&name)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
         .ok_or((StatusCode::NOT_FOUND, format!("Bucket '{}' not found", name)))?;
-    
+
     // Get objects
     let objects = metadata
         .list_objects(&name, "", "", 10000)
         .await
         .unwrap_or_default();
-    
+
     let object_count = objects.len() as i64;
     let total_size: i64 = objects.iter().map(|o| o.size).sum();
-    
+
     // Get versions count
     let version_count = metadata
         .list_object_versions(&name, "", "", 10000)
         .await
         .map(|v| v.len() as i64)
         .unwrap_or(object_count);
-    
+
     // Get delete markers
     let delete_marker_count = metadata
         .list_delete_markers(&name, "", 10000)
         .await
         .map(|d| d.len() as i64)
         .unwrap_or(0);
-    
+
     // Get multipart uploads count
     let multipart_uploads = metadata
         .list_multipart_uploads(&name, "", "", 10000)
         .await
         .map(|u| u.len() as i64)
         .unwrap_or(0);
-    
+
     // Last modified (most recent object)
     let last_modified = objects
         .iter()
         .map(|o| &o.last_modified)
         .max()
         .map(|d| d.to_rfc3339());
-    
+
     Ok(Json(BucketStats {
         name,
         object_count,

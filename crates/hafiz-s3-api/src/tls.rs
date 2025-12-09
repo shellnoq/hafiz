@@ -53,23 +53,23 @@ impl TlsAcceptor {
             let client_ca_file = config.client_ca_file.as_ref().ok_or_else(|| {
                 Error::InvalidArgument("Client CA file required for mTLS".into())
             })?;
-            
+
             let client_roots = load_root_certs(client_ca_file)?;
             info!("Loaded {} client CA certificate(s)", client_roots.len());
-            
+
             let mut root_store = RootCertStore::empty();
             for cert in client_roots {
                 root_store.add(cert).map_err(|e| {
                     Error::InternalError(format!("Failed to add client CA cert: {}", e))
                 })?;
             }
-            
+
             let client_verifier = WebPkiClientVerifier::builder(Arc::new(root_store))
                 .build()
                 .map_err(|e| {
                     Error::InternalError(format!("Failed to build client verifier: {}", e))
                 })?;
-            
+
             rustls::ServerConfig::builder()
                 .with_client_cert_verifier(client_verifier)
                 .with_single_cert(certs, key)
@@ -88,7 +88,7 @@ impl TlsAcceptor {
             TlsVersion::Tls13 => &rustls::version::TLS13,
         };
         server_config.versions = vec![min_version.clone(), rustls::version::TLS13.clone()];
-        
+
         // Enable ALPN for HTTP/1.1 and HTTP/2
         server_config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
 
@@ -130,18 +130,18 @@ fn load_certs(path: &Path) -> Result<Vec<CertificateDer<'static>>> {
         Error::InternalError(format!("Failed to open certificate file {:?}: {}", path, e))
     })?;
     let mut reader = BufReader::new(file);
-    
+
     let certs: Vec<CertificateDer<'static>> = rustls_pemfile::certs(&mut reader)
         .collect::<std::result::Result<Vec<_>, _>>()
         .map_err(|e| Error::InternalError(format!("Failed to parse certificates: {}", e)))?;
-    
+
     if certs.is_empty() {
         return Err(Error::InvalidArgument(format!(
             "No certificates found in {:?}",
             path
         )));
     }
-    
+
     Ok(certs)
 }
 
@@ -151,7 +151,7 @@ fn load_private_key(path: &Path) -> Result<PrivateKeyDer<'static>> {
         Error::InternalError(format!("Failed to open key file {:?}: {}", path, e))
     })?;
     let mut reader = BufReader::new(file);
-    
+
     // Try different key formats
     loop {
         match rustls_pemfile::read_one(&mut reader) {
@@ -174,7 +174,7 @@ fn load_private_key(path: &Path) -> Result<PrivateKeyDer<'static>> {
             }
         }
     }
-    
+
     Err(Error::InvalidArgument(format!(
         "No private key found in {:?}",
         path
@@ -187,7 +187,7 @@ fn load_root_certs(path: &Path) -> Result<Vec<CertificateDer<'static>>> {
 }
 
 /// Generate self-signed certificate for development
-/// 
+///
 /// This generates a certificate valid for localhost and 127.0.0.1
 pub fn generate_self_signed_cert(
     output_cert: &Path,
@@ -195,19 +195,19 @@ pub fn generate_self_signed_cert(
     days_valid: u32,
 ) -> Result<()> {
     use rcgen::{Certificate, CertificateParams, DistinguishedName, DnType, SanType};
-    
+
     let mut params = CertificateParams::default();
-    
+
     // Set subject
     let mut dn = DistinguishedName::new();
     dn.push(DnType::CommonName, "Hafiz Development");
     dn.push(DnType::OrganizationName, "Hafiz");
     params.distinguished_name = dn;
-    
+
     // Set validity
     params.not_before = time::OffsetDateTime::now_utc();
     params.not_after = params.not_before + time::Duration::days(days_valid as i64);
-    
+
     // Set SANs (Subject Alternative Names)
     params.subject_alt_names = vec![
         SanType::DnsName("localhost".try_into().unwrap()),
@@ -215,12 +215,12 @@ pub fn generate_self_signed_cert(
         SanType::IpAddress(std::net::IpAddr::V4(std::net::Ipv4Addr::new(127, 0, 0, 1))),
         SanType::IpAddress(std::net::IpAddr::V6(std::net::Ipv6Addr::LOCALHOST)),
     ];
-    
+
     // Generate certificate
     let cert = Certificate::from_params(params).map_err(|e| {
         Error::InternalError(format!("Failed to generate certificate: {}", e))
     })?;
-    
+
     // Write certificate PEM
     let cert_pem = cert.serialize_pem().map_err(|e| {
         Error::InternalError(format!("Failed to serialize certificate: {}", e))
@@ -228,13 +228,13 @@ pub fn generate_self_signed_cert(
     std::fs::write(output_cert, &cert_pem).map_err(|e| {
         Error::InternalError(format!("Failed to write certificate file: {}", e))
     })?;
-    
+
     // Write private key PEM
     let key_pem = cert.serialize_private_key_pem();
     std::fs::write(output_key, &key_pem).map_err(|e| {
         Error::InternalError(format!("Failed to write key file: {}", e))
     })?;
-    
+
     // Set permissions on key file (Unix only)
     #[cfg(unix)]
     {
@@ -246,15 +246,15 @@ pub fn generate_self_signed_cert(
         std::fs::set_permissions(output_key, perms)
             .map_err(|e| Error::InternalError(format!("Failed to set key permissions: {}", e)))?;
     }
-    
+
     info!(
         "Generated self-signed certificate:\n  Certificate: {:?}\n  Private Key: {:?}\n  Valid for: {} days",
         output_cert, output_key, days_valid
     );
-    
+
     warn!("⚠️  Self-signed certificates are for development only!");
     warn!("⚠️  Use proper certificates from a CA for production.");
-    
+
     Ok(())
 }
 
@@ -271,31 +271,31 @@ pub struct CertInfo {
 /// Get certificate information
 pub fn get_cert_info(cert_path: &Path) -> Result<CertInfo> {
     use x509_parser::prelude::*;
-    
+
     let pem_data = std::fs::read(cert_path).map_err(|e| {
         Error::InternalError(format!("Failed to read certificate: {}", e))
     })?;
-    
+
     let (_, pem) = parse_x509_pem(&pem_data).map_err(|e| {
         Error::InternalError(format!("Failed to parse PEM: {:?}", e))
     })?;
-    
+
     let (_, cert) = X509Certificate::from_der(&pem.contents).map_err(|e| {
         Error::InternalError(format!("Failed to parse certificate: {:?}", e))
     })?;
-    
+
     let subject = cert.subject().to_string();
     let issuer = cert.issuer().to_string();
     let not_before = cert.validity().not_before.to_rfc2822();
     let not_after = cert.validity().not_after.to_rfc2822();
-    
+
     let mut san = Vec::new();
     if let Ok(Some(ext)) = cert.subject_alternative_name() {
         for name in ext.value.general_names.iter() {
             san.push(format!("{:?}", name));
         }
     }
-    
+
     Ok(CertInfo {
         subject,
         issuer,
@@ -309,33 +309,33 @@ pub fn get_cert_info(cert_path: &Path) -> Result<CertInfo> {
 mod tests {
     use super::*;
     use tempfile::tempdir;
-    
+
     #[test]
     fn test_generate_self_signed() {
         let dir = tempdir().unwrap();
         let cert_path = dir.path().join("cert.pem");
         let key_path = dir.path().join("key.pem");
-        
+
         generate_self_signed_cert(&cert_path, &key_path, 365).unwrap();
-        
+
         assert!(cert_path.exists());
         assert!(key_path.exists());
-        
+
         // Verify we can load the generated files
         let certs = load_certs(&cert_path).unwrap();
         assert_eq!(certs.len(), 1);
-        
+
         let _key = load_private_key(&key_path).unwrap();
     }
-    
+
     #[test]
     fn test_get_cert_info() {
         let dir = tempdir().unwrap();
         let cert_path = dir.path().join("cert.pem");
         let key_path = dir.path().join("key.pem");
-        
+
         generate_self_signed_cert(&cert_path, &key_path, 365).unwrap();
-        
+
         let info = get_cert_info(&cert_path).unwrap();
         assert!(info.subject.contains("Hafiz"));
     }

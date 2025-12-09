@@ -558,7 +558,7 @@ mod tests {
     fn test_config_validation() {
         let mut config = LdapConfig::default();
         config.enabled = true;
-        
+
         // Should fail - empty server URL
         assert!(config.validate().is_err());
 

@@ -82,7 +82,11 @@ impl LdapClient {
     }
 
     /// Get user's groups
-    pub async fn get_user_groups(&self, user_dn: &str, username: &str) -> Result<Vec<String>, String> {
+    pub async fn get_user_groups(
+        &self,
+        user_dn: &str,
+        username: &str,
+    ) -> Result<Vec<String>, String> {
         if self.config.group_base_dn.is_none() {
             return Ok(Vec::new());
         }
@@ -109,7 +113,7 @@ impl LdapClient {
     /// Get LDAP status
     pub async fn get_status(&self) -> LdapStatus {
         let cached_users = self.cache.read().await.users.len();
-        
+
         let (connected, error) = match self.ldap_test_connection().await {
             Ok(_) => (true, None),
             Err(e) => (false, Some(e)),
@@ -142,13 +146,13 @@ impl LdapClient {
 
     async fn get_cached_user(&self, username: &str) -> Option<LdapUser> {
         let cache = self.cache.read().await;
-        
+
         if let Some(cached) = cache.users.get(username) {
             if cached.cached_at.elapsed() < cache.ttl {
                 return Some(cached.user.clone());
             }
         }
-        
+
         None
     }
 
@@ -177,12 +181,17 @@ impl LdapClient {
     }
 
     /// Perform LDAP authentication
-    async fn ldap_authenticate(&self, username: &str, password: &str) -> Result<LdapUser, LdapAuthResult> {
+    async fn ldap_authenticate(
+        &self,
+        username: &str,
+        password: &str,
+    ) -> Result<LdapUser, LdapAuthResult> {
         // Step 1: Connect and bind with service account
-        let (conn, mut ldap) = self.create_connection()
+        let (conn, mut ldap) = self
+            .create_connection()
             .await
             .map_err(|e| LdapAuthResult::ConnectionError(e))?;
-        
+
         ldap3::drive!(conn);
 
         // Bind with service account
@@ -227,7 +236,8 @@ impl LdapClient {
         debug!("Found user DN: {}", user_dn);
 
         // Step 3: Verify user password by binding as the user
-        let (conn2, mut ldap2) = self.create_connection()
+        let (conn2, mut ldap2) = self
+            .create_connection()
             .await
             .map_err(|e| LdapAuthResult::ConnectionError(e))?;
 
@@ -241,7 +251,7 @@ impl LdapClient {
         if user_bind.rc != 0 {
             let _ = ldap2.unbind().await;
             let _ = ldap.unbind().await;
-            
+
             // RC 49 = Invalid credentials
             if user_bind.rc == 49 {
                 return Err(LdapAuthResult::InvalidCredentials);
@@ -250,14 +260,15 @@ impl LdapClient {
             if user_bind.rc == 53 {
                 return Err(LdapAuthResult::AccountDisabled);
             }
-            
+
             return Err(LdapAuthResult::InvalidCredentials);
         }
 
         let _ = ldap2.unbind().await;
 
         // Step 4: Get user groups
-        let groups = self.ldap_get_groups_with_connection(&mut ldap, &user_dn, username)
+        let groups = self
+            .ldap_get_groups_with_connection(&mut ldap, &user_dn, username)
             .await
             .unwrap_or_default();
 
@@ -318,7 +329,10 @@ impl LdapClient {
         let entry = SearchEntry::construct(rs.into_iter().next().unwrap());
         let user_dn = entry.dn.clone();
 
-        let groups = self.ldap_get_groups(&user_dn, username).await.unwrap_or_default();
+        let groups = self
+            .ldap_get_groups(&user_dn, username)
+            .await
+            .unwrap_or_default();
         let policies = self.config.map_groups_to_policies(&groups);
 
         Ok(Some(LdapUser {
@@ -346,8 +360,10 @@ impl LdapClient {
             return Err(format!("Bind failed with code: {}", result.rc));
         }
 
-        let groups = self.ldap_get_groups_with_connection(&mut ldap, user_dn, username).await?;
-        
+        let groups = self
+            .ldap_get_groups_with_connection(&mut ldap, user_dn, username)
+            .await?;
+
         let _ = ldap.unbind().await;
         Ok(groups)
     }

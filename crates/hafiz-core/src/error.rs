@@ -146,26 +146,26 @@ impl Error {
             | Error::MissingHeader(_)
             | Error::InvalidPart(_)
             | Error::EntityTooLarge => 400,
-            
+
             Error::AccessDenied
             | Error::InvalidAccessKeyId
             | Error::SignatureDoesNotMatch
             | Error::ExpiredPresignedRequest => 403,
-            
-            Error::NoSuchBucket 
+
+            Error::NoSuchBucket
             | Error::NoSuchBucketNamed(_)
-            | Error::NoSuchKey 
+            | Error::NoSuchKey
             | Error::NoSuchKeyNamed(_)
-            | Error::NoSuchUpload 
+            | Error::NoSuchUpload
             | Error::NoSuchLifecycleConfiguration
             | Error::NoSuchBucketPolicy => 404,
-            
+
             Error::BucketAlreadyExists | Error::BucketNotEmpty => 409,
-            
+
             Error::InvalidRange(_) => 416,
-            
+
             Error::NotImplemented(_) => 501,
-            
+
             _ => 500,
         }
     }

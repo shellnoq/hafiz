@@ -36,32 +36,32 @@ pub fn FileUploadModal(
     let (uploads, set_uploads) = create_signal::<Vec<UploadItem>>(vec![]);
     let (upload_counter, set_upload_counter) = create_signal(0u32);
     let (is_uploading, set_is_uploading) = create_signal(false);
-    
+
     let file_input_ref = create_node_ref::<leptos::html::Input>();
-    
+
     // Handle drag events
     let on_dragenter = move |ev: DragEvent| {
         ev.prevent_default();
         set_dragging.set(true);
     };
-    
+
     let on_dragleave = move |ev: DragEvent| {
         ev.prevent_default();
         set_dragging.set(false);
     };
-    
+
     let on_dragover = move |ev: DragEvent| {
         ev.prevent_default();
     };
-    
+
     let bucket_clone = bucket.clone();
     let prefix_clone = prefix.clone();
-    
+
     // Process dropped files
     let process_files = move |files: FileList| {
         let mut new_uploads = vec![];
         let count = files.length();
-        
+
         for i in 0..count {
             if let Some(file) = files.get(i) {
                 let id = upload_counter.get() + i;
@@ -75,17 +75,17 @@ pub fn FileUploadModal(
                 });
             }
         }
-        
+
         set_upload_counter.update(|c| *c += count);
         set_uploads.update(|u| u.extend(new_uploads));
     };
-    
+
     let on_drop = {
         let process_files = process_files.clone();
         move |ev: DragEvent| {
             ev.prevent_default();
             set_dragging.set(false);
-            
+
             if let Some(data_transfer) = ev.data_transfer() {
                 if let Some(files) = data_transfer.files() {
                     process_files(files);
@@ -93,7 +93,7 @@ pub fn FileUploadModal(
             }
         }
     };
-    
+
     // Handle file input change
     let on_file_select = {
         let process_files = process_files.clone();
@@ -105,41 +105,41 @@ pub fn FileUploadModal(
             }
         }
     };
-    
+
     // Browse button click
     let on_browse_click = move |_| {
         if let Some(input) = file_input_ref.get() {
             input.click();
         }
     };
-    
+
     // Remove file from queue
     let remove_file = move |id: u32| {
         set_uploads.update(|u| u.retain(|item| item.id != id));
     };
-    
+
     // Start upload
     let bucket_for_upload = bucket_clone.clone();
     let prefix_for_upload = prefix_clone.clone();
     let on_upload_complete_clone = on_upload_complete.clone();
-    
+
     let start_upload = move |_| {
         let uploads_list = uploads.get();
         if uploads_list.is_empty() || is_uploading.get() {
             return;
         }
-        
+
         set_is_uploading.set(true);
-        
+
         let bucket = bucket_for_upload.clone();
         let prefix = prefix_for_upload.clone();
         let on_complete = on_upload_complete_clone.clone();
-        
+
         spawn_local(async move {
             // Get file input and iterate through files
             let window = web_sys::window().unwrap();
             let document = window.document().unwrap();
-            
+
             if let Some(input) = document.get_element_by_id("file-upload-input") {
                 let input: HtmlInputElement = input.unchecked_into();
                 if let Some(files) = input.files() {
@@ -151,7 +151,7 @@ pub fn FileUploadModal(
                             } else {
                                 format!("{}{}", prefix, file_name)
                             };
-                            
+
                             // Update status to uploading
                             set_uploads.update(|u| {
                                 if let Some(item) = u.iter_mut().find(|item| item.name == file_name) {
@@ -159,7 +159,7 @@ pub fn FileUploadModal(
                                     item.progress = 0.0;
                                 }
                             });
-                            
+
                             // Perform upload
                             match crate::api::upload_object(&bucket, &key, file.clone()).await {
                                 Ok(_) => {
@@ -183,31 +183,31 @@ pub fn FileUploadModal(
                     }
                 }
             }
-            
+
             set_is_uploading.set(false);
             on_complete.call(());
         });
     };
-    
+
     // Check if all uploads complete
     let all_complete = move || {
         let list = uploads.get();
         !list.is_empty() && list.iter().all(|u| u.status == UploadStatus::Complete)
     };
-    
+
     let has_pending = move || {
         uploads.get().iter().any(|u| u.status == UploadStatus::Pending)
     };
-    
+
     view! {
         // Modal backdrop
         <div class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
              on:click=move |_| on_close.call(())>
-            
+
             // Modal content
             <div class="bg-gray-800 rounded-xl border border-gray-700 w-full max-w-2xl max-h-[90vh] overflow-hidden"
                  on:click=|ev| ev.stop_propagation()>
-                
+
                 // Header
                 <div class="px-6 py-4 border-b border-gray-700 flex items-center justify-between">
                     <h2 class="text-xl font-semibold text-white">"Upload Files"</h2>
@@ -218,7 +218,7 @@ pub fn FileUploadModal(
                         </svg>
                     </button>
                 </div>
-                
+
                 // Content
                 <div class="p-6 space-y-4 overflow-y-auto max-h-[60vh]">
                     // Destination info
@@ -231,7 +231,7 @@ pub fn FileUploadModal(
                             view! {}.into_view()
                         }}
                     </div>
-                    
+
                     // Drop zone
                     <div
                         class=move || format!(
@@ -255,15 +255,15 @@ pub fn FileUploadModal(
                             class="hidden"
                             on:change=on_file_select
                         />
-                        
+
                         <svg class="w-12 h-12 mx-auto text-gray-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
-                        
+
                         <p class="text-gray-300 mb-2">"Drag and drop files here"</p>
                         <p class="text-gray-500 text-sm mb-4">"or"</p>
-                        
+
                         <button
                             class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                             on:click=on_browse_click
@@ -271,7 +271,7 @@ pub fn FileUploadModal(
                             "Browse Files"
                         </button>
                     </div>
-                    
+
                     // Upload queue
                     {move || {
                         let list = uploads.get();
@@ -286,7 +286,7 @@ pub fn FileUploadModal(
                                             let id = item.id;
                                             let can_remove = item.status == UploadStatus::Pending;
                                             view! {
-                                                <UploadItemRow 
+                                                <UploadItemRow
                                                     item=item
                                                     on_remove=move || remove_file(id)
                                                     can_remove=can_remove
@@ -299,7 +299,7 @@ pub fn FileUploadModal(
                         }
                     }}
                 </div>
-                
+
                 // Footer
                 <div class="px-6 py-4 border-t border-gray-700 flex items-center justify-end space-x-3">
                     <button
@@ -308,7 +308,7 @@ pub fn FileUploadModal(
                     >
                         {move || if all_complete() { "Close" } else { "Cancel" }}
                     </button>
-                    
+
                     {move || if !all_complete() && has_pending() {
                         view! {
                             <button
@@ -337,7 +337,7 @@ pub fn FileUploadModal(
                                     view! {
                                         <span class="flex items-center">
                                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                                             </svg>
                                             "Upload"
@@ -364,7 +364,7 @@ fn UploadItemRow(
     let status_icon = match item.status {
         UploadStatus::Pending => view! {
             <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
         }.into_view(),
@@ -381,22 +381,22 @@ fn UploadItemRow(
         }.into_view(),
         UploadStatus::Error => view! {
             <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
         }.into_view(),
     };
-    
+
     view! {
         <div class="bg-gray-750 rounded-lg p-3">
             <div class="flex items-center space-x-3">
                 {status_icon}
-                
+
                 <div class="flex-1 min-w-0">
                     <p class="text-sm text-white truncate">{&item.name}</p>
                     <p class="text-xs text-gray-500">{format_size(item.size)}</p>
                 </div>
-                
+
                 {if item.status == UploadStatus::Uploading {
                     view! {
                         <div class="text-xs text-blue-400">{format!("{:.0}%", item.progress)}</div>
@@ -408,10 +408,10 @@ fn UploadItemRow(
                 } else {
                     view! {}.into_view()
                 }}
-                
+
                 {if can_remove {
                     view! {
-                        <button 
+                        <button
                             class="p-1 text-gray-400 hover:text-red-400 transition-colors"
                             on:click=move |_| on_remove.call(())
                         >
@@ -424,12 +424,12 @@ fn UploadItemRow(
                     view! {}.into_view()
                 }}
             </div>
-            
+
             // Progress bar for uploading items
             {if item.status == UploadStatus::Uploading {
                 view! {
                     <div class="mt-2 h-1 bg-gray-700 rounded-full overflow-hidden">
-                        <div 
+                        <div
                             class="h-full bg-blue-500 transition-all duration-300"
                             style=format!("width: {}%", item.progress)
                         ></div>

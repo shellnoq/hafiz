@@ -32,7 +32,7 @@ use crate::server::AppState;
 fn error_response(err: Error, request_id: &str) -> Response {
     let status = StatusCode::from_u16(err.http_status()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
     let s3_error = hafiz_core::error::S3Error::from(err).with_request_id(request_id);
-    
+
     Response::builder()
         .status(status)
         .header("Content-Type", "application/xml")
@@ -68,7 +68,7 @@ fn cors_error_response(code: &str, message: &str, request_id: &str) -> Response 
 </Error>"#,
         code, message, request_id
     );
-    
+
     Response::builder()
         .status(StatusCode::FORBIDDEN)
         .header("Content-Type", "application/xml")
@@ -232,7 +232,7 @@ pub async fn delete_bucket_cors(
 // ============================================================================
 
 /// OPTIONS /{bucket}/{key?} - Handle CORS preflight requests
-/// 
+///
 /// This handler responds to preflight OPTIONS requests from browsers.
 /// It checks the Origin header against the bucket's CORS configuration
 /// and returns appropriate Access-Control-* headers.
@@ -242,10 +242,10 @@ pub async fn handle_cors_preflight(
     headers: HeaderMap,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    
+
     // Extract bucket from path (first segment)
     let bucket = path.split('/').next().unwrap_or(&path);
-    
+
     debug!(
         "CORS preflight request bucket={} path={} request_id={}",
         bucket, path, request_id
@@ -319,7 +319,7 @@ pub async fn handle_cors_preflight(
 
             // Build CORS response headers
             let cors_headers = CorsResponseHeaders::for_preflight(rule, &origin, request_headers);
-            
+
             info!(
                 "CORS preflight allowed: origin={} method={} bucket={}",
                 origin, request_method, bucket
@@ -369,7 +369,7 @@ fn cors_forbidden_response(origin: &str, request_id: &str) -> Response {
 // ============================================================================
 
 /// Add CORS headers to a response based on request origin
-/// 
+///
 /// This should be called for actual (non-preflight) requests to add
 /// the appropriate CORS headers to the response.
 pub async fn add_cors_headers_to_response(
@@ -391,7 +391,7 @@ pub async fn add_cors_headers_to_response(
     // Find matching rule
     if let Some(rule) = cors_config.find_matching_rule(origin, method) {
         let cors_headers = CorsResponseHeaders::for_actual_request(rule, origin);
-        
+
         let headers = response.headers_mut();
         for (name, value) in cors_headers.to_header_vec() {
             if let Ok(header_name) = name.parse::<header::HeaderName>() {

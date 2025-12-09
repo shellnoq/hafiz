@@ -304,7 +304,7 @@ impl AccessControlPolicy {
     /// Create ACL from canned ACL
     pub fn from_canned(owner: Owner, canned: CannedAcl) -> Self {
         let mut acl = Self::new(owner.clone());
-        
+
         // Owner always has full control
         acl = acl.add_grant(Grant::new(
             Grantee::canonical_user_with_name(&owner.id, owner.display_name.clone().unwrap_or_default()),
@@ -368,7 +368,7 @@ impl AccessControlPolicy {
     pub fn to_xml(&self) -> String {
         let mut xml = String::from(r#"<?xml version="1.0" encoding="UTF-8"?>"#);
         xml.push_str(r#"<AccessControlPolicy xmlns="http://s3.amazonaws.com/doc/2006-03-01/">"#);
-        
+
         // Owner
         xml.push_str("<Owner>");
         xml.push_str(&format!("<ID>{}</ID>", xml_escape(&self.owner.id)));
@@ -381,7 +381,7 @@ impl AccessControlPolicy {
         xml.push_str("<AccessControlList>");
         for grant in &self.access_control_list.grant {
             xml.push_str("<Grant>");
-            
+
             // Grantee
             match &grant.grantee {
                 Grantee::CanonicalUser { id, display_name } => {
@@ -403,13 +403,13 @@ impl AccessControlPolicy {
                     xml.push_str("</Grantee>");
                 }
             }
-            
+
             // Permission
             xml.push_str(&format!("<Permission>{}</Permission>", grant.permission));
             xml.push_str("</Grant>");
         }
         xml.push_str("</AccessControlList>");
-        
+
         xml.push_str("</AccessControlPolicy>");
         xml
     }
@@ -449,13 +449,13 @@ impl AclHeaders {
     /// Parse grant header value into grantees
     pub fn parse_grant_header(value: &str) -> Vec<Grantee> {
         let mut grantees = Vec::new();
-        
+
         for part in value.split(',') {
             let part = part.trim();
             if let Some((key, val)) = part.split_once('=') {
                 let key = key.trim();
                 let val = val.trim().trim_matches('"');
-                
+
                 match key {
                     "id" => {
                         grantees.push(Grantee::canonical_user(val));
@@ -472,7 +472,7 @@ impl AclHeaders {
                 }
             }
         }
-        
+
         grantees
     }
 
@@ -485,7 +485,7 @@ impl AclHeaders {
 
         // Build from grant headers
         let mut acl = AccessControlPolicy::new(owner.clone());
-        
+
         // Owner always has full control
         acl = acl.add_grant(Grant::new(
             Grantee::canonical_user_with_name(&owner.id, owner.display_name.unwrap_or_default()),
@@ -558,7 +558,7 @@ mod tests {
     fn test_acl_from_canned() {
         let owner = Owner::new("user123");
         let acl = AccessControlPolicy::from_canned(owner, CannedAcl::PublicRead);
-        
+
         assert!(acl.has_permission("user123", Permission::FullControl, true));
         assert!(acl.allows_anonymous(Permission::Read));
         assert!(!acl.allows_anonymous(Permission::Write));
@@ -568,7 +568,7 @@ mod tests {
     fn test_grant_header_parsing() {
         let header = r#"id="user123", uri="http://acs.amazonaws.com/groups/global/AllUsers""#;
         let grantees = AclHeaders::parse_grant_header(header);
-        
+
         assert_eq!(grantees.len(), 2);
     }
 
@@ -577,7 +577,7 @@ mod tests {
         let owner = Owner::with_name("user123", "Test User");
         let acl = AccessControlPolicy::from_canned(owner, CannedAcl::Private);
         let xml = acl.to_xml();
-        
+
         assert!(xml.contains("<ID>user123</ID>"));
         assert!(xml.contains("FULL_CONTROL"));
     }

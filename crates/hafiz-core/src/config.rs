@@ -7,31 +7,31 @@ use std::path::PathBuf;
 pub struct HafizConfig {
     #[serde(default)]
     pub server: ServerConfig,
-    
+
     #[serde(default)]
     pub tls: TlsConfig,
-    
+
     #[serde(default)]
     pub storage: StorageConfig,
-    
+
     #[serde(default)]
     pub database: DatabaseConfig,
-    
+
     #[serde(default)]
     pub auth: AuthConfig,
-    
+
     #[serde(default)]
     pub encryption: EncryptionConfig,
-    
+
     #[serde(default)]
     pub logging: LoggingConfig,
-    
+
     #[serde(default)]
     pub lifecycle: LifecycleWorkerConfig,
-    
+
     #[serde(default)]
     pub cluster: ClusterConfigSection,
-    
+
     #[serde(default)]
     pub ldap: LdapConfigSection,
 }
@@ -57,14 +57,14 @@ impl HafizConfig {
     pub fn from_file(path: &str) -> crate::Result<Self> {
         let content = std::fs::read_to_string(path)
             .map_err(|e| crate::Error::InternalError(format!("Failed to read config: {}", e)))?;
-        
+
         toml::from_str(&content)
             .map_err(|e| crate::Error::InternalError(format!("Failed to parse config: {}", e)))
     }
 
     pub fn from_env() -> Self {
         let mut config = Self::default();
-        
+
         if let Ok(addr) = std::env::var("HAFIZ_BIND_ADDRESS") {
             config.server.bind_address = addr;
         }
@@ -88,7 +88,7 @@ impl HafizConfig {
         if let Ok(level) = std::env::var("HAFIZ_LOG_LEVEL") {
             config.logging.level = level;
         }
-        
+
         // TLS from environment
         if let Ok(cert) = std::env::var("HAFIZ_TLS_CERT") {
             config.tls.enabled = true;
@@ -97,7 +97,7 @@ impl HafizConfig {
         if let Ok(key) = std::env::var("HAFIZ_TLS_KEY") {
             config.tls.key_file = Some(PathBuf::from(key));
         }
-        
+
         // Encryption from environment
         if let Ok(key) = std::env::var("HAFIZ_ENCRYPTION_KEY") {
             config.encryption.enabled = true;
@@ -109,7 +109,7 @@ impl HafizConfig {
         if std::env::var("HAFIZ_SSE_C_ENABLED").map(|v| v == "true").unwrap_or(false) {
             config.encryption.sse_c_enabled = true;
         }
-        
+
         config
     }
 }
@@ -186,7 +186,7 @@ impl TlsConfig {
                     "TLS enabled but key_file not specified".into(),
                 ));
             }
-            
+
             // Check files exist
             if let Some(ref cert) = self.cert_file {
                 if !cert.exists() {
@@ -343,7 +343,7 @@ impl EncryptionConfig {
         if !self.enabled {
             return Ok(None);
         }
-        
+
         // Try direct key first
         if let Some(ref key) = self.master_key {
             let bytes = hex::decode(key)
@@ -355,7 +355,7 @@ impl EncryptionConfig {
             }
             return Ok(Some(bytes));
         }
-        
+
         // Try key file
         if let Some(ref path) = self.master_key_file {
             let content = std::fs::read_to_string(path)
@@ -369,7 +369,7 @@ impl EncryptionConfig {
             }
             return Ok(Some(bytes));
         }
-        
+
         // Try environment variable
         if let Some(ref env_var) = self.master_key_env {
             if let Ok(key) = std::env::var(env_var) {
@@ -383,18 +383,18 @@ impl EncryptionConfig {
                 return Ok(Some(bytes));
             }
         }
-        
+
         Err(crate::Error::InvalidArgument(
             "Encryption enabled but no master key configured".into(),
         ))
     }
-    
+
     pub fn validate(&self) -> crate::Result<()> {
         if self.enabled {
             // Ensure at least one key source is configured
-            if self.master_key.is_none() 
-                && self.master_key_file.is_none() 
-                && self.master_key_env.is_none() 
+            if self.master_key.is_none()
+                && self.master_key_file.is_none()
+                && self.master_key_env.is_none()
             {
                 return Err(crate::Error::InvalidArgument(
                     "Encryption enabled but no master key source configured".into(),
@@ -471,7 +471,7 @@ pub struct ClusterConfigSection {
     pub cluster_tls_enabled: bool,
     /// Cluster TLS certificate path
     pub cluster_tls_cert: Option<String>,
-    /// Cluster TLS key path  
+    /// Cluster TLS key path
     pub cluster_tls_key: Option<String>,
     /// Cluster CA certificate path
     pub cluster_ca_cert: Option<String>,
@@ -505,23 +505,23 @@ impl ClusterConfigSection {
         let node_id = self.node_id.clone().unwrap_or_else(|| {
             uuid::Uuid::new_v4().to_string()
         });
-        
+
         let node_name = self.node_name.clone().unwrap_or_else(|| {
             hostname::get()
                 .map(|h| h.to_string_lossy().to_string())
                 .unwrap_or_else(|_| "hafiz-node".to_string())
         });
-        
+
         let advertise_endpoint = self.advertise_endpoint.clone().unwrap_or_else(|| {
             format!("http://{}:{}", server_config.bind_address, server_config.port)
         });
-        
+
         let cluster_endpoint = format!(
             "http://{}:{}",
             server_config.bind_address,
             self.cluster_port
         );
-        
+
         crate::types::ClusterConfig {
             name: self.name.clone(),
             node_id,

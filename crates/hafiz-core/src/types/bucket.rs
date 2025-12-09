@@ -89,7 +89,7 @@ impl Bucket {
         }
 
         let chars: Vec<char> = name.chars().collect();
-        
+
         if !chars[0].is_ascii_lowercase() && !chars[0].is_ascii_digit() {
             return Err(crate::Error::InvalidBucketName(
                 "Must start with lowercase letter or number".into(),

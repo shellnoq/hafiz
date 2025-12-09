@@ -66,7 +66,7 @@ impl Credentials {
             policies: Vec::new(),
         }
     }
-    
+
     pub fn from_user(user: &User) -> Self {
         Self {
             access_key: user.access_key.clone(),

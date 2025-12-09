@@ -545,7 +545,7 @@ mod tests {
         );
 
         assert!(!node.is_healthy()); // Starting
-        
+
         node.status = NodeStatus::Healthy;
         assert!(node.is_healthy());
         assert!(node.can_accept_writes());

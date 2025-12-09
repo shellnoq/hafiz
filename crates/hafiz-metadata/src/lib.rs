@@ -36,7 +36,7 @@ impl MetadataStore {
             Ok(MetadataStore::Sqlite(store))
         }
     }
-    
+
     /// Get a reference to the underlying repository trait
     pub fn as_repo(&self) -> &dyn MetadataRepository {
         match self {

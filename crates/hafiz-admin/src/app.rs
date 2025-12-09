@@ -6,7 +6,7 @@ use leptos_router::{Route, Router, Routes, Outlet, use_navigate, A};
 
 use crate::components::{Header, Sidebar};
 use crate::pages::{
-    BucketDetailPage, BucketsPage, ClusterPage, DashboardPage, LdapSettingsPage, 
+    BucketDetailPage, BucketsPage, ClusterPage, DashboardPage, LdapSettingsPage,
     NotFoundPage, ObjectsPage, SettingsPage, UsersPage,
 };
 
@@ -104,7 +104,7 @@ fn LoginPage() -> impl IntoView {
                 <div class="text-center mb-8">
                     <div class="flex justify-center mb-4">
                         <svg class="w-16 h-16 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                         </svg>
                     </div>
@@ -125,7 +125,7 @@ fn LoginPage() -> impl IntoView {
                         </label>
                         <input
                             type="text"
-                            class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg 
+                            class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg
                                    text-white placeholder-gray-400 focus:outline-none focus:border-blue-500
                                    transition-colors"
                             placeholder="Enter access key"
@@ -140,7 +140,7 @@ fn LoginPage() -> impl IntoView {
                         </label>
                         <input
                             type="password"
-                            class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg 
+                            class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg
                                    text-white placeholder-gray-400 focus:outline-none focus:border-blue-500
                                    transition-colors"
                             placeholder="Enter secret key"
@@ -151,8 +151,8 @@ fn LoginPage() -> impl IntoView {
 
                     <button
                         type="submit"
-                        class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium 
-                               rounded-lg transition-colors focus:outline-none focus:ring-2 
+                        class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium
+                               rounded-lg transition-colors focus:outline-none focus:ring-2
                                focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800
                                disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled=move || loading.get()

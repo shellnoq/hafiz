@@ -49,16 +49,16 @@ impl S3Server {
 
     pub async fn run(self) -> Result<()> {
         let start_time = Instant::now();
-        
+
         // Validate TLS config if enabled
         if self.config.tls.enabled {
             self.config.tls.validate()?;
         }
-        
+
         // Initialize metrics
         let metrics = Arc::new(MetricsRecorder::new());
         info!("Prometheus metrics initialized");
-        
+
         // Initialize storage
         let storage = LocalStorage::new(&self.config.storage.data_dir);
         storage.init().await?;
@@ -88,7 +88,7 @@ impl S3Server {
 
         let app = self.create_router(state, metrics);
         let addr = format!("{}:{}", self.config.server.bind_address, self.config.server.port);
-        
+
         if self.config.tls.enabled {
             self.run_https(app, &addr).await
         } else {
@@ -98,12 +98,12 @@ impl S3Server {
 
     async fn run_http(self, app: Router, addr: &str) -> Result<()> {
         let listener = TcpListener::bind(addr).await?;
-        
+
         info!("🚀 Hafiz S3 API server listening on http://{}", addr);
         info!("📊 Admin API available at http://{}/api/v1", addr);
         info!("📈 Prometheus metrics at http://{}/metrics", addr);
         info!("🔑 Access Key: {}", self.config.auth.root_access_key);
-        
+
         axum::serve(listener, app).await?;
         Ok(())
     }
@@ -111,23 +111,23 @@ impl S3Server {
     async fn run_https(self, app: Router, addr: &str) -> Result<()> {
         let tls_acceptor = TlsAcceptor::from_config(&self.config.tls)?;
         let listener = TcpListener::bind(addr).await?;
-        
+
         info!("🔒 Hafiz S3 API server listening on https://{}", addr);
         info!("📊 Admin API available at https://{}/api/v1", addr);
         info!("📈 Prometheus metrics at https://{}/metrics", addr);
         info!("🔑 Access Key: {}", self.config.auth.root_access_key);
-        
+
         if self.config.tls.require_client_cert {
             info!("🔐 mTLS enabled - client certificates required");
         }
-        
+
         if let Some(hsts) = tls_acceptor.hsts_header() {
             info!("🛡️  HSTS enabled: {}", hsts);
         }
-        
+
         // Log TLS version
         info!("🔒 Minimum TLS version: {:?}", self.config.tls.min_version);
-        
+
         // Accept connections
         loop {
             let (stream, peer_addr) = match listener.accept().await {
@@ -137,10 +137,10 @@ impl S3Server {
                     continue;
                 }
             };
-            
+
             let tls_acceptor = tls_acceptor.inner().clone();
             let app = app.clone();
-            
+
             tokio::spawn(async move {
                 // Perform TLS handshake
                 let tls_stream = match tls_acceptor.accept(stream).await {
@@ -150,7 +150,7 @@ impl S3Server {
                         return;
                     }
                 };
-                
+
                 // Create hyper service
                 let io = TokioIo::new(tls_stream);
                 let service = hyper::service::service_fn(move |req| {
@@ -159,7 +159,7 @@ impl S3Server {
                         app.call(req).await
                     }
                 });
-                
+
                 // Serve the connection
                 if let Err(e) = hyper_util::server::conn::auto::Builder::new(TokioExecutor::new())
                     .serve_connection(io, service)
@@ -178,13 +178,13 @@ impl S3Server {
         Router::new()
             // Metrics endpoint (no auth required)
             .route("/metrics", get(metrics_handler))
-            
+
             // Admin API routes
             .nest("/api/v1", admin::admin_routes_no_auth())
-            
+
             // Service operations
             .route("/", get(routes::list_buckets))
-            
+
             // Bucket operations
             .route("/:bucket", head(routes::head_bucket))
             .route("/:bucket", get(routes::bucket_get_handler))  // ListObjects, ListObjectVersions, GetBucketVersioning, GetBucketLifecycle, ListMultipartUploads
@@ -192,7 +192,7 @@ impl S3Server {
             .route("/:bucket", delete(routes::bucket_delete_handler)) // DeleteBucket or DeleteBucketLifecycle
             .route("/:bucket", post(routes::bucket_post_handler)) // DeleteObjects
             .route("/:bucket", options(routes::handle_cors_preflight)) // CORS preflight for bucket
-            
+
             // Object operations (including multipart, versioning, and tagging)
             .route("/:bucket/*key", head(routes::head_object))
             .route("/:bucket/*key", get(routes::object_get_handler))   // GetObject, ListParts, or GetObjectTagging
@@ -200,7 +200,7 @@ impl S3Server {
             .route("/:bucket/*key", delete(routes::object_delete_handler)) // DeleteObject, AbortMultipart, or DeleteObjectTagging
             .route("/:bucket/*key", post(routes::object_post_handler)) // CreateMultipart or CompleteMultipart
             .route("/:bucket/*key", options(routes::handle_cors_preflight)) // CORS preflight for object
-            
+
             // Metrics middleware for S3 routes
             .layer(middleware::from_fn_with_state(metrics.clone(), metrics_middleware))
             .layer(

@@ -76,17 +76,17 @@ pub fn SettingsPage() -> impl IntoView {
                 // Security Settings
                 <SettingsCard title="Security" description="Encryption and access control settings">
                     <div class="space-y-4">
-                        <SettingToggle 
+                        <SettingToggle
                             label="Server-Side Encryption (SSE-S3)"
                             description="Enable encryption at rest with server-managed keys"
                             enabled=true
                         />
-                        <SettingToggle 
+                        <SettingToggle
                             label="Customer-Provided Keys (SSE-C)"
                             description="Allow customers to provide their own encryption keys"
                             enabled=true
                         />
-                        <SettingToggle 
+                        <SettingToggle
                             label="HTTPS Only"
                             description="Require HTTPS for all connections"
                             enabled=false
@@ -104,7 +104,7 @@ pub fn SettingsPage() -> impl IntoView {
                                 </label>
                                 <input
                                     type="text"
-                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg 
+                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg
                                            text-white focus:outline-none focus:border-blue-500"
                                     value="5 TiB"
                                     disabled
@@ -116,7 +116,7 @@ pub fn SettingsPage() -> impl IntoView {
                                 </label>
                                 <input
                                     type="text"
-                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg 
+                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg
                                            text-white focus:outline-none focus:border-blue-500"
                                     value="/data/hafiz"
                                     disabled
@@ -129,7 +129,7 @@ pub fn SettingsPage() -> impl IntoView {
                 // Lifecycle Settings
                 <SettingsCard title="Lifecycle Worker" description="Automatic object expiration and cleanup">
                     <div class="space-y-4">
-                        <SettingToggle 
+                        <SettingToggle
                             label="Enable Lifecycle Worker"
                             description="Automatically process lifecycle rules"
                             enabled=true
@@ -139,7 +139,7 @@ pub fn SettingsPage() -> impl IntoView {
                                 <label class="block text-sm font-medium text-gray-300 mb-2">
                                     "Scan Interval"
                                 </label>
-                                <select class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg 
+                                <select class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg
                                                text-white focus:outline-none focus:border-blue-500">
                                     <option value="3600">"1 hour"</option>
                                     <option value="21600">"6 hours"</option>
@@ -152,7 +152,7 @@ pub fn SettingsPage() -> impl IntoView {
                                 </label>
                                 <input
                                     type="number"
-                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg 
+                                    class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg
                                            text-white focus:outline-none focus:border-blue-500"
                                     value="1000"
                                 />

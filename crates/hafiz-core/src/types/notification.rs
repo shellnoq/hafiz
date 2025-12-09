@@ -599,7 +599,7 @@ mod tests {
     #[test]
     fn test_key_filter() {
         let filter = S3KeyFilter::prefix("logs/").with_suffix(".json");
-        
+
         assert!(filter.matches("logs/app.json"));
         assert!(!filter.matches("data/app.json"));
         assert!(!filter.matches("logs/app.txt"));

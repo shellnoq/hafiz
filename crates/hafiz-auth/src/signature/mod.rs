@@ -25,7 +25,7 @@ impl SignatureV4 {
         }
 
         let parts: Vec<&str> = auth_header[17..].split(", ").collect();
-        
+
         let mut credential = None;
         let mut signed_headers = None;
         let mut signature = None;
@@ -196,9 +196,9 @@ mod tests {
     #[test]
     fn test_parse_signature() {
         let header = "AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7EXAMPLE/20130524/us-east-1/s3/aws4_request, SignedHeaders=host;range;x-amz-date, Signature=fe5f80f77d5fa3beca038a248ff027d0445342fe2855ddc963176630326f1024";
-        
+
         let sig = SignatureV4::parse(header).unwrap();
-        
+
         assert_eq!(sig.access_key, "AKIAIOSFODNN7EXAMPLE");
         assert_eq!(sig.region, "us-east-1");
         assert_eq!(sig.service, "s3");

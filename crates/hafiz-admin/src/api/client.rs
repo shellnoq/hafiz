@@ -25,7 +25,7 @@ fn get_auth_header() -> Option<String> {
     let storage = window()?.local_storage().ok()??;
     let access_key = storage.get_item("hafiz_access_key").ok()??;
     let secret_key = storage.get_item("hafiz_secret_key").ok()??;
-    
+
     // Use Basic auth: base64(access_key:secret_key)
     let credentials = format!("{}:{}", access_key, secret_key);
     let encoded = base64_encode(&credentials);
@@ -41,13 +41,13 @@ fn base64_encode(input: &str) -> String {
 /// Make authenticated GET request
 async fn get<T: serde::de::DeserializeOwned>(endpoint: &str) -> Result<T, ApiError> {
     let url = format!("{}{}", api_base(), endpoint);
-    
+
     let mut request = Request::get(&url);
-    
+
     if let Some(auth) = get_auth_header() {
         request = request.header("Authorization", &auth);
     }
-    
+
     let response = request
         .send()
         .await
@@ -55,7 +55,7 @@ async fn get<T: serde::de::DeserializeOwned>(endpoint: &str) -> Result<T, ApiErr
             code: "NetworkError".to_string(),
             message: e.to_string(),
         })?;
-    
+
     if !response.ok() {
         let status = response.status();
         let text = response.text().await.unwrap_or_default();
@@ -68,7 +68,7 @@ async fn get<T: serde::de::DeserializeOwned>(endpoint: &str) -> Result<T, ApiErr
             },
         });
     }
-    
+
     response.json().await.map_err(|e| ApiError {
         code: "ParseError".to_string(),
         message: e.to_string(),
@@ -81,14 +81,14 @@ async fn post<T: serde::de::DeserializeOwned, B: serde::Serialize>(
     body: &B,
 ) -> Result<T, ApiError> {
     let url = format!("{}{}", api_base(), endpoint);
-    
+
     let mut request = Request::post(&url)
         .header("Content-Type", "application/json");
-    
+
     if let Some(auth) = get_auth_header() {
         request = request.header("Authorization", &auth);
     }
-    
+
     let response = request
         .body(serde_json::to_string(body).unwrap_or_default())
         .map_err(|e| ApiError {
@@ -101,7 +101,7 @@ async fn post<T: serde::de::DeserializeOwned, B: serde::Serialize>(
             code: "NetworkError".to_string(),
             message: e.to_string(),
         })?;
-    
+
     if !response.ok() {
         let status = response.status();
         let text = response.text().await.unwrap_or_default();
@@ -114,7 +114,7 @@ async fn post<T: serde::de::DeserializeOwned, B: serde::Serialize>(
             },
         });
     }
-    
+
     response.json().await.map_err(|e| ApiError {
         code: "ParseError".to_string(),
         message: e.to_string(),
@@ -124,13 +124,13 @@ async fn post<T: serde::de::DeserializeOwned, B: serde::Serialize>(
 /// Make authenticated DELETE request
 async fn delete(endpoint: &str) -> Result<(), ApiError> {
     let url = format!("{}{}", api_base(), endpoint);
-    
+
     let mut request = Request::delete(&url);
-    
+
     if let Some(auth) = get_auth_header() {
         request = request.header("Authorization", &auth);
     }
-    
+
     let response = request
         .send()
         .await
@@ -138,7 +138,7 @@ async fn delete(endpoint: &str) -> Result<(), ApiError> {
             code: "NetworkError".to_string(),
             message: e.to_string(),
         })?;
-    
+
     if !response.ok() {
         let status = response.status();
         let text = response.text().await.unwrap_or_default();
@@ -151,7 +151,7 @@ async fn delete(endpoint: &str) -> Result<(), ApiError> {
             },
         });
     }
-    
+
     Ok(())
 }
 
@@ -169,7 +169,7 @@ pub async fn get_dashboard_stats() -> Result<DashboardStats, ApiError> {
         #[serde(default)]
         storage_by_bucket: Vec<ApiBucketStorage>,
     }
-    
+
     #[derive(serde::Deserialize)]
     struct ApiBucketSummary {
         name: String,
@@ -179,16 +179,16 @@ pub async fn get_dashboard_stats() -> Result<DashboardStats, ApiError> {
         versioning_enabled: bool,
         encryption_enabled: bool,
     }
-    
+
     #[derive(serde::Deserialize)]
     struct ApiBucketStorage {
         name: String,
         size: i64,
         percentage: f64,
     }
-    
+
     let stats: ApiDashboardStats = get("/stats").await?;
-    
+
     Ok(DashboardStats {
         total_buckets: stats.total_buckets,
         total_objects: stats.total_objects,
@@ -227,15 +227,15 @@ pub async fn list_buckets() -> Result<Vec<BucketInfo>, ApiError> {
         #[serde(default)]
         tags: Vec<ApiTag>,
     }
-    
+
     #[derive(serde::Deserialize)]
     struct ApiTag {
         key: String,
         value: String,
     }
-    
+
     let buckets: Vec<ApiBucketDetailed> = get("/buckets").await?;
-    
+
     Ok(buckets
         .into_iter()
         .map(|b| BucketInfo {
@@ -266,9 +266,9 @@ pub async fn get_bucket(name: &str) -> Result<BucketInfo, ApiError> {
         #[serde(default)]
         last_modified: Option<String>,
     }
-    
+
     let stats: ApiBucketStats = get(&format!("/buckets/{}/stats", name)).await?;
-    
+
     Ok(BucketInfo {
         name: stats.name,
         object_count: stats.object_count,
@@ -288,7 +288,7 @@ pub async fn create_bucket(name: &str) -> Result<BucketInfo, ApiError> {
             message: "Bucket name cannot be empty".to_string(),
         });
     }
-    
+
     if name.len() < 3 || name.len() > 63 {
         return Err(ApiError {
             code: "InvalidBucketName".to_string(),
@@ -302,16 +302,16 @@ pub async fn create_bucket(name: &str) -> Result<BucketInfo, ApiError> {
             message: "Bucket name must contain only lowercase letters, numbers, hyphens, and dots".to_string(),
         });
     }
-    
+
     // Create bucket via S3 PUT /{bucket}
     let s3_url = format!("/{}", name);
-    
+
     let mut request = Request::put(&s3_url);
-    
+
     if let Some(auth) = get_auth_header() {
         request = request.header("Authorization", &auth);
     }
-    
+
     let response = request
         .send()
         .await
@@ -319,7 +319,7 @@ pub async fn create_bucket(name: &str) -> Result<BucketInfo, ApiError> {
             code: "NetworkError".to_string(),
             message: e.to_string(),
         })?;
-    
+
     if !response.ok() {
         let status = response.status();
         return Err(ApiError {
@@ -327,7 +327,7 @@ pub async fn create_bucket(name: &str) -> Result<BucketInfo, ApiError> {
             message: format!("Failed to create bucket: status {}", status),
         });
     }
-    
+
     Ok(BucketInfo {
         name: name.to_string(),
         object_count: 0,
@@ -341,13 +341,13 @@ pub async fn create_bucket(name: &str) -> Result<BucketInfo, ApiError> {
 /// Delete a bucket (via S3 API)
 pub async fn delete_bucket(name: &str) -> Result<(), ApiError> {
     let s3_url = format!("/{}", name);
-    
+
     let mut request = Request::delete(&s3_url);
-    
+
     if let Some(auth) = get_auth_header() {
         request = request.header("Authorization", &auth);
     }
-    
+
     let response = request
         .send()
         .await
@@ -355,7 +355,7 @@ pub async fn delete_bucket(name: &str) -> Result<(), ApiError> {
             code: "NetworkError".to_string(),
             message: e.to_string(),
         })?;
-    
+
     if !response.ok() {
         let status = response.status();
         return Err(ApiError {
@@ -367,7 +367,7 @@ pub async fn delete_bucket(name: &str) -> Result<(), ApiError> {
             },
         });
     }
-    
+
     Ok(())
 }
 
@@ -380,13 +380,13 @@ pub async fn list_objects(bucket: &str, prefix: &str) -> Result<ObjectListing, A
     } else {
         format!("/{}?list-type=2&delimiter=/&prefix={}", bucket, urlencoding::encode(prefix))
     };
-    
+
     let mut request = Request::get(&url);
-    
+
     if let Some(auth) = get_auth_header() {
         request = request.header("Authorization", &auth);
     }
-    
+
     let response = request
         .send()
         .await
@@ -394,7 +394,7 @@ pub async fn list_objects(bucket: &str, prefix: &str) -> Result<ObjectListing, A
             code: "NetworkError".to_string(),
             message: e.to_string(),
         })?;
-    
+
     if !response.ok() {
         let status = response.status();
         return Err(ApiError {
@@ -402,12 +402,12 @@ pub async fn list_objects(bucket: &str, prefix: &str) -> Result<ObjectListing, A
             message: format!("Failed to list objects: status {}", status),
         });
     }
-    
+
     let xml = response.text().await.map_err(|e| ApiError {
         code: "ParseError".to_string(),
         message: e.to_string(),
     })?;
-    
+
     parse_list_objects_response(&xml)
 }
 
@@ -417,12 +417,12 @@ fn parse_list_objects_response(xml: &str) -> Result<ObjectListing, ApiError> {
     let mut common_prefixes = Vec::new();
     let mut is_truncated = false;
     let mut next_marker = None;
-    
+
     // Extract Contents
     for content in xml.split("<Contents>").skip(1) {
         if let Some(end) = content.find("</Contents>") {
             let content_xml = &content[..end];
-            
+
             let key = extract_xml_value(content_xml, "Key").unwrap_or_default();
             let size = extract_xml_value(content_xml, "Size")
                 .and_then(|s| s.parse().ok())
@@ -433,7 +433,7 @@ fn parse_list_objects_response(xml: &str) -> Result<ObjectListing, ApiError> {
                 .to_string();
             let last_modified = extract_xml_value(content_xml, "LastModified")
                 .unwrap_or_default();
-            
+
             objects.push(ObjectInfo {
                 key,
                 size,
@@ -445,7 +445,7 @@ fn parse_list_objects_response(xml: &str) -> Result<ObjectListing, ApiError> {
             });
         }
     }
-    
+
     // Extract CommonPrefixes
     for prefix in xml.split("<CommonPrefixes>").skip(1) {
         if let Some(end) = prefix.find("</CommonPrefixes>") {
@@ -455,16 +455,16 @@ fn parse_list_objects_response(xml: &str) -> Result<ObjectListing, ApiError> {
             }
         }
     }
-    
+
     // Check truncation
     if let Some(truncated) = extract_xml_value(xml, "IsTruncated") {
         is_truncated = truncated == "true";
     }
-    
+
     if let Some(marker) = extract_xml_value(xml, "NextContinuationToken") {
         next_marker = Some(marker);
     }
-    
+
     Ok(ObjectListing {
         objects,
         common_prefixes,
@@ -477,10 +477,10 @@ fn parse_list_objects_response(xml: &str) -> Result<ObjectListing, ApiError> {
 fn extract_xml_value(xml: &str, tag: &str) -> Option<String> {
     let start_tag = format!("<{}>", tag);
     let end_tag = format!("</{}>", tag);
-    
+
     let start = xml.find(&start_tag)? + start_tag.len();
     let end = xml.find(&end_tag)?;
-    
+
     if start < end {
         Some(xml[start..end].to_string())
     } else {
@@ -497,7 +497,7 @@ pub async fn list_users() -> Result<Vec<UserInfo>, ApiError> {
         users: Vec<ApiUserInfo>,
         total: i64,
     }
-    
+
     #[derive(serde::Deserialize)]
     struct ApiUserInfo {
         name: String,
@@ -510,9 +510,9 @@ pub async fn list_users() -> Result<Vec<UserInfo>, ApiError> {
         #[serde(default)]
         policies: Vec<String>,
     }
-    
+
     let response: ApiUserList = get("/users").await?;
-    
+
     Ok(response.users
         .into_iter()
         .map(|u| UserInfo {
@@ -533,13 +533,13 @@ pub async fn create_user(name: &str, email: Option<&str>) -> Result<(String, Str
             message: "Username cannot be empty".to_string(),
         });
     }
-    
+
     #[derive(serde::Serialize)]
     struct CreateUserRequest {
         name: String,
         email: Option<String>,
     }
-    
+
     #[derive(serde::Deserialize)]
     struct CreateUserResponse {
         name: String,
@@ -548,14 +548,14 @@ pub async fn create_user(name: &str, email: Option<&str>) -> Result<(String, Str
         email: Option<String>,
         created_at: String,
     }
-    
+
     let request = CreateUserRequest {
         name: name.to_string(),
         email: email.map(|e| e.to_string()),
     };
-    
+
     let response: CreateUserResponse = post("/users", &request).await?;
-    
+
     Ok((response.access_key, response.secret_key))
 }
 
@@ -581,13 +581,13 @@ pub async fn update_credentials(access_key: &str, enabled: bool) -> Result<(), A
 /// Enable a user
 pub async fn enable_user(access_key: &str) -> Result<(), ApiError> {
     let url = format!("{}/users/{}/enable", api_base(), access_key);
-    
+
     let mut request = Request::post(&url);
-    
+
     if let Some(auth) = get_auth_header() {
         request = request.header("Authorization", &auth);
     }
-    
+
     let response = request
         .send()
         .await
@@ -595,27 +595,27 @@ pub async fn enable_user(access_key: &str) -> Result<(), ApiError> {
             code: "NetworkError".to_string(),
             message: e.to_string(),
         })?;
-    
+
     if !response.ok() {
         return Err(ApiError {
             code: format!("HTTP{}", response.status()),
             message: "Failed to enable user".to_string(),
         });
     }
-    
+
     Ok(())
 }
 
 /// Disable a user
 pub async fn disable_user(access_key: &str) -> Result<(), ApiError> {
     let url = format!("{}/users/{}/disable", api_base(), access_key);
-    
+
     let mut request = Request::post(&url);
-    
+
     if let Some(auth) = get_auth_header() {
         request = request.header("Authorization", &auth);
     }
-    
+
     let response = request
         .send()
         .await
@@ -623,14 +623,14 @@ pub async fn disable_user(access_key: &str) -> Result<(), ApiError> {
             code: "NetworkError".to_string(),
             message: e.to_string(),
         })?;
-    
+
     if !response.ok() {
         return Err(ApiError {
             code: format!("HTTP{}", response.status()),
             message: "Failed to disable user".to_string(),
         });
     }
-    
+
     Ok(())
 }
 
@@ -649,7 +649,7 @@ pub async fn get_server_info() -> Result<ServerInfo, ApiError> {
         #[serde(default)]
         features: Option<ApiFeatures>,
     }
-    
+
     #[derive(serde::Deserialize)]
     struct ApiFeatures {
         versioning: bool,
@@ -659,9 +659,9 @@ pub async fn get_server_info() -> Result<ServerInfo, ApiError> {
         lifecycle: bool,
         tagging: bool,
     }
-    
+
     let info: ApiServerInfo = get("/server/info").await?;
-    
+
     Ok(ServerInfo {
         version: info.version,
         s3_endpoint: info.s3_endpoint,
@@ -680,14 +680,14 @@ pub async fn health_check() -> Result<HealthStatus, ApiError> {
         checks: ApiChecks,
         timestamp: String,
     }
-    
+
     #[derive(serde::Deserialize)]
     struct ApiChecks {
         storage: ApiCheckStatus,
         database: ApiCheckStatus,
         memory: ApiCheckStatus,
     }
-    
+
     #[derive(serde::Deserialize)]
     struct ApiCheckStatus {
         status: String,
@@ -696,9 +696,9 @@ pub async fn health_check() -> Result<HealthStatus, ApiError> {
         #[serde(default)]
         latency_ms: Option<u64>,
     }
-    
+
     let health: ApiHealth = get("/server/health").await?;
-    
+
     Ok(HealthStatus {
         status: health.status,
         storage_ok: health.checks.storage.status == "ok",
@@ -719,7 +719,7 @@ pub async fn validate_credentials(access_key: &str, secret_key: &str) -> Result<
         let _ = storage.set_item("hafiz_access_key", access_key);
         let _ = storage.set_item("hafiz_secret_key", secret_key);
     }
-    
+
     // Try to get server info - if works, credentials are valid
     match get_server_info().await {
         Ok(_) => Ok(true),
@@ -766,7 +766,7 @@ pub async fn upload_object(bucket: &str, key: &str, file: web_sys::File) -> Resu
     use wasm_bindgen::JsCast;
     use wasm_bindgen_futures::JsFuture;
     use js_sys::{ArrayBuffer, Uint8Array};
-    
+
     // Read file contents
     let array_buffer_promise = file.array_buffer();
     let array_buffer = JsFuture::from(array_buffer_promise)
@@ -775,21 +775,21 @@ pub async fn upload_object(bucket: &str, key: &str, file: web_sys::File) -> Resu
             code: "FileReadError".to_string(),
             message: format!("Failed to read file: {:?}", e),
         })?;
-    
+
     let array_buffer: ArrayBuffer = array_buffer.unchecked_into();
     let uint8_array = Uint8Array::new(&array_buffer);
     let bytes: Vec<u8> = uint8_array.to_vec();
-    
+
     // Build S3 PUT URL (root path, not /api/v1)
     let encoded_key = urlencoding::encode(key);
     let url = format!("/{}/{}", bucket, encoded_key);
-    
+
     // Get auth header
     let auth = get_auth_header().ok_or_else(|| ApiError {
         code: "AuthError".to_string(),
         message: "Not authenticated".to_string(),
     })?;
-    
+
     // Get content type from file
     let content_type = file.type_();
     let content_type = if content_type.is_empty() {
@@ -797,7 +797,7 @@ pub async fn upload_object(bucket: &str, key: &str, file: web_sys::File) -> Resu
     } else {
         content_type
     };
-    
+
     // Make PUT request
     let response = Request::put(&url)
         .header("Authorization", &auth)
@@ -813,7 +813,7 @@ pub async fn upload_object(bucket: &str, key: &str, file: web_sys::File) -> Resu
             code: "NetworkError".to_string(),
             message: e.to_string(),
         })?;
-    
+
     if !response.ok() {
         let status = response.status();
         let text = response.text().await.unwrap_or_default();
@@ -826,7 +826,7 @@ pub async fn upload_object(bucket: &str, key: &str, file: web_sys::File) -> Resu
             },
         });
     }
-    
+
     Ok(())
 }
 
@@ -834,12 +834,12 @@ pub async fn upload_object(bucket: &str, key: &str, file: web_sys::File) -> Resu
 pub async fn delete_object(bucket: &str, key: &str) -> Result<(), ApiError> {
     let encoded_key = urlencoding::encode(key);
     let url = format!("/{}/{}", bucket, encoded_key);
-    
+
     let auth = get_auth_header().ok_or_else(|| ApiError {
         code: "AuthError".to_string(),
         message: "Not authenticated".to_string(),
     })?;
-    
+
     let response = Request::delete(&url)
         .header("Authorization", &auth)
         .send()
@@ -848,7 +848,7 @@ pub async fn delete_object(bucket: &str, key: &str) -> Result<(), ApiError> {
             code: "NetworkError".to_string(),
             message: e.to_string(),
         })?;
-    
+
     if !response.ok() {
         let status = response.status();
         let text = response.text().await.unwrap_or_default();
@@ -861,7 +861,7 @@ pub async fn delete_object(bucket: &str, key: &str) -> Result<(), ApiError> {
             },
         });
     }
-    
+
     Ok(())
 }
 
@@ -869,12 +869,12 @@ pub async fn delete_object(bucket: &str, key: &str) -> Result<(), ApiError> {
 pub async fn download_object(bucket: &str, key: &str) -> Result<Vec<u8>, ApiError> {
     let encoded_key = urlencoding::encode(key);
     let url = format!("/{}/{}", bucket, encoded_key);
-    
+
     let auth = get_auth_header().ok_or_else(|| ApiError {
         code: "AuthError".to_string(),
         message: "Not authenticated".to_string(),
     })?;
-    
+
     let response = Request::get(&url)
         .header("Authorization", &auth)
         .send()
@@ -883,7 +883,7 @@ pub async fn download_object(bucket: &str, key: &str) -> Result<Vec<u8>, ApiErro
             code: "NetworkError".to_string(),
             message: e.to_string(),
         })?;
-    
+
     if !response.ok() {
         let status = response.status();
         let text = response.text().await.unwrap_or_default();
@@ -896,7 +896,7 @@ pub async fn download_object(bucket: &str, key: &str) -> Result<Vec<u8>, ApiErro
             },
         });
     }
-    
+
     response.binary().await.map_err(|e| ApiError {
         code: "ReadError".to_string(),
         message: e.to_string(),
@@ -986,14 +986,14 @@ pub async fn generate_presigned_upload(bucket: &str, key: &str) -> Result<Presig
 /// POST request without body
 async fn post_empty<T: serde::de::DeserializeOwned>(endpoint: &str) -> Result<T, ApiError> {
     let url = format!("{}{}", api_base(), endpoint);
-    
+
     let mut request = Request::post(&url)
         .header("Content-Type", "application/json");
-    
+
     if let Some(auth) = get_auth_header() {
         request = request.header("Authorization", &auth);
     }
-    
+
     let response = request
         .body("{}")
         .map_err(|e| ApiError {
@@ -1006,7 +1006,7 @@ async fn post_empty<T: serde::de::DeserializeOwned>(endpoint: &str) -> Result<T,
             code: "NetworkError".to_string(),
             message: e.to_string(),
         })?;
-    
+
     if !response.ok() {
         let status = response.status();
         let text = response.text().await.unwrap_or_default();
@@ -1019,7 +1019,7 @@ async fn post_empty<T: serde::de::DeserializeOwned>(endpoint: &str) -> Result<T,
             },
         });
     }
-    
+
     response.json().await.map_err(|e| ApiError {
         code: "ParseError".to_string(),
         message: e.to_string(),

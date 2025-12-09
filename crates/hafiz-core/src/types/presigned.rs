@@ -19,7 +19,7 @@ pub struct PresignedRequest {
     pub expires_in: u64,
     /// Content-Type for PUT requests
     pub content_type: Option<String>,
-    /// Content-MD5 for PUT requests  
+    /// Content-MD5 for PUT requests
     pub content_md5: Option<String>,
     /// Custom headers to sign
     pub signed_headers: Option<Vec<(String, String)>>,
@@ -100,13 +100,13 @@ pub struct PresignedLimits;
 impl PresignedLimits {
     /// Minimum expiration time (1 second)
     pub const MIN_EXPIRES: u64 = 1;
-    
+
     /// Maximum expiration time (7 days)
     pub const MAX_EXPIRES: u64 = 7 * 24 * 60 * 60;
-    
+
     /// Default expiration time (1 hour)
     pub const DEFAULT_EXPIRES: u64 = 3600;
-    
+
     /// Validate expiration time
     pub fn validate_expires(seconds: u64) -> Result<u64, String> {
         if seconds < Self::MIN_EXPIRES {
@@ -195,9 +195,9 @@ impl PresignedRequestBuilder {
         if self.request.key.is_empty() {
             return Err("Object key is required".to_string());
         }
-        
+
         PresignedLimits::validate_expires(self.request.expires_in)?;
-        
+
         Ok(self.request)
     }
 }
