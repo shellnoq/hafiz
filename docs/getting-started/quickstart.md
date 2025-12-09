@@ -136,4 +136,5 @@ docker-compose up -d
 
 - [Configuration](configuration.md) - Customize your deployment
 - [User Guide](../user-guide/index.md) - Learn about buckets and objects
-- [Security](../security/index.md) - Enable encryption and access control
+- [Encryption](../user-guide/encryption.md) - Enable server-side encryption
+- [Access Control](../user-guide/access-control.md) - Configure permissions
