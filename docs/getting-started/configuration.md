@@ -83,6 +83,17 @@ enabled = true
 peers = ["node2:7946", "node3:7946"]
 ```
 
-## Full Reference
+## All Options
 
-See [Configuration Reference](../CONFIGURATION.md) for all options.
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `HAFIZ_ROOT_ACCESS_KEY` | - | Root access key (required) |
+| `HAFIZ_ROOT_SECRET_KEY` | - | Root secret key (required) |
+| `HAFIZ_S3_PORT` | 9000 | S3 API port |
+| `HAFIZ_ADMIN_PORT` | 9001 | Admin API port |
+| `HAFIZ_REGION` | us-east-1 | Default region |
+| `HAFIZ_LOG_LEVEL` | info | Log level |
+| `HAFIZ_STORAGE_BASE_PATH` | /data | Data directory |
+| `HAFIZ_DATABASE_URL` | - | PostgreSQL connection |
+| `HAFIZ_ENCRYPTION_ENABLED` | false | Enable encryption |
+| `HAFIZ_CLUSTER_ENABLED` | false | Enable clustering |
