@@ -58,6 +58,7 @@ Choose your preferred installation method:
 
 ## Next Steps
 
-1. [Quick Start](quickstart.md) - Get running in 5 minutes
-2. [Configuration](configuration.md) - Customize your setup
-3. [CLI Guide](../cli/index.md) - Learn the command-line tools
+1. [System Requirements](requirements.md) - Check hardware & software requirements
+2. [Quick Start](quickstart.md) - Get running in 5 minutes
+3. [Configuration](configuration.md) - Customize your setup
+4. [CLI Guide](../cli/index.md) - Learn the command-line tools
