@@ -81,8 +81,8 @@ docker run -d \
   -p 9000:9000 \
   -p 9001:9001 \
   -v hafiz-data:/data \
-  -e HAFIZ_ROOT_ACCESS_KEY=minioadmin \
-  -e HAFIZ_ROOT_SECRET_KEY=minioadmin \
+  -e HAFIZ_ROOT_ACCESS_KEY=hafizadmin \
+  -e HAFIZ_ROOT_SECRET_KEY=hafizadmin \
   ghcr.io/shellnoq/hafiz:latest
 
 # Access
@@ -135,8 +135,8 @@ cargo build --release
 
 ```bash
 # Configure
-aws configure set aws_access_key_id minioadmin
-aws configure set aws_secret_access_key minioadmin
+aws configure set aws_access_key_id hafizadmin
+aws configure set aws_secret_access_key hafizadmin
 
 # Create bucket
 aws --endpoint-url http://localhost:9000 s3 mb s3://my-bucket
@@ -157,8 +157,8 @@ cargo install hafiz-cli
 # Configure
 hafiz configure
 # Enter endpoint: http://localhost:9000
-# Enter access key: minioadmin
-# Enter secret key: minioadmin
+# Enter access key: hafizadmin
+# Enter secret key: hafizadmin
 
 # Use
 hafiz ls s3://
@@ -175,8 +175,8 @@ import boto3
 s3 = boto3.client(
     's3',
     endpoint_url='http://localhost:9000',
-    aws_access_key_id='minioadmin',
-    aws_secret_access_key='minioadmin'
+    aws_access_key_id='hafizadmin',
+    aws_secret_access_key='hafizadmin'
 )
 
 # Create bucket
@@ -200,8 +200,8 @@ const client = new S3Client({
   endpoint: "http://localhost:9000",
   region: "us-east-1",
   credentials: {
-    accessKeyId: "minioadmin",
-    secretAccessKey: "minioadmin",
+    accessKeyId: "hafizadmin",
+    secretAccessKey: "hafizadmin",
   },
   forcePathStyle: true,
 });

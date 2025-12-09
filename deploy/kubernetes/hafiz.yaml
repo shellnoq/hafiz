@@ -46,8 +46,8 @@ metadata:
   namespace: hafiz
 type: Opaque
 stringData:
-  root-access-key: "minioadmin"
-  root-secret-key: "minioadmin"
+  root-access-key: "hafizadmin"
+  root-secret-key: "hafizadmin"
   postgres-password: "hafiz"
   # encryption-key: "your-32-byte-hex-key-here"
 ---

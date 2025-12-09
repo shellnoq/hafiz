@@ -8,7 +8,7 @@ on:
       - 'docs/**'
       - 'mkdocs.yml'
       - '.github/workflows/docs.yml'
-  workflow_dispatch:
+  workflow_dispatch:  # Manuel tetikleme
 
 permissions:
   contents: write

@@ -22,8 +22,8 @@ docker run -d \
   -p 9000:9000 \
   -p 9001:9001 \
   -v hafiz-data:/data \
-  -e HAFIZ_ROOT_ACCESS_KEY=minioadmin \
-  -e HAFIZ_ROOT_SECRET_KEY=minioadmin \
+  -e HAFIZ_ROOT_ACCESS_KEY=hafizadmin \
+  -e HAFIZ_ROOT_SECRET_KEY=hafizadmin \
   ghcr.io/shellnoq/hafiz:latest
 ```
 
@@ -38,8 +38,8 @@ That's it! Hafiz is now running:
 
 ```bash
 # Configure
-aws configure set aws_access_key_id minioadmin
-aws configure set aws_secret_access_key minioadmin
+aws configure set aws_access_key_id hafizadmin
+aws configure set aws_secret_access_key hafizadmin
 
 # Create bucket
 aws --endpoint-url http://localhost:9000 s3 mb s3://my-bucket
@@ -60,8 +60,8 @@ import boto3
 s3 = boto3.client(
     's3',
     endpoint_url='http://localhost:9000',
-    aws_access_key_id='minioadmin',
-    aws_secret_access_key='minioadmin'
+    aws_access_key_id='hafizadmin',
+    aws_secret_access_key='hafizadmin'
 )
 
 # Create bucket
@@ -84,8 +84,8 @@ cargo install hafiz-cli
 # Configure
 hafiz configure
 # Endpoint: http://localhost:9000
-# Access Key: minioadmin
-# Secret Key: minioadmin
+# Access Key: hafizadmin
+# Secret Key: hafizadmin
 
 # Use
 hafiz ls s3://
@@ -106,8 +106,8 @@ services:
       - "9000:9000"
       - "9001:9001"
     environment:
-      - HAFIZ_ROOT_ACCESS_KEY=minioadmin
-      - HAFIZ_ROOT_SECRET_KEY=minioadmin
+      - HAFIZ_ROOT_ACCESS_KEY=hafizadmin
+      - HAFIZ_ROOT_SECRET_KEY=hafizadmin
       - HAFIZ_DATABASE_URL=postgres://hafiz:hafiz@postgres/hafiz
     volumes:
       - hafiz-data:/data

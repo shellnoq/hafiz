@@ -60,8 +60,8 @@ docker run -d \
   --name hafiz \
   -p 9000:9000 \
   -p 9001:9001 \
-  -e HAFIZ_ROOT_ACCESS_KEY=minioadmin \
-  -e HAFIZ_ROOT_SECRET_KEY=minioadmin \
+  -e HAFIZ_ROOT_ACCESS_KEY=hafizadmin \
+  -e HAFIZ_ROOT_SECRET_KEY=hafizadmin \
   ghcr.io/shellnoq/hafiz:latest
 ```
 

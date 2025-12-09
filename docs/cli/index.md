@@ -34,16 +34,16 @@ The `hafiz` CLI provides an AWS CLI-compatible interface for Hafiz.
 ```bash
 hafiz configure
 # Endpoint URL: http://localhost:9000
-# Access Key: minioadmin
-# Secret Key: minioadmin
+# Access Key: hafizadmin
+# Secret Key: hafizadmin
 ```
 
 Or use environment variables:
 
 ```bash
 export HAFIZ_ENDPOINT=http://localhost:9000
-export HAFIZ_ACCESS_KEY=minioadmin
-export HAFIZ_SECRET_KEY=minioadmin
+export HAFIZ_ACCESS_KEY=hafizadmin
+export HAFIZ_SECRET_KEY=hafizadmin
 ```
 
 ## Commands

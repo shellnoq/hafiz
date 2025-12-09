@@ -13,8 +13,8 @@ docker run -d \
   -p 9000:9000 \
   -p 9001:9001 \
   -v hafiz-data:/data \
-  -e HAFIZ_ROOT_ACCESS_KEY=minioadmin \
-  -e HAFIZ_ROOT_SECRET_KEY=minioadmin \
+  -e HAFIZ_ROOT_ACCESS_KEY=hafizadmin \
+  -e HAFIZ_ROOT_SECRET_KEY=hafizadmin \
   ghcr.io/shellnoq/hafiz:latest
 ```
 
@@ -33,8 +33,8 @@ services:
     volumes:
       - hafiz-data:/data
     environment:
-      - HAFIZ_ROOT_ACCESS_KEY=minioadmin
-      - HAFIZ_ROOT_SECRET_KEY=minioadmin
+      - HAFIZ_ROOT_ACCESS_KEY=hafizadmin
+      - HAFIZ_ROOT_SECRET_KEY=hafizadmin
 
 volumes:
   hafiz-data:
@@ -53,8 +53,8 @@ services:
     volumes:
       - hafiz-data:/data
     environment:
-      - HAFIZ_ROOT_ACCESS_KEY=minioadmin
-      - HAFIZ_ROOT_SECRET_KEY=minioadmin
+      - HAFIZ_ROOT_ACCESS_KEY=hafizadmin
+      - HAFIZ_ROOT_SECRET_KEY=hafizadmin
       - HAFIZ_DATABASE_URL=postgres://hafiz:secret@postgres/hafiz
     depends_on:
       - postgres

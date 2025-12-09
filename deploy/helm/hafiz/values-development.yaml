@@ -37,8 +37,8 @@ hafiz:
     enabled: false
 
   auth:
-    rootAccessKey: minioadmin
-    rootSecretKey: minioadmin
+    rootAccessKey: hafizadmin
+    rootSecretKey: hafizadmin
 
   cluster:
     enabled: false
