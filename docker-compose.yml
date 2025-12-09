@@ -23,27 +23,31 @@ services:
   # Hafiz S3 Server
   # ==========================================================================
   hafiz:
-    image: hafiz:latest
+    image: ghcr.io/shellnoq/hafiz:latest
     build:
       context: .
       dockerfile: Dockerfile
     container_name: hafiz
     restart: unless-stopped
     ports:
-      - "${HAFIZ_PORT:-9000}:9000"
+      - "${HAFIZ_S3_PORT:-9000}:9000"      # S3 API
+      - "${HAFIZ_ADMIN_PORT:-9001}:9001"   # Admin UI
     volumes:
-      - hafiz-data:/data/hafiz
-      - ./config/config.toml:/etc/hafiz/config.toml:ro
+      - hafiz-data:/data
     environment:
-      HAFIZ_BIND_ADDRESS: "0.0.0.0"
-      HAFIZ_PORT: "9000"
-      HAFIZ_DATA_DIR: "/data/hafiz"
-      HAFIZ_DATABASE_URL: "${HAFIZ_DATABASE_URL:-sqlite:///data/hafiz/hafiz.db?mode=rwc}"
+      HAFIZ_S3_BIND: "0.0.0.0"
+      HAFIZ_S3_PORT: "9000"
+      HAFIZ_ADMIN_BIND: "0.0.0.0"
+      HAFIZ_ADMIN_PORT: "9001"
+      HAFIZ_STORAGE_BASE_PATH: "/data/objects"
+      HAFIZ_METADATA_PATH: "/data/metadata"
+      HAFIZ_DATABASE_URL: "${HAFIZ_DATABASE_URL:-}"
       HAFIZ_ROOT_ACCESS_KEY: "${HAFIZ_ROOT_ACCESS_KEY:-hafizadmin}"
       HAFIZ_ROOT_SECRET_KEY: "${HAFIZ_ROOT_SECRET_KEY:-hafizadmin}"
       HAFIZ_LOG_LEVEL: "${HAFIZ_LOG_LEVEL:-info}"
+      HAFIZ_LOG_FORMAT: "json"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/metrics"]
+      test: ["CMD", "curl", "-sf", "http://localhost:9000/health"]
       interval: 30s
       timeout: 10s
       retries: 3

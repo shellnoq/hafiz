@@ -1,144 +1,137 @@
 # ============================================================================
 # Hafiz Production Dockerfile
 # ============================================================================
-# Multi-stage build for optimized production image
+# Multi-stage build for minimal, secure production image
 #
-# Build: docker build -t hafiz:latest .
-# Run:   docker run -p 9000:9000 -v hafiz-data:/data/hafiz hafiz:latest
+# Build:
+#   docker build -t ghcr.io/shellnoq/hafiz:latest .
+#
+# Run:
+#   docker run -d -p 9000:9000 -p 9001:9001 \
+#     -v hafiz-data:/data \
+#     -e HAFIZ_ROOT_ACCESS_KEY=your-key \
+#     -e HAFIZ_ROOT_SECRET_KEY=your-secret \
+#     ghcr.io/shellnoq/hafiz:latest
 # ============================================================================
 
 # ----------------------------------------------------------------------------
-# Stage 1: Build the Rust backend
+# Stage 1: Chef - Cargo dependency caching
 # ----------------------------------------------------------------------------
-FROM rust:1.75-bookworm AS backend-builder
+FROM rust:1.75-bookworm AS chef
 
+RUN cargo install cargo-chef
 WORKDIR /build
+
+# ----------------------------------------------------------------------------
+# Stage 2: Planner - Generate dependency recipe
+# ----------------------------------------------------------------------------
+FROM chef AS planner
+
+COPY Cargo.toml Cargo.lock ./
+COPY crates/ crates/
+
+RUN cargo chef prepare --recipe-path recipe.json
+
+# ----------------------------------------------------------------------------
+# Stage 3: Builder - Compile the application
+# ----------------------------------------------------------------------------
+FROM chef AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
     pkg-config \
     libssl-dev \
+    protobuf-compiler \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy manifests first for dependency caching
+# Copy dependency recipe and build dependencies (cached)
+COPY --from=planner /build/recipe.json recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json
+
+# Copy source code
 COPY Cargo.toml Cargo.lock ./
-COPY crates/hafiz-core/Cargo.toml crates/hafiz-core/
-COPY crates/hafiz-crypto/Cargo.toml crates/hafiz-crypto/
-COPY crates/hafiz-storage/Cargo.toml crates/hafiz-storage/
-COPY crates/hafiz-metadata/Cargo.toml crates/hafiz-metadata/
-COPY crates/hafiz-auth/Cargo.toml crates/hafiz-auth/
-COPY crates/hafiz-s3-api/Cargo.toml crates/hafiz-s3-api/
-COPY crates/hafiz-cli/Cargo.toml crates/hafiz-cli/
-COPY crates/hafiz-admin/Cargo.toml crates/hafiz-admin/
-
-# Create dummy source files for dependency caching
-RUN mkdir -p crates/hafiz-core/src && echo "pub fn dummy() {}" > crates/hafiz-core/src/lib.rs && \
-    mkdir -p crates/hafiz-crypto/src && echo "pub fn dummy() {}" > crates/hafiz-crypto/src/lib.rs && \
-    mkdir -p crates/hafiz-storage/src && echo "pub fn dummy() {}" > crates/hafiz-storage/src/lib.rs && \
-    mkdir -p crates/hafiz-metadata/src && echo "pub fn dummy() {}" > crates/hafiz-metadata/src/lib.rs && \
-    mkdir -p crates/hafiz-auth/src && echo "pub fn dummy() {}" > crates/hafiz-auth/src/lib.rs && \
-    mkdir -p crates/hafiz-s3-api/src && echo "pub fn dummy() {}" > crates/hafiz-s3-api/src/lib.rs && \
-    mkdir -p crates/hafiz-cli/src && echo "fn main() {}" > crates/hafiz-cli/src/main.rs && \
-    mkdir -p crates/hafiz-admin/src && echo "pub fn dummy() {}" > crates/hafiz-admin/src/lib.rs
-
-# Build dependencies only (cached layer)
-RUN cargo build --release --package hafiz-cli 2>/dev/null || true
-
-# Copy actual source code
 COPY crates/ crates/
 
-# Touch source files to invalidate cache
-RUN find crates -name "*.rs" -exec touch {} \;
+# Build release binaries
+RUN cargo build --release --bin hafiz-server --bin hafiz
 
-# Build the final binary
-RUN cargo build --release --package hafiz-cli
-
-# Strip debug symbols for smaller binary
-RUN strip /build/target/release/hafiz-cli
+# Strip debug symbols for smaller binaries
+RUN strip target/release/hafiz-server target/release/hafiz
 
 # ----------------------------------------------------------------------------
-# Stage 2: Build the WASM frontend
-# ----------------------------------------------------------------------------
-FROM rust:1.75-bookworm AS frontend-builder
-
-WORKDIR /build
-
-# Install wasm-pack and trunk
-RUN cargo install wasm-pack trunk
-RUN rustup target add wasm32-unknown-unknown
-
-# Copy manifests
-COPY Cargo.toml Cargo.lock ./
-COPY crates/hafiz-admin/Cargo.toml crates/hafiz-admin/
-
-# Copy frontend source
-COPY crates/hafiz-admin/ crates/hafiz-admin/
-
-# Build WASM
-WORKDIR /build/crates/hafiz-admin
-RUN trunk build --release 2>/dev/null || \
-    (wasm-pack build --target web --release && \
-     mkdir -p dist && \
-     cp -r pkg/* dist/)
-
-# ----------------------------------------------------------------------------
-# Stage 3: Production runtime image
+# Stage 4: Runtime - Minimal production image
 # ----------------------------------------------------------------------------
 FROM debian:bookworm-slim AS runtime
 
-# Labels
-LABEL org.opencontainers.image.title="Hafiz"
-LABEL org.opencontainers.image.description="S3-compatible object storage server"
-LABEL org.opencontainers.image.vendor="Hafiz"
-LABEL org.opencontainers.image.source="https://github.com/hafiz/hafiz"
-LABEL org.opencontainers.image.licenses="Apache-2.0"
+# OCI Labels
+LABEL org.opencontainers.image.title="Hafiz" \
+      org.opencontainers.image.description="Enterprise-grade S3-compatible object storage written in Rust" \
+      org.opencontainers.image.vendor="Shellnoq" \
+      org.opencontainers.image.source="https://github.com/shellnoq/hafiz" \
+      org.opencontainers.image.documentation="https://docs.hafiz.e2esolutions.tech" \
+      org.opencontainers.image.licenses="Apache-2.0"
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
+# Install minimal runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libssl3 \
     curl \
+    tini \
     && rm -rf /var/lib/apt/lists/* \
-    && useradd -r -u 1000 -g root novus
+    && apt-get clean
 
-# Create directories
-RUN mkdir -p /data/hafiz /data/hafiz/certs /etc/hafiz /app/static \
-    && chown -R novus:root /data/hafiz /etc/hafiz /app
+# Create non-root user
+RUN groupadd -r -g 1000 hafiz \
+    && useradd -r -u 1000 -g hafiz -d /home/hafiz -s /sbin/nologin hafiz
 
-# Copy binary from builder
-COPY --from=backend-builder /build/target/release/hafiz-cli /usr/local/bin/hafiz
+# Create directories with proper permissions
+RUN mkdir -p \
+    /data \
+    /data/objects \
+    /data/metadata \
+    /etc/hafiz \
+    /var/log/hafiz \
+    && chown -R hafiz:hafiz /data /etc/hafiz /var/log/hafiz
 
-# Copy frontend assets (if built successfully)
-COPY --from=frontend-builder /build/crates/hafiz-admin/dist/ /app/static/ 2>/dev/null || true
+# Copy binaries from builder
+COPY --from=builder /build/target/release/hafiz-server /usr/local/bin/
+COPY --from=builder /build/target/release/hafiz /usr/local/bin/
 
-# Copy default config
-COPY config/config.example.toml /etc/hafiz/config.toml.example
+# Set executable permissions
+RUN chmod +x /usr/local/bin/hafiz-server /usr/local/bin/hafiz
 
-# Set permissions
-RUN chmod +x /usr/local/bin/hafiz
-
-# Environment defaults
-ENV HAFIZ_BIND_ADDRESS=0.0.0.0 \
-    HAFIZ_PORT=9000 \
-    HAFIZ_DATA_DIR=/data/hafiz \
-    HAFIZ_DATABASE_URL=sqlite:///data/hafiz/hafiz.db?mode=rwc \
+# Environment variables with sensible defaults
+ENV HAFIZ_S3_BIND=0.0.0.0 \
+    HAFIZ_S3_PORT=9000 \
+    HAFIZ_ADMIN_BIND=0.0.0.0 \
+    HAFIZ_ADMIN_PORT=9001 \
+    HAFIZ_METRICS_PORT=9090 \
+    HAFIZ_STORAGE_BASE_PATH=/data/objects \
+    HAFIZ_METADATA_PATH=/data/metadata \
     HAFIZ_LOG_LEVEL=info \
-    HAFIZ_ROOT_ACCESS_KEY=minioadmin \
-    HAFIZ_ROOT_SECRET_KEY=minioadmin
+    HAFIZ_LOG_FORMAT=json \
+    RUST_BACKTRACE=0
 
-# Expose ports
-EXPOSE 9000
+# Ports
+# 9000 - S3 API
+# 9001 - Admin API/UI
+# 9090 - Prometheus metrics
+# 7946 - Cluster gossip (TCP/UDP)
+EXPOSE 9000 9001 9090 7946
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:9000/metrics || exit 1
+    CMD curl -sf http://localhost:9000/health || exit 1
 
 # Volume for persistent data
-VOLUME ["/data/hafiz"]
+VOLUME ["/data"]
 
-# Run as non-root user
-USER novus
+# Switch to non-root user
+USER hafiz
+WORKDIR /home/hafiz
 
-# Entry point
-ENTRYPOINT ["/usr/local/bin/hafiz"]
-CMD ["serve"]
+# Use tini as init system for proper signal handling
+ENTRYPOINT ["/usr/bin/tini", "--"]
+
+# Default command
+CMD ["hafiz-server"]

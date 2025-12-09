@@ -2,8 +2,8 @@
 
 # Variables
 VERSION ?= $(shell grep "^version" Cargo.toml | head -1 | cut -d'"' -f2)
-DOCKER_REGISTRY ?= docker.io
-DOCKER_IMAGE ?= hafiz/hafiz
+DOCKER_REGISTRY ?= ghcr.io
+DOCKER_IMAGE ?= shellnoq/hafiz
 DOCKER_TAG ?= $(VERSION)
 
 help: ## Show this help
@@ -13,7 +13,7 @@ build: ## Build the project
 	cargo build --release
 
 run: ## Run the server
-	cargo run --release --package hafiz-cli -- server
+	cargo run --release --bin hafiz-server
 
 test: ## Run tests
 	cargo test --all
@@ -33,17 +33,18 @@ check: ## Check code (lint + format)
 	cargo clippy --all -- -D warnings
 
 docker: ## Build Docker image
-	docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) -f deployments/docker/Dockerfile .
-	docker tag $(DOCKER_IMAGE):$(DOCKER_TAG) $(DOCKER_IMAGE):latest
+	docker build -t $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):$(DOCKER_TAG) .
+	docker tag $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):$(DOCKER_TAG) $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):latest
 
 docker-run: ## Run Docker container
 	docker run -d \
 		--name hafiz \
 		-p 9000:9000 \
-		-v hafiz-data:/data/novus \
-		-e HAFIZ_ROOT_ACCESS_KEY=minioadmin \
-		-e HAFIZ_ROOT_SECRET_KEY=minioadmin \
-		$(DOCKER_IMAGE):latest
+		-p 9001:9001 \
+		-v hafiz-data:/data \
+		-e HAFIZ_ROOT_ACCESS_KEY=hafizadmin \
+		-e HAFIZ_ROOT_SECRET_KEY=hafizadmin \
+		$(DOCKER_REGISTRY)/$(DOCKER_IMAGE):latest
 
 docker-stop: ## Stop Docker container
 	docker stop hafiz || true
@@ -53,22 +54,39 @@ docker-logs: ## Show Docker logs
 	docker logs -f hafiz
 
 docker-push: docker ## Push Docker image to registry
-	docker push $(DOCKER_IMAGE):$(DOCKER_TAG)
-	docker push $(DOCKER_IMAGE):latest
+	docker push $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):$(DOCKER_TAG)
+	docker push $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):latest
+
+docker-buildx: ## Build multi-arch Docker image
+	docker buildx build \
+		--platform linux/amd64,linux/arm64 \
+		-t $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):$(DOCKER_TAG) \
+		-t $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):latest \
+		--push .
 
 compose-up: ## Start with docker-compose
-	cd deployments/docker && docker-compose up -d
+	docker-compose up -d
 
 compose-down: ## Stop docker-compose
-	cd deployments/docker && docker-compose down
+	docker-compose down
 
 compose-logs: ## Show docker-compose logs
-	cd deployments/docker && docker-compose logs -f
+	docker-compose logs -f
+
+compose-postgres: ## Start with PostgreSQL
+	docker-compose --profile postgres up -d
+
+compose-full: ## Start all services (postgres + monitoring)
+	docker-compose --profile full up -d
 
 dev: ## Run in development mode
-	HAFIZ_LOG_LEVEL=debug cargo run --package hafiz-cli -- server
+	HAFIZ_LOG_LEVEL=debug cargo run --bin hafiz-server
 
-install: build ## Install binary
+dev-watch: ## Run with auto-reload
+	cargo watch -x 'run --bin hafiz-server'
+
+install: build ## Install binaries
+	cargo install --path crates/hafiz-server
 	cargo install --path crates/hafiz-cli
 
 # AWS CLI test commands
