@@ -5,17 +5,23 @@ use hafiz_core::utils::format_s3_datetime;
 
 /// Generate ListBuckets response XML
 pub fn list_buckets_response(buckets: &[BucketInfo], owner_id: &str) -> String {
-    let mut xml = String::from(r#"<?xml version="1.0" encoding="UTF-8"?>
+    let mut xml = String::from(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
 <ListAllMyBucketsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
   <Owner>
-    <ID>"#);
+    <ID>"#,
+    );
     xml.push_str(owner_id);
-    xml.push_str(r#"</ID>
-    <DisplayName>"#);
+    xml.push_str(
+        r#"</ID>
+    <DisplayName>"#,
+    );
     xml.push_str(owner_id);
-    xml.push_str(r#"</DisplayName>
+    xml.push_str(
+        r#"</DisplayName>
   </Owner>
-  <Buckets>"#);
+  <Buckets>"#,
+    );
 
     for bucket in buckets {
         xml.push_str("\n    <Bucket>\n      <Name>");
@@ -25,18 +31,22 @@ pub fn list_buckets_response(buckets: &[BucketInfo], owner_id: &str) -> String {
         xml.push_str("</CreationDate>\n    </Bucket>");
     }
 
-    xml.push_str(r#"
+    xml.push_str(
+        r#"
   </Buckets>
-</ListAllMyBucketsResult>"#);
+</ListAllMyBucketsResult>"#,
+    );
 
     xml
 }
 
 /// Generate ListObjects (v1) response XML
 pub fn list_objects_response(result: &ListObjectsResult) -> String {
-    let mut xml = String::from(r#"<?xml version="1.0" encoding="UTF-8"?>
+    let mut xml = String::from(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
 <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-  <Name>"#);
+  <Name>"#,
+    );
     xml.push_str(&result.name);
     xml.push_str("</Name>\n");
 
@@ -55,7 +65,10 @@ pub fn list_objects_response(result: &ListObjectsResult) -> String {
     }
 
     xml.push_str(&format!("  <MaxKeys>{}</MaxKeys>\n", result.max_keys));
-    xml.push_str(&format!("  <IsTruncated>{}</IsTruncated>\n", result.is_truncated));
+    xml.push_str(&format!(
+        "  <IsTruncated>{}</IsTruncated>\n",
+        result.is_truncated
+    ));
 
     for obj in &result.contents {
         xml.push_str("  <Contents>\n");
@@ -89,9 +102,11 @@ pub fn list_objects_response(result: &ListObjectsResult) -> String {
 
 /// Generate ListObjectsV2 response XML
 pub fn list_objects_v2_response(result: &ListObjectsResult) -> String {
-    let mut xml = String::from(r#"<?xml version="1.0" encoding="UTF-8"?>
+    let mut xml = String::from(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
 <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-  <Name>"#);
+  <Name>"#,
+    );
     xml.push_str(&result.name);
     xml.push_str("</Name>\n");
 
@@ -110,8 +125,14 @@ pub fn list_objects_v2_response(result: &ListObjectsResult) -> String {
     }
 
     xml.push_str(&format!("  <MaxKeys>{}</MaxKeys>\n", result.max_keys));
-    xml.push_str(&format!("  <KeyCount>{}</KeyCount>\n", result.contents.len()));
-    xml.push_str(&format!("  <IsTruncated>{}</IsTruncated>\n", result.is_truncated));
+    xml.push_str(&format!(
+        "  <KeyCount>{}</KeyCount>\n",
+        result.contents.len()
+    ));
+    xml.push_str(&format!(
+        "  <IsTruncated>{}</IsTruncated>\n",
+        result.is_truncated
+    ));
 
     if let Some(ref token) = result.continuation_token {
         xml.push_str("  <ContinuationToken>");
@@ -221,8 +242,10 @@ pub struct DeleteError {
 }
 
 pub fn delete_objects_response(deleted: &[DeletedObject], errors: &[DeleteError]) -> String {
-    let mut xml = String::from(r#"<?xml version="1.0" encoding="UTF-8"?>
-<DeleteResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">"#);
+    let mut xml = String::from(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<DeleteResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">"#,
+    );
 
     for d in deleted {
         xml.push_str("\n  <Deleted>\n    <Key>");
@@ -290,7 +313,9 @@ pub struct CompletedPart {
     pub etag: String,
 }
 
-pub fn parse_complete_multipart(body: &[u8]) -> Result<CompleteMultipartUploadRequest, quick_xml::DeError> {
+pub fn parse_complete_multipart(
+    body: &[u8],
+) -> Result<CompleteMultipartUploadRequest, quick_xml::DeError> {
     let xml_str = String::from_utf8_lossy(body);
     from_str(&xml_str)
 }
@@ -362,7 +387,10 @@ pub fn list_parts_response(
     );
 
     if let Some(marker) = next_part_number_marker {
-        xml.push_str(&format!("\n  <NextPartNumberMarker>{}</NextPartNumberMarker>", marker));
+        xml.push_str(&format!(
+            "\n  <NextPartNumberMarker>{}</NextPartNumberMarker>",
+            marker
+        ));
     }
 
     for part in parts {
@@ -474,7 +502,7 @@ pub fn list_multipart_uploads_response(
 
 // ============= Bucket Versioning =============
 
-use hafiz_core::types::{VersioningStatus, ObjectVersion, DeleteMarker};
+use hafiz_core::types::{DeleteMarker, ObjectVersion, VersioningStatus};
 
 /// Generate GetBucketVersioning response XML
 pub fn get_bucket_versioning_response(status: &VersioningStatus) -> String {
@@ -482,7 +510,8 @@ pub fn get_bucket_versioning_response(status: &VersioningStatus) -> String {
     if status_str.is_empty() {
         // Unversioned bucket returns empty versioning config
         r#"<?xml version="1.0" encoding="UTF-8"?>
-<VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"/>"#.to_string()
+<VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"/>"#
+            .to_string()
     } else {
         format!(
             r#"<?xml version="1.0" encoding="UTF-8"?>
@@ -560,11 +589,17 @@ pub fn list_object_versions_response(
     ));
 
     if let Some(nkm) = next_key_marker {
-        xml.push_str(&format!("\n  <NextKeyMarker>{}</NextKeyMarker>", xml_escape(nkm)));
+        xml.push_str(&format!(
+            "\n  <NextKeyMarker>{}</NextKeyMarker>",
+            xml_escape(nkm)
+        ));
     }
 
     if let Some(nvim) = next_version_id_marker {
-        xml.push_str(&format!("\n  <NextVersionIdMarker>{}</NextVersionIdMarker>", nvim));
+        xml.push_str(&format!(
+            "\n  <NextVersionIdMarker>{}</NextVersionIdMarker>",
+            nvim
+        ));
     }
 
     if let Some(d) = delimiter {
@@ -640,13 +675,17 @@ pub fn list_object_versions_response(
 
 // ============= Object Tagging =============
 
-use hafiz_core::types::{TagSet, Tag, LifecycleConfiguration, LifecycleRule, LifecycleFilter, Expiration, RuleStatus};
+use hafiz_core::types::{
+    Expiration, LifecycleConfiguration, LifecycleFilter, LifecycleRule, RuleStatus, Tag, TagSet,
+};
 
 /// Generate GetObjectTagging response XML
 pub fn get_object_tagging_response(tags: &TagSet) -> String {
-    let mut xml = String::from(r#"<?xml version="1.0" encoding="UTF-8"?>
+    let mut xml = String::from(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
 <Tagging xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-  <TagSet>"#);
+  <TagSet>"#,
+    );
 
     for tag in &tags.tags {
         xml.push_str(&format!(
@@ -660,9 +699,11 @@ pub fn get_object_tagging_response(tags: &TagSet) -> String {
         ));
     }
 
-    xml.push_str(r#"
+    xml.push_str(
+        r#"
   </TagSet>
-</Tagging>"#);
+</Tagging>"#,
+    );
     xml
 }
 
@@ -703,8 +744,10 @@ pub fn parse_tagging(body: &[u8]) -> Result<TagSet, quick_xml::DeError> {
 
 /// Generate GetBucketLifecycle response XML
 pub fn get_bucket_lifecycle_response(config: &LifecycleConfiguration) -> String {
-    let mut xml = String::from(r#"<?xml version="1.0" encoding="UTF-8"?>
-<LifecycleConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">"#);
+    let mut xml = String::from(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<LifecycleConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">"#,
+    );
 
     for rule in &config.rules {
         xml.push_str("\n  <Rule>");
@@ -716,7 +759,10 @@ pub fn get_bucket_lifecycle_response(config: &LifecycleConfiguration) -> String 
                 xml.push_str("\n    <Filter></Filter>");
             }
             LifecycleFilter::Prefix(p) => {
-                xml.push_str(&format!("\n    <Filter>\n      <Prefix>{}</Prefix>\n    </Filter>", xml_escape(p)));
+                xml.push_str(&format!(
+                    "\n    <Filter>\n      <Prefix>{}</Prefix>\n    </Filter>",
+                    xml_escape(p)
+                ));
             }
             LifecycleFilter::Tag(t) => {
                 xml.push_str(&format!(
@@ -754,17 +800,27 @@ pub fn get_bucket_lifecycle_response(config: &LifecycleConfiguration) -> String 
         // Status
         xml.push_str(&format!(
             "\n    <Status>{}</Status>",
-            if rule.status == RuleStatus::Enabled { "Enabled" } else { "Disabled" }
+            if rule.status == RuleStatus::Enabled {
+                "Enabled"
+            } else {
+                "Disabled"
+            }
         ));
 
         // Expiration
         if let Some(ref exp) = rule.expiration {
             match exp {
                 Expiration::Days(d) => {
-                    xml.push_str(&format!("\n    <Expiration>\n      <Days>{}</Days>\n    </Expiration>", d));
+                    xml.push_str(&format!(
+                        "\n    <Expiration>\n      <Days>{}</Days>\n    </Expiration>",
+                        d
+                    ));
                 }
                 Expiration::Date(date) => {
-                    xml.push_str(&format!("\n    <Expiration>\n      <Date>{}</Date>\n    </Expiration>", date));
+                    xml.push_str(&format!(
+                        "\n    <Expiration>\n      <Date>{}</Date>\n    </Expiration>",
+                        date
+                    ));
                 }
                 Expiration::ExpiredObjectDeleteMarker => {
                     xml.push_str("\n    <Expiration>\n      <ExpiredObjectDeleteMarker>true</ExpiredObjectDeleteMarker>\n    </Expiration>");
@@ -796,7 +852,9 @@ pub fn get_bucket_lifecycle_response(config: &LifecycleConfiguration) -> String 
 }
 
 /// Parse PutBucketLifecycle request XML
-pub fn parse_lifecycle_configuration(body: &[u8]) -> Result<LifecycleConfiguration, quick_xml::DeError> {
+pub fn parse_lifecycle_configuration(
+    body: &[u8],
+) -> Result<LifecycleConfiguration, quick_xml::DeError> {
     #[derive(Debug, Deserialize)]
     #[serde(rename_all = "PascalCase")]
     struct LifecycleConfigurationXml {
@@ -878,7 +936,9 @@ pub fn parse_lifecycle_configuration(body: &[u8]) -> Result<LifecycleConfigurati
         // Parse filter
         if let Some(f) = r.filter {
             if let Some(and) = f.and {
-                let tags: Vec<Tag> = and.tags.into_iter()
+                let tags: Vec<Tag> = and
+                    .tags
+                    .into_iter()
                     .map(|t| Tag::new(t.key, t.value))
                     .collect();
                 rule.filter = LifecycleFilter::And {
@@ -909,17 +969,19 @@ pub fn parse_lifecycle_configuration(body: &[u8]) -> Result<LifecycleConfigurati
 
         // Parse noncurrent version expiration
         if let Some(nve) = r.noncurrent_version_expiration {
-            rule.noncurrent_version_expiration = Some(hafiz_core::types::NoncurrentVersionExpiration {
-                noncurrent_days: nve.noncurrent_days,
-                newer_noncurrent_versions: nve.newer_noncurrent_versions,
-            });
+            rule.noncurrent_version_expiration =
+                Some(hafiz_core::types::NoncurrentVersionExpiration {
+                    noncurrent_days: nve.noncurrent_days,
+                    newer_noncurrent_versions: nve.newer_noncurrent_versions,
+                });
         }
 
         // Parse abort incomplete multipart upload
         if let Some(abort) = r.abort_incomplete_multipart_upload {
-            rule.abort_incomplete_multipart_upload = Some(hafiz_core::types::AbortIncompleteMultipartUpload {
-                days_after_initiation: abort.days_after_initiation,
-            });
+            rule.abort_incomplete_multipart_upload =
+                Some(hafiz_core::types::AbortIncompleteMultipartUpload {
+                    days_after_initiation: abort.days_after_initiation,
+                });
         }
 
         lifecycle.rules.push(rule);

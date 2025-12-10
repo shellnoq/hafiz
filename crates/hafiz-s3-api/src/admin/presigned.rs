@@ -63,19 +63,26 @@ pub async fn generate_presigned(
     Json(request): Json<GeneratePresignedUrlRequest>,
 ) -> Result<Json<PresignedUrlResponse>, (StatusCode, String)> {
     // Parse method
-    let method: PresignedMethod = request.method.parse().map_err(|e: String| {
-        (StatusCode::BAD_REQUEST, e)
-    })?;
+    let method: PresignedMethod = request
+        .method
+        .parse()
+        .map_err(|e: String| (StatusCode::BAD_REQUEST, e))?;
 
     // Validate expiration
-    let expires_in = PresignedLimits::validate_expires(request.expires_in).map_err(|e| {
-        (StatusCode::BAD_REQUEST, e)
-    })?;
+    let expires_in = PresignedLimits::validate_expires(request.expires_in)
+        .map_err(|e| (StatusCode::BAD_REQUEST, e))?;
 
     // Check if bucket exists
-    state.metadata.get_bucket(&request.bucket).await.map_err(|_| {
-        (StatusCode::NOT_FOUND, format!("Bucket not found: {}", request.bucket))
-    })?;
+    state
+        .metadata
+        .get_bucket(&request.bucket)
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::NOT_FOUND,
+                format!("Bucket not found: {}", request.bucket),
+            )
+        })?;
 
     // Build the presigned request
     let presigned_request = PresignedRequest {
@@ -90,12 +97,14 @@ pub async fn generate_presigned(
     };
 
     // Determine the endpoint
-    let protocol = if state.config.tls.enabled { "https" } else { "http" };
+    let protocol = if state.config.tls.enabled {
+        "https"
+    } else {
+        "http"
+    };
     let endpoint = format!(
         "{}://{}:{}",
-        protocol,
-        state.config.server.bind_address,
-        state.config.server.port
+        protocol, state.config.server.bind_address, state.config.server.port
     );
 
     // Generate the pre-signed URL
@@ -105,9 +114,8 @@ pub async fn generate_presigned(
         &state.config.auth.root_access_key,
         &state.config.auth.root_secret_key,
         hafiz_core::DEFAULT_REGION,
-    ).map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
-    })?;
+    )
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     // Convert headers
     let headers = presigned.headers.map(|h| {

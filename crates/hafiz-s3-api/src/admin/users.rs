@@ -104,7 +104,10 @@ pub async fn get_user(
         .get_credentials(&access_key)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .ok_or((StatusCode::NOT_FOUND, format!("User '{}' not found", access_key)))?;
+        .ok_or((
+            StatusCode::NOT_FOUND,
+            format!("User '{}' not found", access_key),
+        ))?;
 
     Ok(Json(UserInfo {
         name: cred.name.unwrap_or_else(|| cred.access_key.clone()),
@@ -128,7 +131,10 @@ pub async fn create_user(
     }
 
     if req.name.len() > 64 {
-        return Err((StatusCode::BAD_REQUEST, "Name too long (max 64 characters)".to_string()));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "Name too long (max 64 characters)".to_string(),
+        ));
     }
 
     // Generate credentials
@@ -138,8 +144,14 @@ pub async fn create_user(
 
     // Check if name already exists
     let existing = metadata.list_credentials().await.unwrap_or_default();
-    if existing.iter().any(|c| c.name.as_deref() == Some(&req.name)) {
-        return Err((StatusCode::CONFLICT, format!("User '{}' already exists", req.name)));
+    if existing
+        .iter()
+        .any(|c| c.name.as_deref() == Some(&req.name))
+    {
+        return Err((
+            StatusCode::CONFLICT,
+            format!("User '{}' already exists", req.name),
+        ));
     }
 
     // Create credentials
@@ -160,13 +172,16 @@ pub async fn create_user(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    Ok((StatusCode::CREATED, Json(CreateUserResponse {
-        name: req.name,
-        access_key,
-        secret_key,
-        email: req.email,
-        created_at: now.to_rfc3339(),
-    })))
+    Ok((
+        StatusCode::CREATED,
+        Json(CreateUserResponse {
+            name: req.name,
+            access_key,
+            secret_key,
+            email: req.email,
+            created_at: now.to_rfc3339(),
+        }),
+    ))
 }
 
 /// Delete a user
@@ -181,12 +196,18 @@ pub async fn delete_user(
         .get_credentials(&access_key)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .ok_or((StatusCode::NOT_FOUND, format!("User '{}' not found", access_key)))?;
+        .ok_or((
+            StatusCode::NOT_FOUND,
+            format!("User '{}' not found", access_key),
+        ))?;
 
     // Prevent deleting the last admin user
     let all_users = metadata.list_credentials().await.unwrap_or_default();
     if all_users.len() <= 1 {
-        return Err((StatusCode::BAD_REQUEST, "Cannot delete the last user".to_string()));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "Cannot delete the last user".to_string(),
+        ));
     }
 
     // Delete
@@ -210,7 +231,10 @@ pub async fn enable_user(
         .get_credentials(&access_key)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .ok_or((StatusCode::NOT_FOUND, format!("User '{}' not found", access_key)))?;
+        .ok_or((
+            StatusCode::NOT_FOUND,
+            format!("User '{}' not found", access_key),
+        ))?;
 
     cred.enabled = true;
 
@@ -242,13 +266,19 @@ pub async fn disable_user(
         .get_credentials(&access_key)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .ok_or((StatusCode::NOT_FOUND, format!("User '{}' not found", access_key)))?;
+        .ok_or((
+            StatusCode::NOT_FOUND,
+            format!("User '{}' not found", access_key),
+        ))?;
 
     // Prevent disabling all users
     let all_users = metadata.list_credentials().await.unwrap_or_default();
     let enabled_count = all_users.iter().filter(|u| u.enabled).count();
     if enabled_count <= 1 && cred.enabled {
-        return Err((StatusCode::BAD_REQUEST, "Cannot disable the last enabled user".to_string()));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "Cannot disable the last enabled user".to_string(),
+        ));
     }
 
     cred.enabled = false;
@@ -281,7 +311,10 @@ pub async fn rotate_keys(
         .get_credentials(&access_key)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .ok_or((StatusCode::NOT_FOUND, format!("User '{}' not found", access_key)))?;
+        .ok_or((
+            StatusCode::NOT_FOUND,
+            format!("User '{}' not found", access_key),
+        ))?;
 
     // Generate new credentials
     let (new_access_key, new_secret_key) = generate_credentials();

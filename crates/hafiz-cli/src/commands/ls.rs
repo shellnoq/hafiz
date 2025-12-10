@@ -52,15 +52,20 @@ pub async fn execute(
         list_buckets(ctx, &client, long).await
     } else {
         // List objects
-        list_objects(ctx, &client, &uri, long, human_readable, recursive, summarize).await
+        list_objects(
+            ctx,
+            &client,
+            &uri,
+            long,
+            human_readable,
+            recursive,
+            summarize,
+        )
+        .await
     }
 }
 
-async fn list_buckets(
-    ctx: &CommandContext,
-    client: &aws_sdk_s3::Client,
-    long: bool,
-) -> Result<()> {
+async fn list_buckets(ctx: &CommandContext, client: &aws_sdk_s3::Client, long: bool) -> Result<()> {
     ctx.debug("Listing buckets...");
 
     let resp = client.list_buckets().send().await?;
@@ -132,7 +137,11 @@ async fn list_objects(
     ));
 
     let prefix = uri.key.clone().unwrap_or_default();
-    let delimiter = if recursive { None } else { Some("/".to_string()) };
+    let delimiter = if recursive {
+        None
+    } else {
+        Some("/".to_string())
+    };
 
     let mut continuation_token: Option<String> = None;
     let mut all_objects: Vec<Object> = Vec::new();
@@ -140,10 +149,7 @@ async fn list_objects(
     let mut total_size: i64 = 0;
 
     loop {
-        let mut req = client
-            .list_objects_v2()
-            .bucket(&uri.bucket)
-            .prefix(&prefix);
+        let mut req = client.list_objects_v2().bucket(&uri.bucket).prefix(&prefix);
 
         if let Some(delim) = &delimiter {
             req = req.delimiter(delim);
@@ -223,7 +229,11 @@ async fn list_objects(
         // Print prefixes (directories)
         for prefix in &all_prefixes {
             if long {
-                println!("                   {:>12}  PRE {}", "", prefix.blue().bold());
+                println!(
+                    "                   {:>12}  PRE {}",
+                    "",
+                    prefix.blue().bold()
+                );
             } else {
                 println!("{}", prefix.blue().bold());
             }

@@ -91,10 +91,7 @@ async fn sync_upload(
                     relative,
                     FileInfo {
                         size: metadata.len() as i64,
-                        last_modified: metadata
-                            .modified()
-                            .ok()
-                            .map(|t| DateTime::<Utc>::from(t)),
+                        last_modified: metadata.modified().ok().map(|t| DateTime::<Utc>::from(t)),
                     },
                 );
             }
@@ -124,7 +121,11 @@ async fn sync_upload(
                     let relative = key.strip_prefix(&prefix).unwrap_or(key);
                     let relative = relative.trim_start_matches('/');
 
-                    if !matches_patterns(relative, opts.include.as_deref(), opts.exclude.as_deref())? {
+                    if !matches_patterns(
+                        relative,
+                        opts.include.as_deref(),
+                        opts.exclude.as_deref(),
+                    )? {
                         continue;
                     }
 
@@ -364,7 +365,11 @@ async fn sync_download(
                         continue;
                     }
 
-                    if !matches_patterns(relative, opts.include.as_deref(), opts.exclude.as_deref())? {
+                    if !matches_patterns(
+                        relative,
+                        opts.include.as_deref(),
+                        opts.exclude.as_deref(),
+                    )? {
                         continue;
                     }
 

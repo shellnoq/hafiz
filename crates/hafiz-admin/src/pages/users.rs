@@ -1,9 +1,9 @@
 //! Users management page
 
-use leptos::*;
-use wasm_bindgen_futures::spawn_local;
 use crate::api::{self, UserInfo};
 use crate::components::{Button, ButtonVariant, Modal};
+use leptos::*;
+use wasm_bindgen_futures::spawn_local;
 
 #[component]
 pub fn UsersPage() -> impl IntoView {
@@ -12,7 +12,7 @@ pub fn UsersPage() -> impl IntoView {
 
     let users = create_resource(
         move || refresh_trigger.get(),
-        |_| async move { api::list_users().await }
+        |_| async move { api::list_users().await },
     );
 
     let on_refresh = move || {
@@ -98,10 +98,7 @@ pub fn UsersPage() -> impl IntoView {
 }
 
 #[component]
-fn UserRow(
-    user: UserInfo,
-    #[prop(into)] on_refresh: Callback<()>,
-) -> impl IntoView {
+fn UserRow(user: UserInfo, #[prop(into)] on_refresh: Callback<()>) -> impl IntoView {
     use wasm_bindgen_futures::spawn_local;
 
     let access_key = user.access_key.clone();
@@ -119,7 +116,13 @@ fn UserRow(
         let on_refresh = on_refresh.clone();
 
         let window = web_sys::window().unwrap();
-        if !window.confirm_with_message(&format!("Delete user '{}'?\n\nThis will revoke all access for this user.", name)).unwrap_or(false) {
+        if !window
+            .confirm_with_message(&format!(
+                "Delete user '{}'?\n\nThis will revoke all access for this user.",
+                name
+            ))
+            .unwrap_or(false)
+        {
             return;
         }
 

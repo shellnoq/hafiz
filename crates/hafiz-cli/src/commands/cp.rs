@@ -343,7 +343,10 @@ async fn download_object(
     let progress = if opts.show_progress {
         Some(create_transfer_progress(
             content_length,
-            final_path.file_name().and_then(|n| n.to_str()).unwrap_or("file"),
+            final_path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("file"),
         ))
     } else {
         None
@@ -522,11 +525,7 @@ async fn s3_copy(
     let dest_uri = S3Uri::parse(destination)?;
 
     let source_key = source_uri.key.as_ref().context("Source key required")?;
-    let dest_key = determine_dest_key(
-        source_key,
-        dest_uri.key.as_deref(),
-        dest_uri.is_prefix(),
-    );
+    let dest_key = determine_dest_key(source_key, dest_uri.key.as_deref(), dest_uri.is_prefix());
 
     if opts.dryrun {
         println!(

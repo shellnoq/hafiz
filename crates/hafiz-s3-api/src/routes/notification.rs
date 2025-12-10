@@ -9,11 +9,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bytes::Bytes;
-use hafiz_core::{
-    types::NotificationConfiguration,
-    utils::generate_request_id,
-    Error,
-};
+use hafiz_core::{types::NotificationConfiguration, utils::generate_request_id, Error};
 use tracing::{debug, error, info};
 
 use crate::server::AppState;
@@ -23,7 +19,8 @@ use crate::server::AppState;
 // ============================================================================
 
 fn error_response(err: Error, request_id: &str) -> Response {
-    let status = StatusCode::from_u16(err.http_status()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+    let status =
+        StatusCode::from_u16(err.http_status()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
     let s3_error = hafiz_core::error::S3Error::from(err).with_request_id(request_id);
 
     Response::builder()
@@ -61,7 +58,10 @@ pub async fn get_bucket_notification(
     Path(bucket): Path<String>,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    debug!("GetBucketNotificationConfiguration bucket={} request_id={}", bucket, request_id);
+    debug!(
+        "GetBucketNotificationConfiguration bucket={} request_id={}",
+        bucket, request_id
+    );
 
     // Check if bucket exists
     match state.metadata.get_bucket(&bucket).await {
@@ -111,7 +111,10 @@ pub async fn put_bucket_notification(
     body: Bytes,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    debug!("PutBucketNotificationConfiguration bucket={} request_id={}", bucket, request_id);
+    debug!(
+        "PutBucketNotificationConfiguration bucket={} request_id={}",
+        bucket, request_id
+    );
 
     // Check if bucket exists
     match state.metadata.get_bucket(&bucket).await {
@@ -162,7 +165,11 @@ pub async fn put_bucket_notification(
     };
 
     // Store notification configuration
-    match state.metadata.put_bucket_notification(&bucket, &config_json).await {
+    match state
+        .metadata
+        .put_bucket_notification(&bucket, &config_json)
+        .await
+    {
         Ok(_) => {
             info!("Bucket notification configuration set for {}", bucket);
             no_content_response(&request_id)
@@ -180,7 +187,10 @@ pub async fn delete_bucket_notification(
     Path(bucket): Path<String>,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    debug!("DeleteBucketNotificationConfiguration bucket={} request_id={}", bucket, request_id);
+    debug!(
+        "DeleteBucketNotificationConfiguration bucket={} request_id={}",
+        bucket, request_id
+    );
 
     // Check if bucket exists
     match state.metadata.get_bucket(&bucket).await {
@@ -196,7 +206,11 @@ pub async fn delete_bucket_notification(
 
     // Delete notification configuration (by setting empty config)
     let empty_config = serde_json::to_string(&NotificationConfiguration::default()).unwrap();
-    match state.metadata.put_bucket_notification(&bucket, &empty_config).await {
+    match state
+        .metadata
+        .put_bucket_notification(&bucket, &empty_config)
+        .await
+    {
         Ok(_) => {
             info!("Bucket notification configuration deleted for {}", bucket);
             no_content_response(&request_id)
@@ -324,7 +338,8 @@ fn parse_notification_config_xml(xml: &str) -> Result<NotificationConfiguration,
     for cap in webhook_re.captures_iter(xml) {
         let content = &cap[1];
 
-        let id = extract_xml_value(content, "Id").unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+        let id =
+            extract_xml_value(content, "Id").unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
         let url = extract_xml_value(content, "Url").ok_or("Missing Url in WebhookConfiguration")?;
         let events = extract_events(content)?;
         let filter = extract_filter(content);
@@ -346,8 +361,10 @@ fn parse_notification_config_xml(xml: &str) -> Result<NotificationConfiguration,
     for cap in queue_re.captures_iter(xml) {
         let content = &cap[1];
 
-        let id = extract_xml_value(content, "Id").unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-        let queue_arn = extract_xml_value(content, "Queue").ok_or("Missing Queue in QueueConfiguration")?;
+        let id =
+            extract_xml_value(content, "Id").unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+        let queue_arn =
+            extract_xml_value(content, "Queue").ok_or("Missing Queue in QueueConfiguration")?;
         let events = extract_events(content)?;
         let filter = extract_filter(content);
 
@@ -366,8 +383,10 @@ fn parse_notification_config_xml(xml: &str) -> Result<NotificationConfiguration,
     for cap in topic_re.captures_iter(xml) {
         let content = &cap[1];
 
-        let id = extract_xml_value(content, "Id").unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-        let topic_arn = extract_xml_value(content, "Topic").ok_or("Missing Topic in TopicConfiguration")?;
+        let id =
+            extract_xml_value(content, "Id").unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+        let topic_arn =
+            extract_xml_value(content, "Topic").ok_or("Missing Topic in TopicConfiguration")?;
         let events = extract_events(content)?;
         let filter = extract_filter(content);
 
@@ -400,7 +419,9 @@ fn extract_events(content: &str) -> Result<Vec<hafiz_core::types::S3EventType>, 
             "s3:ObjectCreated:Put" => S3EventType::ObjectCreatedPut,
             "s3:ObjectCreated:Post" => S3EventType::ObjectCreatedPost,
             "s3:ObjectCreated:Copy" => S3EventType::ObjectCreatedCopy,
-            "s3:ObjectCreated:CompleteMultipartUpload" => S3EventType::ObjectCreatedCompleteMultipartUpload,
+            "s3:ObjectCreated:CompleteMultipartUpload" => {
+                S3EventType::ObjectCreatedCompleteMultipartUpload
+            }
             "s3:ObjectRemoved:*" => S3EventType::ObjectRemovedAll,
             "s3:ObjectRemoved:Delete" => S3EventType::ObjectRemovedDelete,
             "s3:ObjectRemoved:DeleteMarkerCreated" => S3EventType::ObjectRemovedDeleteMarkerCreated,
@@ -429,7 +450,10 @@ fn extract_filter(content: &str) -> Option<hafiz_core::types::NotificationFilter
     let s3key_re = regex::Regex::new(r"<S3Key>(.*?)</S3Key>").ok()?;
     let s3key_content = s3key_re.captures(&filter_content)?[1].to_string();
 
-    let rule_re = regex::Regex::new(r"<FilterRule>.*?<Name>(.*?)</Name>.*?<Value>(.*?)</Value>.*?</FilterRule>").ok()?;
+    let rule_re = regex::Regex::new(
+        r"<FilterRule>.*?<Name>(.*?)</Name>.*?<Value>(.*?)</Value>.*?</FilterRule>",
+    )
+    .ok()?;
 
     let mut filter_rules = Vec::new();
     for cap in rule_re.captures_iter(&s3key_content) {

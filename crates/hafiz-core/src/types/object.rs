@@ -74,7 +74,10 @@ impl TagSet {
     }
 
     pub fn get(&self, key: &str) -> Option<&str> {
-        self.tags.iter().find(|t| t.key == key).map(|t| t.value.as_str())
+        self.tags
+            .iter()
+            .find(|t| t.key == key)
+            .map(|t| t.value.as_str())
     }
 
     pub fn remove(&mut self, key: &str) {
@@ -380,17 +383,21 @@ impl ByteRange {
         let start = if parts[0].is_empty() {
             None
         } else {
-            Some(parts[0].parse::<i64>().map_err(|_| {
-                crate::Error::InvalidRange("Invalid range start".into())
-            })?)
+            Some(
+                parts[0]
+                    .parse::<i64>()
+                    .map_err(|_| crate::Error::InvalidRange("Invalid range start".into()))?,
+            )
         };
 
         let end = if parts[1].is_empty() {
             None
         } else {
-            Some(parts[1].parse::<i64>().map_err(|_| {
-                crate::Error::InvalidRange("Invalid range end".into())
-            })?)
+            Some(
+                parts[1]
+                    .parse::<i64>()
+                    .map_err(|_| crate::Error::InvalidRange("Invalid range end".into()))?,
+            )
         };
 
         Ok(ByteRange { start, end })

@@ -21,8 +21,8 @@ use axum::{
 use bytes::Bytes;
 use hafiz_core::{
     types::{
-        ObjectLockConfiguration, ObjectRetention, ObjectLegalHold,
-        RetentionMode, LegalHoldStatus, ObjectLockError,
+        LegalHoldStatus, ObjectLegalHold, ObjectLockConfiguration, ObjectLockError,
+        ObjectRetention, RetentionMode,
     },
     utils::generate_request_id,
     Error,
@@ -37,7 +37,8 @@ use crate::server::AppState;
 // ============================================================================
 
 fn error_response(err: Error, request_id: &str) -> Response {
-    let status = StatusCode::from_u16(err.http_status()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+    let status =
+        StatusCode::from_u16(err.http_status()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
     let s3_error = hafiz_core::error::S3Error::from(err).with_request_id(request_id);
 
     Response::builder()
@@ -104,7 +105,10 @@ pub async fn get_bucket_object_lock_config(
     Path(bucket): Path<String>,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    debug!("GetObjectLockConfiguration bucket={} request_id={}", bucket, request_id);
+    debug!(
+        "GetObjectLockConfiguration bucket={} request_id={}",
+        bucket, request_id
+    );
 
     // Check if bucket exists
     match state.metadata.get_bucket(&bucket).await {
@@ -146,7 +150,10 @@ pub async fn put_bucket_object_lock_config(
     body: Bytes,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    debug!("PutObjectLockConfiguration bucket={} request_id={}", bucket, request_id);
+    debug!(
+        "PutObjectLockConfiguration bucket={} request_id={}",
+        bucket, request_id
+    );
 
     // Check if bucket exists
     match state.metadata.get_bucket(&bucket).await {
@@ -211,10 +218,17 @@ pub async fn put_bucket_object_lock_config(
     };
 
     // Store in metadata
-    match state.metadata.put_bucket_object_lock_config(&bucket, &clean_xml).await {
+    match state
+        .metadata
+        .put_bucket_object_lock_config(&bucket, &clean_xml)
+        .await
+    {
         Ok(_) => {
-            info!("PutObjectLockConfiguration success bucket={} enabled={}",
-                  bucket, config.is_enabled());
+            info!(
+                "PutObjectLockConfiguration success bucket={} enabled={}",
+                bucket,
+                config.is_enabled()
+            );
             no_content_response(&request_id)
         }
         Err(e) => {
@@ -235,7 +249,10 @@ pub async fn get_object_retention(
     Query(query): Query<RetentionQuery>,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    debug!("GetObjectRetention bucket={} key={} request_id={}", bucket, key, request_id);
+    debug!(
+        "GetObjectRetention bucket={} key={} request_id={}",
+        bucket, key, request_id
+    );
 
     // Check if bucket exists and has Object Lock enabled
     if let Err(resp) = check_object_lock_enabled(&state, &bucket, &request_id).await {
@@ -249,7 +266,11 @@ pub async fn get_object_retention(
     }
 
     // Get object retention
-    match state.metadata.get_object_retention(&bucket, &key, version_id).await {
+    match state
+        .metadata
+        .get_object_retention(&bucket, &key, version_id)
+        .await
+    {
         Ok(Some(retention_xml)) => {
             info!("GetObjectRetention success bucket={} key={}", bucket, key);
             success_response_xml(StatusCode::OK, retention_xml, &request_id)
@@ -278,7 +299,10 @@ pub async fn put_object_retention(
     body: Bytes,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    debug!("PutObjectRetention bucket={} key={} request_id={}", bucket, key, request_id);
+    debug!(
+        "PutObjectRetention bucket={} key={} request_id={}",
+        bucket, key, request_id
+    );
 
     // Check if bucket exists and has Object Lock enabled
     if let Err(resp) = check_object_lock_enabled(&state, &bucket, &request_id).await {
@@ -299,7 +323,11 @@ pub async fn put_object_retention(
         .unwrap_or(false);
 
     // Check existing retention
-    if let Ok(Some(existing_xml)) = state.metadata.get_object_retention(&bucket, &key, version_id).await {
+    if let Ok(Some(existing_xml)) = state
+        .metadata
+        .get_object_retention(&bucket, &key, version_id)
+        .await
+    {
         if let Ok(existing) = ObjectRetention::from_xml(&existing_xml) {
             if !existing.can_modify(bypass_governance) {
                 warn!("Cannot modify retention: object is locked");
@@ -342,10 +370,16 @@ pub async fn put_object_retention(
     };
 
     // Store retention
-    match state.metadata.put_object_retention(&bucket, &key, version_id, &clean_xml).await {
+    match state
+        .metadata
+        .put_object_retention(&bucket, &key, version_id, &clean_xml)
+        .await
+    {
         Ok(_) => {
-            info!("PutObjectRetention success bucket={} key={} mode={}",
-                  bucket, key, retention.mode);
+            info!(
+                "PutObjectRetention success bucket={} key={} mode={}",
+                bucket, key, retention.mode
+            );
             no_content_response(&request_id)
         }
         Err(e) => {
@@ -366,7 +400,10 @@ pub async fn get_object_legal_hold(
     Query(query): Query<RetentionQuery>,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    debug!("GetObjectLegalHold bucket={} key={} request_id={}", bucket, key, request_id);
+    debug!(
+        "GetObjectLegalHold bucket={} key={} request_id={}",
+        bucket, key, request_id
+    );
 
     // Check if bucket exists and has Object Lock enabled
     if let Err(resp) = check_object_lock_enabled(&state, &bucket, &request_id).await {
@@ -380,7 +417,11 @@ pub async fn get_object_legal_hold(
     }
 
     // Get legal hold
-    match state.metadata.get_object_legal_hold(&bucket, &key, version_id).await {
+    match state
+        .metadata
+        .get_object_legal_hold(&bucket, &key, version_id)
+        .await
+    {
         Ok(Some(hold_xml)) => {
             info!("GetObjectLegalHold success bucket={} key={}", bucket, key);
             success_response_xml(StatusCode::OK, hold_xml, &request_id)
@@ -406,7 +447,10 @@ pub async fn put_object_legal_hold(
     body: Bytes,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    debug!("PutObjectLegalHold bucket={} key={} request_id={}", bucket, key, request_id);
+    debug!(
+        "PutObjectLegalHold bucket={} key={} request_id={}",
+        bucket, key, request_id
+    );
 
     // Check if bucket exists and has Object Lock enabled
     if let Err(resp) = check_object_lock_enabled(&state, &bucket, &request_id).await {
@@ -449,10 +493,16 @@ pub async fn put_object_legal_hold(
     };
 
     // Store legal hold
-    match state.metadata.put_object_legal_hold(&bucket, &key, version_id, &clean_xml).await {
+    match state
+        .metadata
+        .put_object_legal_hold(&bucket, &key, version_id, &clean_xml)
+        .await
+    {
         Ok(_) => {
-            info!("PutObjectLegalHold success bucket={} key={} status={}",
-                  bucket, key, hold.status);
+            info!(
+                "PutObjectLegalHold success bucket={} key={} status={}",
+                bucket, key, hold.status
+            );
             no_content_response(&request_id)
         }
         Err(e) => {
@@ -476,7 +526,10 @@ async fn check_object_lock_enabled(
     match state.metadata.get_bucket(bucket).await {
         Ok(Some(_)) => {}
         Ok(None) => {
-            return Err(error_response(Error::NoSuchBucketNamed(bucket.to_string()), request_id));
+            return Err(error_response(
+                Error::NoSuchBucketNamed(bucket.to_string()),
+                request_id,
+            ));
         }
         Err(e) => {
             return Err(error_response(e, request_id));
@@ -485,16 +538,14 @@ async fn check_object_lock_enabled(
 
     // Check Object Lock configuration
     match state.metadata.get_bucket_object_lock_config(bucket).await {
-        Ok(Some(config_xml)) => {
-            match ObjectLockConfiguration::from_xml(&config_xml) {
-                Ok(config) if config.is_enabled() => Ok(()),
-                _ => Err(object_lock_error_response(
-                    "InvalidRequest",
-                    "Object Lock is not enabled for this bucket",
-                    request_id,
-                )),
-            }
-        }
+        Ok(Some(config_xml)) => match ObjectLockConfiguration::from_xml(&config_xml) {
+            Ok(config) if config.is_enabled() => Ok(()),
+            _ => Err(object_lock_error_response(
+                "InvalidRequest",
+                "Object Lock is not enabled for this bucket",
+                request_id,
+            )),
+        },
         Ok(None) => Err(object_lock_error_response(
             "InvalidRequest",
             "Object Lock is not enabled for this bucket",
@@ -536,7 +587,11 @@ pub async fn can_delete_object(
     bypass_governance: bool,
 ) -> Result<bool, Error> {
     // Check legal hold
-    if let Some(hold_xml) = state.metadata.get_object_legal_hold(bucket, key, version_id).await? {
+    if let Some(hold_xml) = state
+        .metadata
+        .get_object_legal_hold(bucket, key, version_id)
+        .await?
+    {
         if let Ok(hold) = ObjectLegalHold::from_xml(&hold_xml) {
             if hold.is_active() {
                 return Ok(false);
@@ -545,7 +600,11 @@ pub async fn can_delete_object(
     }
 
     // Check retention
-    if let Some(retention_xml) = state.metadata.get_object_retention(bucket, key, version_id).await? {
+    if let Some(retention_xml) = state
+        .metadata
+        .get_object_retention(bucket, key, version_id)
+        .await?
+    {
         if let Ok(retention) = ObjectRetention::from_xml(&retention_xml) {
             if !retention.can_delete(bypass_governance) {
                 return Ok(false);
@@ -564,7 +623,11 @@ pub async fn get_lock_error_message(
     version_id: Option<&str>,
 ) -> Option<String> {
     // Check legal hold
-    if let Ok(Some(hold_xml)) = state.metadata.get_object_legal_hold(bucket, key, version_id).await {
+    if let Ok(Some(hold_xml)) = state
+        .metadata
+        .get_object_legal_hold(bucket, key, version_id)
+        .await
+    {
         if let Ok(hold) = ObjectLegalHold::from_xml(&hold_xml) {
             if hold.is_active() {
                 return Some("Object is under legal hold".to_string());
@@ -573,7 +636,11 @@ pub async fn get_lock_error_message(
     }
 
     // Check retention
-    if let Ok(Some(retention_xml)) = state.metadata.get_object_retention(bucket, key, version_id).await {
+    if let Ok(Some(retention_xml)) = state
+        .metadata
+        .get_object_retention(bucket, key, version_id)
+        .await
+    {
         if let Ok(retention) = ObjectRetention::from_xml(&retention_xml) {
             if !retention.is_expired() {
                 return Some(format!(

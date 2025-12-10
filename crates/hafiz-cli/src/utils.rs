@@ -20,11 +20,7 @@ pub fn format_size(bytes: i64, human_readable: bool) -> String {
 }
 
 /// Check if a path matches include/exclude patterns
-pub fn matches_patterns(
-    path: &str,
-    include: Option<&str>,
-    exclude: Option<&str>,
-) -> Result<bool> {
+pub fn matches_patterns(path: &str, include: Option<&str>, exclude: Option<&str>) -> Result<bool> {
     // If exclude pattern matches, skip
     if let Some(exclude_pattern) = exclude {
         let pattern = Pattern::new(exclude_pattern)?;
@@ -150,9 +146,7 @@ pub fn confirm(message: &str) -> bool {
 
 /// Extract filename from a path or key
 pub fn extract_filename(path: &str) -> &str {
-    path.rsplit('/')
-        .next()
-        .unwrap_or(path)
+    path.rsplit('/').next().unwrap_or(path)
 }
 
 /// Join path components (handling trailing slashes)
@@ -167,7 +161,11 @@ pub fn join_key(prefix: &str, name: &str) -> String {
 }
 
 /// Determine destination key when copying a file to S3
-pub fn determine_dest_key(source_path: &str, dest_key: Option<&str>, dest_is_prefix: bool) -> String {
+pub fn determine_dest_key(
+    source_path: &str,
+    dest_key: Option<&str>,
+    dest_is_prefix: bool,
+) -> String {
     let filename = extract_filename(source_path);
 
     match dest_key {
@@ -204,7 +202,10 @@ mod tests {
         assert_eq!(guess_content_type("file.txt"), "text/plain");
         assert_eq!(guess_content_type("image.png"), "image/png");
         assert_eq!(guess_content_type("app.json"), "application/json");
-        assert_eq!(guess_content_type("unknown.xyz"), "application/octet-stream");
+        assert_eq!(
+            guess_content_type("unknown.xyz"),
+            "application/octet-stream"
+        );
     }
 
     #[test]

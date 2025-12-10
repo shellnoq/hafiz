@@ -323,7 +323,11 @@ impl ObjectLockConfiguration {
     }
 
     /// Create enabled configuration with default retention
-    pub fn enabled_with_retention(mode: RetentionMode, days: Option<u32>, years: Option<u32>) -> Self {
+    pub fn enabled_with_retention(
+        mode: RetentionMode,
+        days: Option<u32>,
+        years: Option<u32>,
+    ) -> Self {
         Self {
             object_lock_enabled: Some("Enabled".to_string()),
             rule: Some(ObjectLockRule {
@@ -414,7 +418,8 @@ impl DefaultRetention {
 
     /// Create retention from these default settings
     pub fn to_retention(&self) -> Option<ObjectRetention> {
-        self.mode.map(|mode| ObjectRetention::new(mode, self.calculate_retain_until()))
+        self.mode
+            .map(|mode| ObjectRetention::new(mode, self.calculate_retain_until()))
     }
 }
 
@@ -440,7 +445,9 @@ pub enum ObjectLockError {
 impl std::fmt::Display for ObjectLockError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::InvalidConfiguration(msg) => write!(f, "Invalid Object Lock configuration: {}", msg),
+            Self::InvalidConfiguration(msg) => {
+                write!(f, "Invalid Object Lock configuration: {}", msg)
+            }
             Self::ObjectLocked(msg) => write!(f, "Object is locked: {}", msg),
             Self::NotEnabled => write!(f, "Object Lock is not enabled on this bucket"),
             Self::CannotDisable => write!(f, "Object Lock cannot be disabled once enabled"),
@@ -522,9 +529,18 @@ mod tests {
 
     #[test]
     fn test_retention_mode_parsing() {
-        assert_eq!("GOVERNANCE".parse::<RetentionMode>().unwrap(), RetentionMode::Governance);
-        assert_eq!("COMPLIANCE".parse::<RetentionMode>().unwrap(), RetentionMode::Compliance);
-        assert_eq!("governance".parse::<RetentionMode>().unwrap(), RetentionMode::Governance);
+        assert_eq!(
+            "GOVERNANCE".parse::<RetentionMode>().unwrap(),
+            RetentionMode::Governance
+        );
+        assert_eq!(
+            "COMPLIANCE".parse::<RetentionMode>().unwrap(),
+            RetentionMode::Compliance
+        );
+        assert_eq!(
+            "governance".parse::<RetentionMode>().unwrap(),
+            RetentionMode::Governance
+        );
         assert!("INVALID".parse::<RetentionMode>().is_err());
     }
 

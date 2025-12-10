@@ -116,7 +116,10 @@ impl S3EventType {
                     | S3EventType::LifecycleExpirationDeleteMarkerCreated
             ),
             S3EventType::ObjectTaggingAll => {
-                matches!(other, S3EventType::ObjectTaggingPut | S3EventType::ObjectTaggingDelete)
+                matches!(
+                    other,
+                    S3EventType::ObjectTaggingPut | S3EventType::ObjectTaggingDelete
+                )
             }
             _ => false,
         }
@@ -134,9 +137,7 @@ impl S3EventType {
             }
             S3EventType::ObjectRemovedAll => "s3:ObjectRemoved:*",
             S3EventType::ObjectRemovedDelete => "s3:ObjectRemoved:Delete",
-            S3EventType::ObjectRemovedDeleteMarkerCreated => {
-                "s3:ObjectRemoved:DeleteMarkerCreated"
-            }
+            S3EventType::ObjectRemovedDeleteMarkerCreated => "s3:ObjectRemoved:DeleteMarkerCreated",
             S3EventType::ObjectRestoreAll => "s3:ObjectRestore:*",
             S3EventType::ObjectRestorePost => "s3:ObjectRestore:Post",
             S3EventType::ObjectRestoreCompleted => "s3:ObjectRestore:Completed",
@@ -410,7 +411,9 @@ impl NotificationConfiguration {
         key: &str,
     ) -> bool {
         // Check event type
-        let event_matches = events.iter().any(|e| e.matches(event_type) || event_type.matches(e));
+        let event_matches = events
+            .iter()
+            .any(|e| e.matches(event_type) || event_type.matches(e));
         if !event_matches {
             return false;
         }
@@ -618,13 +621,15 @@ mod tests {
             auth_token: None,
         });
 
-        let targets = config.get_matching_configs(&S3EventType::ObjectCreatedPut, "uploads/file.txt");
+        let targets =
+            config.get_matching_configs(&S3EventType::ObjectCreatedPut, "uploads/file.txt");
         assert_eq!(targets.len(), 1);
 
         let targets = config.get_matching_configs(&S3EventType::ObjectCreatedPut, "other/file.txt");
         assert_eq!(targets.len(), 0);
 
-        let targets = config.get_matching_configs(&S3EventType::ObjectRemovedDelete, "uploads/file.txt");
+        let targets =
+            config.get_matching_configs(&S3EventType::ObjectRemovedDelete, "uploads/file.txt");
         assert_eq!(targets.len(), 0);
     }
 }

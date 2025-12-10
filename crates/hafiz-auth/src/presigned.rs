@@ -43,7 +43,8 @@ pub fn generate_presigned_url(
     let credential = format!("{}/{}", access_key, credential_scope);
 
     // Build canonical URI
-    let canonical_uri = format!("/{}/{}",
+    let canonical_uri = format!(
+        "/{}/{}",
         uri_encode(&request.bucket, false),
         uri_encode(&request.key, false)
     );
@@ -108,7 +109,11 @@ pub fn generate_presigned_url(
         if let Some(md5) = &request.content_md5 {
             h.push(("Content-MD5".to_string(), md5.clone()));
         }
-        if h.is_empty() { None } else { Some(h) }
+        if h.is_empty() {
+            None
+        } else {
+            Some(h)
+        }
     } else {
         None
     };
@@ -134,17 +139,23 @@ pub fn verify_presigned_url(
     let params = parse_query_string(query_string);
 
     // Extract required parameters
-    let algorithm = params.get(X_AMZ_ALGORITHM)
+    let algorithm = params
+        .get(X_AMZ_ALGORITHM)
         .ok_or_else(|| Error::InvalidRequest("Missing X-Amz-Algorithm".into()))?;
-    let credential = params.get(X_AMZ_CREDENTIAL)
+    let credential = params
+        .get(X_AMZ_CREDENTIAL)
         .ok_or_else(|| Error::InvalidRequest("Missing X-Amz-Credential".into()))?;
-    let amz_date = params.get(X_AMZ_DATE)
+    let amz_date = params
+        .get(X_AMZ_DATE)
         .ok_or_else(|| Error::InvalidRequest("Missing X-Amz-Date".into()))?;
-    let expires = params.get(X_AMZ_EXPIRES)
+    let expires = params
+        .get(X_AMZ_EXPIRES)
         .ok_or_else(|| Error::InvalidRequest("Missing X-Amz-Expires".into()))?;
-    let signed_headers = params.get(X_AMZ_SIGNED_HEADERS)
+    let signed_headers = params
+        .get(X_AMZ_SIGNED_HEADERS)
         .ok_or_else(|| Error::InvalidRequest("Missing X-Amz-SignedHeaders".into()))?;
-    let provided_signature = params.get(X_AMZ_SIGNATURE)
+    let provided_signature = params
+        .get(X_AMZ_SIGNATURE)
         .ok_or_else(|| Error::InvalidRequest("Missing X-Amz-Signature".into()))?;
 
     // Verify algorithm
@@ -154,7 +165,8 @@ pub fn verify_presigned_url(
 
     // Parse and verify expiration
     let request_time = parse_amz_date(amz_date)?;
-    let expires_secs: u64 = expires.parse()
+    let expires_secs: u64 = expires
+        .parse()
         .map_err(|_| Error::InvalidRequest("Invalid expires value".into()))?;
     let expiration_time = request_time + Duration::seconds(expires_secs as i64);
 
@@ -187,12 +199,7 @@ pub fn verify_presigned_url(
     // Create canonical request
     let canonical_request = format!(
         "{}\n{}\n{}\n{}\n{}\n{}",
-        method,
-        uri,
-        canonical_query_string,
-        canonical_headers,
-        signed_headers,
-        UNSIGNED_PAYLOAD
+        method, uri, canonical_query_string, canonical_headers, signed_headers, UNSIGNED_PAYLOAD
     );
 
     debug!("Canonical request for verification:\n{}", canonical_request);
@@ -218,7 +225,8 @@ pub fn verify_presigned_url(
 pub fn extract_access_key_from_presigned(query_string: &str) -> Result<String> {
     let params = parse_query_string(query_string);
 
-    let credential = params.get(X_AMZ_CREDENTIAL)
+    let credential = params
+        .get(X_AMZ_CREDENTIAL)
         .ok_or_else(|| Error::InvalidRequest("Missing X-Amz-Credential".into()))?;
 
     let cred_parts: Vec<&str> = credential.split('/').collect();
@@ -237,8 +245,16 @@ pub fn is_presigned_request(query_string: &str) -> bool {
 
 // Helper functions
 
-fn calculate_signature(secret_key: &str, date_stamp: &str, region: &str, string_to_sign: &str) -> String {
-    let k_date = hmac_sha256(format!("AWS4{}", secret_key).as_bytes(), date_stamp.as_bytes());
+fn calculate_signature(
+    secret_key: &str,
+    date_stamp: &str,
+    region: &str,
+    string_to_sign: &str,
+) -> String {
+    let k_date = hmac_sha256(
+        format!("AWS4{}", secret_key).as_bytes(),
+        date_stamp.as_bytes(),
+    );
     let k_region = hmac_sha256(&k_date, region.as_bytes());
     let k_service = hmac_sha256(&k_region, b"s3");
     let k_signing = hmac_sha256(&k_service, b"aws4_request");
@@ -293,8 +309,12 @@ fn parse_query_string(query: &str) -> BTreeMap<String, String> {
         let key = parts.next().unwrap_or("");
         let value = parts.next().unwrap_or("");
         // URL decode
-        let key = urlencoding::decode(key).unwrap_or_else(|_| key.into()).to_string();
-        let value = urlencoding::decode(value).unwrap_or_else(|_| value.into()).to_string();
+        let key = urlencoding::decode(key)
+            .unwrap_or_else(|_| key.into())
+            .to_string();
+        let value = urlencoding::decode(value)
+            .unwrap_or_else(|_| value.into())
+            .to_string();
         params.insert(key, value);
     }
     params
@@ -353,14 +373,17 @@ mod tests {
 
     #[test]
     fn test_is_presigned_request() {
-        assert!(is_presigned_request("X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=abc"));
+        assert!(is_presigned_request(
+            "X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=abc"
+        ));
         assert!(!is_presigned_request("foo=bar"));
         assert!(!is_presigned_request(""));
     }
 
     #[test]
     fn test_extract_access_key() {
-        let query = "X-Amz-Credential=AKIAIOSFODNN7EXAMPLE%2F20130524%2Fus-east-1%2Fs3%2Faws4_request";
+        let query =
+            "X-Amz-Credential=AKIAIOSFODNN7EXAMPLE%2F20130524%2Fus-east-1%2Fs3%2Faws4_request";
         let result = extract_access_key_from_presigned(query);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "AKIAIOSFODNN7EXAMPLE");

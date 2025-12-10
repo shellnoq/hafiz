@@ -1,26 +1,22 @@
 //! Object browser page
 
-use leptos::*;
-use leptos_router::use_params_map;
 use crate::api::{self, ObjectInfo};
 use crate::components::{Button, ButtonVariant, FileUploadModal};
+use leptos::*;
+use leptos_router::use_params_map;
 
 #[component]
 pub fn ObjectsPage() -> impl IntoView {
     let params = use_params_map();
     let bucket_name = move || params.get().get("name").cloned().unwrap_or_default();
-    let current_path = move || {
-        params.get().get("path").cloned().unwrap_or_default()
-    };
+    let current_path = move || params.get().get("path").cloned().unwrap_or_default();
 
     let (show_upload_modal, set_show_upload_modal) = create_signal(false);
     let (refresh_trigger, set_refresh_trigger) = create_signal(0);
 
     let objects = create_resource(
         move || (bucket_name(), current_path(), refresh_trigger.get()),
-        |(bucket, prefix, _)| async move {
-            api::list_objects(&bucket, &prefix).await
-        },
+        |(bucket, prefix, _)| async move { api::list_objects(&bucket, &prefix).await },
     );
 
     let on_upload_complete = move || {
@@ -230,7 +226,10 @@ fn ObjectRow(
 
         // Confirm delete
         let window = web_sys::window().unwrap();
-        if !window.confirm_with_message(&format!("Delete {}?", key)).unwrap_or(false) {
+        if !window
+            .confirm_with_message(&format!("Delete {}?", key))
+            .unwrap_or(false)
+        {
             return;
         }
 
@@ -259,22 +258,21 @@ fn ObjectRow(
             match api::download_object(&bucket, &key).await {
                 Ok(data) => {
                     // Create blob and download
-                    use wasm_bindgen::JsCast;
                     use js_sys::{Array, Uint8Array};
+                    use wasm_bindgen::JsCast;
 
                     let uint8_array = Uint8Array::from(&data[..]);
                     let array = Array::new();
                     array.push(&uint8_array);
 
                     if let Ok(blob) = web_sys::Blob::new_with_u8_array_sequence(&array) {
-                        let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap_or_default();
+                        let url =
+                            web_sys::Url::create_object_url_with_blob(&blob).unwrap_or_default();
 
                         let window = web_sys::window().unwrap();
                         let document = window.document().unwrap();
-                        let a: web_sys::HtmlAnchorElement = document
-                            .create_element("a")
-                            .unwrap()
-                            .unchecked_into();
+                        let a: web_sys::HtmlAnchorElement =
+                            document.create_element("a").unwrap().unchecked_into();
 
                         a.set_href(&url);
                         a.set_download(&filename);

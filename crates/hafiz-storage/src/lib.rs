@@ -2,4 +2,4 @@
 
 pub mod engine;
 
-pub use engine::{StorageEngine, LocalStorage};
+pub use engine::{LocalStorage, StorageEngine};

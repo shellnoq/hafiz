@@ -3,9 +3,8 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use hafiz_core::types::{
-    Bucket, Object, User, VersioningStatus, ObjectVersion, DeleteMarker,
-    Tag, TagSet, LifecycleConfiguration, LifecycleRule, Credentials,
-    Owner,
+    Bucket, Credentials, DeleteMarker, LifecycleConfiguration, LifecycleRule, Object,
+    ObjectVersion, Owner, Tag, TagSet, User, VersioningStatus,
 };
 use hafiz_core::{Error, Result};
 use sqlx::postgres::{PgPool, PgPoolOptions};
@@ -13,8 +12,7 @@ use std::collections::HashMap;
 use tracing::{debug, info};
 
 use crate::traits::{
-    MetadataRepository, MultipartUpload, MultipartUploadInfo,
-    ObjectWithTags, UploadPart,
+    MetadataRepository, MultipartUpload, MultipartUploadInfo, ObjectWithTags, UploadPart,
 };
 
 /// PostgreSQL metadata store
@@ -97,12 +95,10 @@ impl PostgresStore {
         .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         // Indexes
-        sqlx::query(
-            r#"CREATE INDEX IF NOT EXISTS idx_objects_bucket ON objects(bucket)"#,
-        )
-        .execute(&self.pool)
-        .await
-        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        sqlx::query(r#"CREATE INDEX IF NOT EXISTS idx_objects_bucket ON objects(bucket)"#)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         sqlx::query(
             r#"CREATE INDEX IF NOT EXISTS idx_objects_latest ON objects(bucket, key, is_latest)"#,
@@ -235,17 +231,24 @@ impl MetadataRepository for PostgresStore {
     }
 
     async fn get_user_by_access_key(&self, access_key: &str) -> Result<Option<User>> {
-        let row: Option<(String, String, String, Option<String>, Option<String>, bool, DateTime<Utc>)> =
-            sqlx::query_as(
-                r#"
+        let row: Option<(
+            String,
+            String,
+            String,
+            Option<String>,
+            Option<String>,
+            bool,
+            DateTime<Utc>,
+        )> = sqlx::query_as(
+            r#"
                 SELECT id, access_key, secret_key, display_name, email, is_admin, created_at
                 FROM users WHERE access_key = $1
                 "#,
-            )
-            .bind(access_key)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        )
+        .bind(access_key)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| User {
             id: r.0,
@@ -281,7 +284,11 @@ impl MetadataRepository for PostgresStore {
                 enabled: r.5,
                 created_at: r.6,
                 last_used: None,
-                policies: if r.4 { vec!["admin".to_string()] } else { Vec::new() },
+                policies: if r.4 {
+                    vec!["admin".to_string()]
+                } else {
+                    Vec::new()
+                },
             })
             .collect())
     }
@@ -307,7 +314,11 @@ impl MetadataRepository for PostgresStore {
             enabled: r.5,
             created_at: r.6,
             last_used: None,
-            policies: if r.4 { vec!["admin".to_string()] } else { Vec::new() },
+            policies: if r.4 {
+                vec!["admin".to_string()]
+            } else {
+                Vec::new()
+            },
         }))
     }
 
@@ -398,17 +409,23 @@ impl MetadataRepository for PostgresStore {
     }
 
     async fn get_bucket(&self, name: &str) -> Result<Option<Bucket>> {
-        let row: Option<(String, String, String, Option<String>, Option<bool>, DateTime<Utc>)> =
-            sqlx::query_as(
-                r#"
+        let row: Option<(
+            String,
+            String,
+            String,
+            Option<String>,
+            Option<bool>,
+            DateTime<Utc>,
+        )> = sqlx::query_as(
+            r#"
                 SELECT name, owner_id, region, versioning, object_lock_enabled, created_at
                 FROM buckets WHERE name = $1
                 "#,
-            )
-            .bind(name)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        )
+        .bind(name)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| Bucket {
             name: r.0,
@@ -421,16 +438,22 @@ impl MetadataRepository for PostgresStore {
     }
 
     async fn list_buckets(&self) -> Result<Vec<Bucket>> {
-        let rows: Vec<(String, String, String, Option<String>, Option<bool>, DateTime<Utc>)> =
-            sqlx::query_as(
-                r#"
+        let rows: Vec<(
+            String,
+            String,
+            String,
+            Option<String>,
+            Option<bool>,
+            DateTime<Utc>,
+        )> = sqlx::query_as(
+            r#"
                 SELECT name, owner_id, region, versioning, object_lock_enabled, created_at
                 FROM buckets ORDER BY name
                 "#,
-            )
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(rows
             .into_iter()
@@ -447,13 +470,11 @@ impl MetadataRepository for PostgresStore {
 
     async fn delete_bucket(&self, name: &str) -> Result<()> {
         // Check if bucket has objects
-        let count: (i64,) = sqlx::query_as(
-            r#"SELECT COUNT(*) FROM objects WHERE bucket = $1"#,
-        )
-        .bind(name)
-        .fetch_one(&self.pool)
-        .await
-        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        let count: (i64,) = sqlx::query_as(r#"SELECT COUNT(*) FROM objects WHERE bucket = $1"#)
+            .bind(name)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         if count.0 > 0 {
             return Err(Error::BucketNotEmpty);
@@ -481,25 +502,23 @@ impl MetadataRepository for PostgresStore {
     }
 
     async fn get_bucket_versioning(&self, bucket: &str) -> Result<Option<String>> {
-        let row: Option<(Option<String>,)> = sqlx::query_as(
-            r#"SELECT versioning FROM buckets WHERE name = $1"#,
-        )
-        .bind(bucket)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        let row: Option<(Option<String>,)> =
+            sqlx::query_as(r#"SELECT versioning FROM buckets WHERE name = $1"#)
+                .bind(bucket)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(row.and_then(|r| r.0).filter(|s| !s.is_empty()))
     }
 
     async fn get_bucket_tags(&self, bucket: &str) -> Result<HashMap<String, String>> {
-        let rows: Vec<(String, String)> = sqlx::query_as(
-            r#"SELECT tag_key, tag_value FROM bucket_tags WHERE bucket = $1"#,
-        )
-        .bind(bucket)
-        .fetch_all(&self.pool)
-        .await
-        .unwrap_or_default();
+        let rows: Vec<(String, String)> =
+            sqlx::query_as(r#"SELECT tag_key, tag_value FROM bucket_tags WHERE bucket = $1"#)
+                .bind(bucket)
+                .fetch_all(&self.pool)
+                .await
+                .unwrap_or_default();
 
         Ok(rows.into_iter().collect())
     }
@@ -508,7 +527,9 @@ impl MetadataRepository for PostgresStore {
 
     async fn create_object(&self, object: &Object) -> Result<()> {
         let metadata_json = serde_json::to_value(&object.metadata).ok();
-        let encryption_json = object.encryption.as_ref()
+        let encryption_json = object
+            .encryption
+            .as_ref()
             .and_then(|e| serde_json::to_value(e).ok());
 
         sqlx::query(
@@ -560,9 +581,9 @@ impl MetadataRepository for PostgresStore {
             .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| {
-            let metadata: HashMap<String, String> = r.6
-                .and_then(|v| serde_json::from_value(v).ok())
-                .unwrap_or_default();
+            let metadata: HashMap<String, String> =
+                r.6.and_then(|v| serde_json::from_value(v).ok())
+                    .unwrap_or_default();
             let encryption = r.8.and_then(|v| serde_json::from_value(v).ok());
 
             Object {
@@ -579,7 +600,12 @@ impl MetadataRepository for PostgresStore {
         }))
     }
 
-    async fn get_object_version(&self, bucket: &str, key: &str, version_id: &str) -> Result<Option<Object>> {
+    async fn get_object_version(
+        &self,
+        bucket: &str,
+        key: &str,
+        version_id: &str,
+    ) -> Result<Option<Object>> {
         let row: Option<(String, String, String, i64, String, String, Option<serde_json::Value>, DateTime<Utc>, Option<serde_json::Value>)> =
             sqlx::query_as(
                 r#"
@@ -596,9 +622,9 @@ impl MetadataRepository for PostgresStore {
             .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| {
-            let metadata: HashMap<String, String> = r.6
-                .and_then(|v| serde_json::from_value(v).ok())
-                .unwrap_or_default();
+            let metadata: HashMap<String, String> =
+                r.6.and_then(|v| serde_json::from_value(v).ok())
+                    .unwrap_or_default();
             let encryption = r.8.and_then(|v| serde_json::from_value(v).ok());
 
             Object {
@@ -615,7 +641,13 @@ impl MetadataRepository for PostgresStore {
         }))
     }
 
-    async fn list_objects(&self, bucket: &str, prefix: &str, marker: &str, max_keys: i32) -> Result<Vec<Object>> {
+    async fn list_objects(
+        &self,
+        bucket: &str,
+        prefix: &str,
+        marker: &str,
+        max_keys: i32,
+    ) -> Result<Vec<Object>> {
         let rows: Vec<(String, String, i64, String, String, Option<serde_json::Value>, DateTime<Utc>)> =
             sqlx::query_as(
                 r#"
@@ -637,9 +669,9 @@ impl MetadataRepository for PostgresStore {
         Ok(rows
             .into_iter()
             .map(|r| {
-                let metadata: HashMap<String, String> = r.5
-                    .and_then(|v| serde_json::from_value(v).ok())
-                    .unwrap_or_default();
+                let metadata: HashMap<String, String> =
+                    r.5.and_then(|v| serde_json::from_value(v).ok())
+                        .unwrap_or_default();
 
                 Object {
                     bucket: r.0,
@@ -681,15 +713,13 @@ impl MetadataRepository for PostgresStore {
     }
 
     async fn delete_object_version(&self, bucket: &str, key: &str, version_id: &str) -> Result<()> {
-        sqlx::query(
-            r#"DELETE FROM objects WHERE bucket = $1 AND key = $2 AND version_id = $3"#,
-        )
-        .bind(bucket)
-        .bind(key)
-        .bind(version_id)
-        .execute(&self.pool)
-        .await
-        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        sqlx::query(r#"DELETE FROM objects WHERE bucket = $1 AND key = $2 AND version_id = $3"#)
+            .bind(bucket)
+            .bind(key)
+            .bind(version_id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(())
     }
@@ -698,17 +728,17 @@ impl MetadataRepository for PostgresStore {
 
     async fn create_object_version(&self, object: &Object, version_id: &str) -> Result<()> {
         // Mark previous versions as not latest
-        sqlx::query(
-            r#"UPDATE objects SET is_latest = false WHERE bucket = $1 AND key = $2"#,
-        )
-        .bind(&object.bucket)
-        .bind(&object.key)
-        .execute(&self.pool)
-        .await
-        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        sqlx::query(r#"UPDATE objects SET is_latest = false WHERE bucket = $1 AND key = $2"#)
+            .bind(&object.bucket)
+            .bind(&object.key)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         let metadata_json = serde_json::to_value(&object.metadata).ok();
-        let encryption_json = object.encryption.as_ref()
+        let encryption_json = object
+            .encryption
+            .as_ref()
             .and_then(|e| serde_json::to_value(e).ok());
 
         sqlx::query(
@@ -733,24 +763,29 @@ impl MetadataRepository for PostgresStore {
         Ok(())
     }
 
-    async fn list_object_versions(&self, bucket: &str, prefix: &str, marker: &str, max_keys: i32) -> Result<Vec<ObjectVersion>> {
-        let rows: Vec<(String, String, i64, String, DateTime<Utc>, bool)> =
-            sqlx::query_as(
-                r#"
+    async fn list_object_versions(
+        &self,
+        bucket: &str,
+        prefix: &str,
+        marker: &str,
+        max_keys: i32,
+    ) -> Result<Vec<ObjectVersion>> {
+        let rows: Vec<(String, String, i64, String, DateTime<Utc>, bool)> = sqlx::query_as(
+            r#"
                 SELECT key, version_id, size, etag, last_modified, is_latest
                 FROM objects
                 WHERE bucket = $1 AND key LIKE $2 AND key > $3 AND is_delete_marker = false
                 ORDER BY key, last_modified DESC
                 LIMIT $4
                 "#,
-            )
-            .bind(bucket)
-            .bind(format!("{}%", prefix))
-            .bind(marker)
-            .bind(max_keys)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        )
+        .bind(bucket)
+        .bind(format!("{}%", prefix))
+        .bind(marker)
+        .bind(max_keys)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(rows
             .into_iter()
@@ -768,14 +803,12 @@ impl MetadataRepository for PostgresStore {
 
     async fn create_delete_marker(&self, bucket: &str, key: &str, version_id: &str) -> Result<()> {
         // Mark previous as not latest
-        sqlx::query(
-            r#"UPDATE objects SET is_latest = false WHERE bucket = $1 AND key = $2"#,
-        )
-        .bind(bucket)
-        .bind(key)
-        .execute(&self.pool)
-        .await
-        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        sqlx::query(r#"UPDATE objects SET is_latest = false WHERE bucket = $1 AND key = $2"#)
+            .bind(bucket)
+            .bind(key)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         sqlx::query(
             r#"
@@ -793,23 +826,27 @@ impl MetadataRepository for PostgresStore {
         Ok(())
     }
 
-    async fn list_delete_markers(&self, bucket: &str, prefix: &str, max_keys: i32) -> Result<Vec<DeleteMarker>> {
-        let rows: Vec<(String, String, DateTime<Utc>)> =
-            sqlx::query_as(
-                r#"
+    async fn list_delete_markers(
+        &self,
+        bucket: &str,
+        prefix: &str,
+        max_keys: i32,
+    ) -> Result<Vec<DeleteMarker>> {
+        let rows: Vec<(String, String, DateTime<Utc>)> = sqlx::query_as(
+            r#"
                 SELECT key, version_id, last_modified
                 FROM objects
                 WHERE bucket = $1 AND key LIKE $2 AND is_delete_marker = true
                 ORDER BY key
                 LIMIT $3
                 "#,
-            )
-            .bind(bucket)
-            .bind(format!("{}%", prefix))
-            .bind(max_keys)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        )
+        .bind(bucket)
+        .bind(format!("{}%", prefix))
+        .bind(max_keys)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(rows
             .into_iter()
@@ -825,7 +862,13 @@ impl MetadataRepository for PostgresStore {
 
     // ============= Tagging Operations =============
 
-    async fn put_object_tags(&self, bucket: &str, key: &str, version_id: Option<&str>, tags: &TagSet) -> Result<()> {
+    async fn put_object_tags(
+        &self,
+        bucket: &str,
+        key: &str,
+        version_id: Option<&str>,
+        tags: &TagSet,
+    ) -> Result<()> {
         let vid = version_id.unwrap_or("null");
 
         // Delete existing
@@ -860,7 +903,12 @@ impl MetadataRepository for PostgresStore {
         Ok(())
     }
 
-    async fn get_object_tags(&self, bucket: &str, key: &str, version_id: Option<&str>) -> Result<TagSet> {
+    async fn get_object_tags(
+        &self,
+        bucket: &str,
+        key: &str,
+        version_id: Option<&str>,
+    ) -> Result<TagSet> {
         let vid = version_id.unwrap_or("null");
 
         let rows: Vec<(String, String)> = sqlx::query_as(
@@ -884,7 +932,12 @@ impl MetadataRepository for PostgresStore {
         Ok(tag_set)
     }
 
-    async fn delete_object_tags(&self, bucket: &str, key: &str, version_id: Option<&str>) -> Result<()> {
+    async fn delete_object_tags(
+        &self,
+        bucket: &str,
+        key: &str,
+        version_id: Option<&str>,
+    ) -> Result<()> {
         let vid = version_id.unwrap_or("null");
 
         sqlx::query(
@@ -902,9 +955,13 @@ impl MetadataRepository for PostgresStore {
 
     // ============= Lifecycle Operations =============
 
-    async fn put_bucket_lifecycle(&self, bucket: &str, config: &LifecycleConfiguration) -> Result<()> {
-        let config_json = serde_json::to_value(config)
-            .map_err(|e| Error::InternalError(e.to_string()))?;
+    async fn put_bucket_lifecycle(
+        &self,
+        bucket: &str,
+        config: &LifecycleConfiguration,
+    ) -> Result<()> {
+        let config_json =
+            serde_json::to_value(config).map_err(|e| Error::InternalError(e.to_string()))?;
 
         sqlx::query(
             r#"
@@ -925,13 +982,12 @@ impl MetadataRepository for PostgresStore {
     }
 
     async fn get_bucket_lifecycle(&self, bucket: &str) -> Result<Option<LifecycleConfiguration>> {
-        let row: Option<(serde_json::Value,)> = sqlx::query_as(
-            r#"SELECT configuration FROM bucket_lifecycle WHERE bucket = $1"#,
-        )
-        .bind(bucket)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        let row: Option<(serde_json::Value,)> =
+            sqlx::query_as(r#"SELECT configuration FROM bucket_lifecycle WHERE bucket = $1"#)
+                .bind(bucket)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         match row {
             Some((config_json,)) => {
@@ -954,12 +1010,10 @@ impl MetadataRepository for PostgresStore {
     }
 
     async fn get_buckets_with_lifecycle(&self) -> Result<Vec<String>> {
-        let rows: Vec<(String,)> = sqlx::query_as(
-            r#"SELECT bucket FROM bucket_lifecycle"#,
-        )
-        .fetch_all(&self.pool)
-        .await
-        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        let rows: Vec<(String,)> = sqlx::query_as(r#"SELECT bucket FROM bucket_lifecycle"#)
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(rows.into_iter().map(|r| r.0).collect())
     }
@@ -969,7 +1023,12 @@ impl MetadataRepository for PostgresStore {
         Ok(config.map(|c| c.rules).unwrap_or_default())
     }
 
-    async fn get_objects_for_lifecycle(&self, bucket: &str, prefix: Option<&str>, limit: i32) -> Result<Vec<ObjectWithTags>> {
+    async fn get_objects_for_lifecycle(
+        &self,
+        bucket: &str,
+        prefix: Option<&str>,
+        limit: i32,
+    ) -> Result<Vec<ObjectWithTags>> {
         let prefix = prefix.unwrap_or("");
 
         let rows: Vec<(String, String, i64, DateTime<Utc>, bool, bool)> = sqlx::query_as(
@@ -1032,7 +1091,12 @@ impl MetadataRepository for PostgresStore {
         Ok(())
     }
 
-    async fn get_multipart_upload(&self, bucket: &str, key: &str, upload_id: &str) -> Result<Option<MultipartUpload>> {
+    async fn get_multipart_upload(
+        &self,
+        bucket: &str,
+        key: &str,
+        upload_id: &str,
+    ) -> Result<Option<MultipartUpload>> {
         let row: Option<(String, String, String, String, Option<serde_json::Value>, String, String, DateTime<Utc>)> =
             sqlx::query_as(
                 r#"
@@ -1049,9 +1113,9 @@ impl MetadataRepository for PostgresStore {
             .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| {
-            let metadata: HashMap<String, String> = r.4
-                .and_then(|v| serde_json::from_value(v).ok())
-                .unwrap_or_default();
+            let metadata: HashMap<String, String> =
+                r.4.and_then(|v| serde_json::from_value(v).ok())
+                    .unwrap_or_default();
 
             MultipartUpload {
                 upload_id: r.0,
@@ -1066,24 +1130,29 @@ impl MetadataRepository for PostgresStore {
         }))
     }
 
-    async fn list_multipart_uploads(&self, bucket: &str, prefix: &str, marker: &str, max_uploads: i32) -> Result<Vec<MultipartUploadInfo>> {
-        let rows: Vec<(String, String, String, String, DateTime<Utc>)> =
-            sqlx::query_as(
-                r#"
+    async fn list_multipart_uploads(
+        &self,
+        bucket: &str,
+        prefix: &str,
+        marker: &str,
+        max_uploads: i32,
+    ) -> Result<Vec<MultipartUploadInfo>> {
+        let rows: Vec<(String, String, String, String, DateTime<Utc>)> = sqlx::query_as(
+            r#"
                 SELECT upload_id, key, initiator_id, storage_class, created_at
                 FROM multipart_uploads
                 WHERE bucket = $1 AND key LIKE $2 AND key > $3
                 ORDER BY key
                 LIMIT $4
                 "#,
-            )
-            .bind(bucket)
-            .bind(format!("{}%", prefix))
-            .bind(marker)
-            .bind(max_uploads)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        )
+        .bind(bucket)
+        .bind(format!("{}%", prefix))
+        .bind(marker)
+        .bind(max_uploads)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(rows
             .into_iter()
@@ -1097,7 +1166,12 @@ impl MetadataRepository for PostgresStore {
             .collect())
     }
 
-    async fn delete_multipart_upload(&self, bucket: &str, key: &str, upload_id: &str) -> Result<()> {
+    async fn delete_multipart_upload(
+        &self,
+        bucket: &str,
+        key: &str,
+        upload_id: &str,
+    ) -> Result<()> {
         sqlx::query(
             r#"DELETE FROM multipart_uploads WHERE bucket = $1 AND key = $2 AND upload_id = $3"#,
         )
@@ -1121,7 +1195,13 @@ impl MetadataRepository for PostgresStore {
         Ok(())
     }
 
-    async fn create_upload_part(&self, bucket: &str, key: &str, upload_id: &str, part: &UploadPart) -> Result<()> {
+    async fn create_upload_part(
+        &self,
+        bucket: &str,
+        key: &str,
+        upload_id: &str,
+        part: &UploadPart,
+    ) -> Result<()> {
         sqlx::query(
             r#"
             INSERT INTO upload_parts (bucket, key, upload_id, part_number, size, etag, last_modified)
@@ -1146,22 +1226,26 @@ impl MetadataRepository for PostgresStore {
         Ok(())
     }
 
-    async fn get_upload_parts(&self, bucket: &str, key: &str, upload_id: &str) -> Result<Vec<UploadPart>> {
-        let rows: Vec<(i32, i64, String, DateTime<Utc>)> =
-            sqlx::query_as(
-                r#"
+    async fn get_upload_parts(
+        &self,
+        bucket: &str,
+        key: &str,
+        upload_id: &str,
+    ) -> Result<Vec<UploadPart>> {
+        let rows: Vec<(i32, i64, String, DateTime<Utc>)> = sqlx::query_as(
+            r#"
                 SELECT part_number, size, etag, last_modified
                 FROM upload_parts
                 WHERE bucket = $1 AND key = $2 AND upload_id = $3
                 ORDER BY part_number
                 "#,
-            )
-            .bind(bucket)
-            .bind(key)
-            .bind(upload_id)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        )
+        .bind(bucket)
+        .bind(key)
+        .bind(upload_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(rows
             .into_iter()

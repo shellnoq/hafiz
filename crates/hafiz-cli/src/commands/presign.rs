@@ -6,12 +6,7 @@ use anyhow::{Context, Result};
 use aws_sdk_s3::presigning::PresigningConfig;
 use std::time::Duration;
 
-pub async fn execute(
-    ctx: &CommandContext,
-    path: &str,
-    expires: u64,
-    method: &str,
-) -> Result<()> {
+pub async fn execute(ctx: &CommandContext, path: &str, expires: u64, method: &str) -> Result<()> {
     let client = create_client(&ctx.config).await?;
     let uri = S3Uri::parse(path)?;
     let key = uri.key.as_ref().context("Object key required")?;

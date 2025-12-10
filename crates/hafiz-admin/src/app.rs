@@ -1,13 +1,13 @@
 //! Main application component with routing
 
-use leptos::*;
 use leptos::spawn_local;
-use leptos_router::{Route, Router, Routes, Outlet, use_navigate, A};
+use leptos::*;
+use leptos_router::{use_navigate, Outlet, Route, Router, Routes, A};
 
 use crate::components::{Header, Sidebar};
 use crate::pages::{
-    BucketDetailPage, BucketsPage, ClusterPage, DashboardPage, LdapSettingsPage,
-    NotFoundPage, ObjectsPage, SettingsPage, UsersPage,
+    BucketDetailPage, BucketsPage, ClusterPage, DashboardPage, LdapSettingsPage, NotFoundPage,
+    ObjectsPage, SettingsPage, UsersPage,
 };
 
 /// Root application component

@@ -42,7 +42,8 @@ impl ClusterManager {
     /// Create a new cluster manager
     pub fn new(config: ClusterConfig) -> ClusterResult<Self> {
         // Check if cluster mode should be enabled
-        let enabled = !config.seed_nodes.is_empty() || config.advertise_endpoint != "http://localhost:9000";
+        let enabled =
+            !config.seed_nodes.is_empty() || config.advertise_endpoint != "http://localhost:9000";
 
         if !enabled {
             info!("Cluster mode disabled (no seed nodes configured)");
@@ -177,8 +178,8 @@ impl ClusterManager {
                 .iter()
                 .filter(|n| matches!(n.role, hafiz_core::types::NodeRole::Replica))
                 .count() as u32,
-            total_objects: 0,        // TODO: Get from metadata
-            total_storage_bytes: 0,  // TODO: Get from storage
+            total_objects: 0,       // TODO: Get from metadata
+            total_storage_bytes: 0, // TODO: Get from storage
             pending_replications: replicator_stats.pending,
             failed_replications: replicator_stats.failed,
             replication_lag_secs: 0, // TODO: Calculate
@@ -222,7 +223,9 @@ impl ClusterManager {
     pub async fn handle_message(&self, message: ClusterMessage) -> ClusterResult<ClusterMessage> {
         match message {
             ClusterMessage::JoinRequest { node, cluster_name } => {
-                self.discovery.handle_join_request(node, &cluster_name).await
+                self.discovery
+                    .handle_join_request(node, &cluster_name)
+                    .await
             }
             ClusterMessage::Heartbeat { node, stats } => {
                 self.discovery.handle_heartbeat(node, stats).await?;
@@ -245,7 +248,10 @@ impl ClusterManager {
                     stats: NodeStats::default(),
                 })
             }
-            ClusterMessage::StateSync { nodes, replication_rules } => {
+            ClusterMessage::StateSync {
+                nodes,
+                replication_rules,
+            } => {
                 // Apply state sync
                 for rule in replication_rules {
                     self.add_replication_rule(rule);

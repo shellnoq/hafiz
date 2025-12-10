@@ -132,7 +132,10 @@ impl Replicator {
 
     /// Start the replicator
     pub async fn start(&self) -> ClusterResult<()> {
-        info!("Starting replicator with max {} concurrent replications", self.config.max_concurrent);
+        info!(
+            "Starting replicator with max {} concurrent replications",
+            self.config.max_concurrent
+        );
         Ok(())
     }
 
@@ -144,7 +147,10 @@ impl Replicator {
 
     /// Add a replication rule
     pub fn add_rule(&self, rule: ReplicationRule) {
-        info!("Adding replication rule {} for bucket {}", rule.id, rule.source_bucket);
+        info!(
+            "Adding replication rule {} for bucket {}",
+            rule.id, rule.source_bucket
+        );
         self.rules.write().push(rule);
     }
 
@@ -276,9 +282,10 @@ impl Replicator {
                 .filter(|r| {
                     r.enabled
                         && r.source_bucket == event.bucket
-                        && event.key.as_ref().map_or(true, |k| {
-                            r.matches(k, &event.metadata)
-                        })
+                        && event
+                            .key
+                            .as_ref()
+                            .map_or(true, |k| r.matches(k, &event.metadata))
                 })
                 .cloned()
                 .collect()
@@ -317,12 +324,7 @@ impl Replicator {
             match event.event_type {
                 ReplicationEventType::ObjectCreated | ReplicationEventType::MetadataUpdated => {
                     let bytes = Self::replicate_object(
-                        event,
-                        &targets,
-                        transport,
-                        discovery,
-                        progress,
-                        config,
+                        event, &targets, transport, discovery, progress, config,
                     )
                     .await?;
                     total_bytes += bytes;
@@ -351,9 +353,10 @@ impl Replicator {
         progress: &RwLock<HashMap<String, ReplicationProgress>>,
         config: &ReplicatorConfig,
     ) -> ClusterResult<u64> {
-        let key = event.key.as_ref().ok_or_else(|| {
-            ClusterError::Internal("Object event missing key".to_string())
-        })?;
+        let key = event
+            .key
+            .as_ref()
+            .ok_or_else(|| ClusterError::Internal("Object event missing key".to_string()))?;
 
         let progress_key = format!("{}/{}", event.bucket, key);
 
@@ -451,9 +454,10 @@ impl Replicator {
         transport: &ClusterTransport,
         progress: &RwLock<HashMap<String, ReplicationProgress>>,
     ) -> ClusterResult<()> {
-        let key = event.key.as_ref().ok_or_else(|| {
-            ClusterError::Internal("Delete event missing key".to_string())
-        })?;
+        let key = event
+            .key
+            .as_ref()
+            .ok_or_else(|| ClusterError::Internal("Delete event missing key".to_string()))?;
 
         for target in targets {
             // TODO: Implement delete API on transport

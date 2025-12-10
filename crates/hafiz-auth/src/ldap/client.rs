@@ -434,7 +434,12 @@ impl LdapClient {
                 "",
                 Scope::Base,
                 "(objectClass=*)",
-                vec!["vendorName", "vendorVersion", "namingContexts", "supportedLDAPVersion"],
+                vec![
+                    "vendorName",
+                    "vendorVersion",
+                    "namingContexts",
+                    "supportedLDAPVersion",
+                ],
             )
             .await
             .map_err(|e| format!("Root DSE query failed: {}", e))?
@@ -557,4 +562,3 @@ mod tests {
         assert_eq!(cached.unwrap().username, "test");
     }
 }
-

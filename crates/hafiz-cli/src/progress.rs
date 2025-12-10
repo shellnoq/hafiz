@@ -53,7 +53,9 @@ impl TransferProgress {
         let total_bar = multi.add(ProgressBar::new(total_files));
         total_bar.set_style(
             ProgressStyle::default_bar()
-                .template("{spinner:.green} [{elapsed_precise}] Total: {pos}/{len} files ({percent}%)")
+                .template(
+                    "{spinner:.green} [{elapsed_precise}] Total: {pos}/{len} files ({percent}%)",
+                )
                 .unwrap()
                 .progress_chars("#>-"),
         );

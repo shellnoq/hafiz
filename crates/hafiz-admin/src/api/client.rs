@@ -9,10 +9,7 @@ use web_sys::window;
 /// Base URL for Admin API
 fn api_base() -> String {
     // Check localStorage for custom API URL, default to relative path
-    if let Some(storage) = window()
-        .and_then(|w| w.local_storage().ok())
-        .flatten()
-    {
+    if let Some(storage) = window().and_then(|w| w.local_storage().ok()).flatten() {
         if let Ok(Some(url)) = storage.get_item("hafiz_api_url") {
             return url;
         }
@@ -48,13 +45,10 @@ async fn get<T: serde::de::DeserializeOwned>(endpoint: &str) -> Result<T, ApiErr
         request = request.header("Authorization", &auth);
     }
 
-    let response = request
-        .send()
-        .await
-        .map_err(|e| ApiError {
-            code: "NetworkError".to_string(),
-            message: e.to_string(),
-        })?;
+    let response = request.send().await.map_err(|e| ApiError {
+        code: "NetworkError".to_string(),
+        message: e.to_string(),
+    })?;
 
     if !response.ok() {
         let status = response.status();
@@ -82,8 +76,7 @@ async fn post<T: serde::de::DeserializeOwned, B: serde::Serialize>(
 ) -> Result<T, ApiError> {
     let url = format!("{}{}", api_base(), endpoint);
 
-    let mut request = Request::post(&url)
-        .header("Content-Type", "application/json");
+    let mut request = Request::post(&url).header("Content-Type", "application/json");
 
     if let Some(auth) = get_auth_header() {
         request = request.header("Authorization", &auth);
@@ -131,13 +124,10 @@ async fn delete(endpoint: &str) -> Result<(), ApiError> {
         request = request.header("Authorization", &auth);
     }
 
-    let response = request
-        .send()
-        .await
-        .map_err(|e| ApiError {
-            code: "NetworkError".to_string(),
-            message: e.to_string(),
-        })?;
+    let response = request.send().await.map_err(|e| ApiError {
+        code: "NetworkError".to_string(),
+        message: e.to_string(),
+    })?;
 
     if !response.ok() {
         let status = response.status();
@@ -194,7 +184,8 @@ pub async fn get_dashboard_stats() -> Result<DashboardStats, ApiError> {
         total_objects: stats.total_objects,
         total_size: stats.total_size,
         total_users: stats.total_users,
-        recent_buckets: stats.recent_buckets
+        recent_buckets: stats
+            .recent_buckets
             .into_iter()
             .map(|b| BucketInfo {
                 name: b.name,
@@ -296,10 +287,14 @@ pub async fn create_bucket(name: &str) -> Result<BucketInfo, ApiError> {
         });
     }
 
-    if !name.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-' || c == '.') {
+    if !name
+        .chars()
+        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-' || c == '.')
+    {
         return Err(ApiError {
             code: "InvalidBucketName".to_string(),
-            message: "Bucket name must contain only lowercase letters, numbers, hyphens, and dots".to_string(),
+            message: "Bucket name must contain only lowercase letters, numbers, hyphens, and dots"
+                .to_string(),
         });
     }
 
@@ -312,13 +307,10 @@ pub async fn create_bucket(name: &str) -> Result<BucketInfo, ApiError> {
         request = request.header("Authorization", &auth);
     }
 
-    let response = request
-        .send()
-        .await
-        .map_err(|e| ApiError {
-            code: "NetworkError".to_string(),
-            message: e.to_string(),
-        })?;
+    let response = request.send().await.map_err(|e| ApiError {
+        code: "NetworkError".to_string(),
+        message: e.to_string(),
+    })?;
 
     if !response.ok() {
         let status = response.status();
@@ -348,13 +340,10 @@ pub async fn delete_bucket(name: &str) -> Result<(), ApiError> {
         request = request.header("Authorization", &auth);
     }
 
-    let response = request
-        .send()
-        .await
-        .map_err(|e| ApiError {
-            code: "NetworkError".to_string(),
-            message: e.to_string(),
-        })?;
+    let response = request.send().await.map_err(|e| ApiError {
+        code: "NetworkError".to_string(),
+        message: e.to_string(),
+    })?;
 
     if !response.ok() {
         let status = response.status();
@@ -378,7 +367,11 @@ pub async fn list_objects(bucket: &str, prefix: &str) -> Result<ObjectListing, A
     let url = if prefix.is_empty() {
         format!("/{}?list-type=2&delimiter=/", bucket)
     } else {
-        format!("/{}?list-type=2&delimiter=/&prefix={}", bucket, urlencoding::encode(prefix))
+        format!(
+            "/{}?list-type=2&delimiter=/&prefix={}",
+            bucket,
+            urlencoding::encode(prefix)
+        )
     };
 
     let mut request = Request::get(&url);
@@ -387,13 +380,10 @@ pub async fn list_objects(bucket: &str, prefix: &str) -> Result<ObjectListing, A
         request = request.header("Authorization", &auth);
     }
 
-    let response = request
-        .send()
-        .await
-        .map_err(|e| ApiError {
-            code: "NetworkError".to_string(),
-            message: e.to_string(),
-        })?;
+    let response = request.send().await.map_err(|e| ApiError {
+        code: "NetworkError".to_string(),
+        message: e.to_string(),
+    })?;
 
     if !response.ok() {
         let status = response.status();
@@ -431,8 +421,7 @@ fn parse_list_objects_response(xml: &str) -> Result<ObjectListing, ApiError> {
                 .unwrap_or_default()
                 .trim_matches('"')
                 .to_string();
-            let last_modified = extract_xml_value(content_xml, "LastModified")
-                .unwrap_or_default();
+            let last_modified = extract_xml_value(content_xml, "LastModified").unwrap_or_default();
 
             objects.push(ObjectInfo {
                 key,
@@ -513,7 +502,8 @@ pub async fn list_users() -> Result<Vec<UserInfo>, ApiError> {
 
     let response: ApiUserList = get("/users").await?;
 
-    Ok(response.users
+    Ok(response
+        .users
         .into_iter()
         .map(|u| UserInfo {
             name: u.name,
@@ -588,13 +578,10 @@ pub async fn enable_user(access_key: &str) -> Result<(), ApiError> {
         request = request.header("Authorization", &auth);
     }
 
-    let response = request
-        .send()
-        .await
-        .map_err(|e| ApiError {
-            code: "NetworkError".to_string(),
-            message: e.to_string(),
-        })?;
+    let response = request.send().await.map_err(|e| ApiError {
+        code: "NetworkError".to_string(),
+        message: e.to_string(),
+    })?;
 
     if !response.ok() {
         return Err(ApiError {
@@ -616,13 +603,10 @@ pub async fn disable_user(access_key: &str) -> Result<(), ApiError> {
         request = request.header("Authorization", &auth);
     }
 
-    let response = request
-        .send()
-        .await
-        .map_err(|e| ApiError {
-            code: "NetworkError".to_string(),
-            message: e.to_string(),
-        })?;
+    let response = request.send().await.map_err(|e| ApiError {
+        code: "NetworkError".to_string(),
+        message: e.to_string(),
+    })?;
 
     if !response.ok() {
         return Err(ApiError {
@@ -712,10 +696,7 @@ pub async fn health_check() -> Result<HealthStatus, ApiError> {
 /// Validate credentials by calling server info
 pub async fn validate_credentials(access_key: &str, secret_key: &str) -> Result<bool, ApiError> {
     // Temporarily store credentials
-    if let Some(storage) = window()
-        .and_then(|w| w.local_storage().ok())
-        .flatten()
-    {
+    if let Some(storage) = window().and_then(|w| w.local_storage().ok()).flatten() {
         let _ = storage.set_item("hafiz_access_key", access_key);
         let _ = storage.set_item("hafiz_secret_key", secret_key);
     }
@@ -725,10 +706,7 @@ pub async fn validate_credentials(access_key: &str, secret_key: &str) -> Result<
         Ok(_) => Ok(true),
         Err(e) if e.code.contains("401") || e.code.contains("403") => {
             // Clear invalid credentials
-            if let Some(storage) = window()
-                .and_then(|w| w.local_storage().ok())
-                .flatten()
-            {
+            if let Some(storage) = window().and_then(|w| w.local_storage().ok()).flatten() {
                 let _ = storage.remove_item("hafiz_access_key");
                 let _ = storage.remove_item("hafiz_secret_key");
             }
@@ -740,10 +718,7 @@ pub async fn validate_credentials(access_key: &str, secret_key: &str) -> Result<
 
 /// Logout - clear stored credentials
 pub fn logout() {
-    if let Some(storage) = window()
-        .and_then(|w| w.local_storage().ok())
-        .flatten()
-    {
+    if let Some(storage) = window().and_then(|w| w.local_storage().ok()).flatten() {
         let _ = storage.remove_item("hafiz_access_key");
         let _ = storage.remove_item("hafiz_secret_key");
     }
@@ -763,9 +738,9 @@ pub fn is_logged_in() -> bool {
 
 /// Upload an object to a bucket using S3 PUT API
 pub async fn upload_object(bucket: &str, key: &str, file: web_sys::File) -> Result<(), ApiError> {
+    use js_sys::{ArrayBuffer, Uint8Array};
     use wasm_bindgen::JsCast;
     use wasm_bindgen_futures::JsFuture;
-    use js_sys::{ArrayBuffer, Uint8Array};
 
     // Read file contents
     let array_buffer_promise = file.array_buffer();
@@ -929,7 +904,11 @@ pub async fn get_cluster_node(node_id: &str) -> Result<NodeInfo, ApiError> {
 
 /// Drain a node
 pub async fn drain_cluster_node(node_id: &str) -> Result<serde_json::Value, ApiError> {
-    post(&format!("/cluster/nodes/{}/drain", node_id), &serde_json::json!({})).await
+    post(
+        &format!("/cluster/nodes/{}/drain", node_id),
+        &serde_json::json!({}),
+    )
+    .await
 }
 
 /// Remove a node from cluster
@@ -943,7 +922,9 @@ pub async fn list_replication_rules() -> Result<ReplicationRulesList, ApiError> 
 }
 
 /// Create a replication rule
-pub async fn create_replication_rule(request: &CreateReplicationRuleRequest) -> Result<ReplicationRule, ApiError> {
+pub async fn create_replication_rule(
+    request: &CreateReplicationRuleRequest,
+) -> Result<ReplicationRule, ApiError> {
     post("/cluster/replication/rules", request).await
 }
 
@@ -967,18 +948,26 @@ pub async fn get_replication_stats() -> Result<ReplicationStats, ApiError> {
 // ============================================================================
 
 /// Generate a pre-signed URL
-pub async fn generate_presigned_url(request: &PresignedUrlRequest) -> Result<PresignedUrlResponse, ApiError> {
+pub async fn generate_presigned_url(
+    request: &PresignedUrlRequest,
+) -> Result<PresignedUrlResponse, ApiError> {
     post("/presigned", request).await
 }
 
 /// Generate a pre-signed download URL (shortcut)
-pub async fn generate_presigned_download(bucket: &str, key: &str) -> Result<PresignedUrlResponse, ApiError> {
+pub async fn generate_presigned_download(
+    bucket: &str,
+    key: &str,
+) -> Result<PresignedUrlResponse, ApiError> {
     let encoded_key = urlencoding::encode(key);
     post_empty(&format!("/presigned/download/{}/{}", bucket, encoded_key)).await
 }
 
 /// Generate a pre-signed upload URL (shortcut)
-pub async fn generate_presigned_upload(bucket: &str, key: &str) -> Result<PresignedUrlResponse, ApiError> {
+pub async fn generate_presigned_upload(
+    bucket: &str,
+    key: &str,
+) -> Result<PresignedUrlResponse, ApiError> {
     let encoded_key = urlencoding::encode(key);
     post_empty(&format!("/presigned/upload/{}/{}", bucket, encoded_key)).await
 }
@@ -987,8 +976,7 @@ pub async fn generate_presigned_upload(bucket: &str, key: &str) -> Result<Presig
 async fn post_empty<T: serde::de::DeserializeOwned>(endpoint: &str) -> Result<T, ApiError> {
     let url = format!("{}{}", api_base(), endpoint);
 
-    let mut request = Request::post(&url)
-        .header("Content-Type", "application/json");
+    let mut request = Request::post(&url).header("Content-Type", "application/json");
 
     if let Some(auth) = get_auth_header() {
         request = request.header("Authorization", &auth);
@@ -1033,7 +1021,9 @@ pub async fn get_ldap_status() -> Result<LdapStatus, ApiError> {
     let response: ApiResponse<LdapStatus> = get("/ldap/status").await?;
     response.data.ok_or_else(|| ApiError {
         code: "NoData".to_string(),
-        message: response.error.unwrap_or_else(|| "No data returned".to_string()),
+        message: response
+            .error
+            .unwrap_or_else(|| "No data returned".to_string()),
     })
 }
 
@@ -1042,7 +1032,9 @@ pub async fn get_ldap_config() -> Result<LdapConfig, ApiError> {
     let response: ApiResponse<LdapConfig> = get("/ldap/config").await?;
     response.data.ok_or_else(|| ApiError {
         code: "NoData".to_string(),
-        message: response.error.unwrap_or_else(|| "No data returned".to_string()),
+        message: response
+            .error
+            .unwrap_or_else(|| "No data returned".to_string()),
     })
 }
 
@@ -1053,29 +1045,42 @@ pub async fn update_ldap_config(config: &LdapConfig) -> Result<(), ApiError> {
 }
 
 /// Test LDAP connection
-pub async fn test_ldap_connection(request: &TestLdapConnectionRequest) -> Result<TestLdapConnectionResponse, ApiError> {
-    let response: ApiResponse<TestLdapConnectionResponse> = post("/ldap/test-connection", request).await?;
+pub async fn test_ldap_connection(
+    request: &TestLdapConnectionRequest,
+) -> Result<TestLdapConnectionResponse, ApiError> {
+    let response: ApiResponse<TestLdapConnectionResponse> =
+        post("/ldap/test-connection", request).await?;
     response.data.ok_or_else(|| ApiError {
         code: "NoData".to_string(),
-        message: response.error.unwrap_or_else(|| "No data returned".to_string()),
+        message: response
+            .error
+            .unwrap_or_else(|| "No data returned".to_string()),
     })
 }
 
 /// Test LDAP user search
-pub async fn test_ldap_search(request: &TestLdapSearchRequest) -> Result<TestLdapSearchResponse, ApiError> {
+pub async fn test_ldap_search(
+    request: &TestLdapSearchRequest,
+) -> Result<TestLdapSearchResponse, ApiError> {
     let response: ApiResponse<TestLdapSearchResponse> = post("/ldap/test-search", request).await?;
     response.data.ok_or_else(|| ApiError {
         code: "NoData".to_string(),
-        message: response.error.unwrap_or_else(|| "No data returned".to_string()),
+        message: response
+            .error
+            .unwrap_or_else(|| "No data returned".to_string()),
     })
 }
 
 /// Test LDAP authentication
-pub async fn test_ldap_auth(request: &TestLdapAuthRequest) -> Result<TestLdapAuthResponse, ApiError> {
+pub async fn test_ldap_auth(
+    request: &TestLdapAuthRequest,
+) -> Result<TestLdapAuthResponse, ApiError> {
     let response: ApiResponse<TestLdapAuthResponse> = post("/ldap/authenticate", request).await?;
     response.data.ok_or_else(|| ApiError {
         code: "NoData".to_string(),
-        message: response.error.unwrap_or_else(|| "No data returned".to_string()),
+        message: response
+            .error
+            .unwrap_or_else(|| "No data returned".to_string()),
     })
 }
 

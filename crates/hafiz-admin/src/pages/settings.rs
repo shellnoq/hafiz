@@ -1,8 +1,8 @@
 //! Settings page
 
-use leptos::*;
 use crate::api;
 use crate::components::{Button, ButtonVariant};
+use leptos::*;
 
 #[component]
 pub fn SettingsPage() -> impl IntoView {
@@ -215,11 +215,7 @@ fn SettingItem(label: &'static str, value: String) -> impl IntoView {
 }
 
 #[component]
-fn SettingToggle(
-    label: &'static str,
-    description: &'static str,
-    enabled: bool,
-) -> impl IntoView {
+fn SettingToggle(label: &'static str, description: &'static str, enabled: bool) -> impl IntoView {
     let (is_enabled, set_enabled) = create_signal(enabled);
 
     view! {

@@ -187,7 +187,8 @@ pub async fn get_storage_stats(
     let mut total_objects: i64 = 0;
     let mut largest_bucket: Option<String> = None;
     let mut largest_bucket_size: i64 = 0;
-    let mut type_stats: std::collections::HashMap<String, (i64, i64)> = std::collections::HashMap::new();
+    let mut type_stats: std::collections::HashMap<String, (i64, i64)> =
+        std::collections::HashMap::new();
 
     for bucket in &buckets {
         let objects = metadata
@@ -208,7 +209,10 @@ pub async fn get_storage_stats(
 
         // Aggregate by content type
         for obj in &objects {
-            let content_type = obj.content_type.clone().unwrap_or_else(|| "application/octet-stream".to_string());
+            let content_type = obj
+                .content_type
+                .clone()
+                .unwrap_or_else(|| "application/octet-stream".to_string());
             let entry = type_stats.entry(content_type).or_insert((0, 0));
             entry.0 += 1;
             entry.1 += obj.size;
@@ -322,7 +326,10 @@ pub async fn get_bucket_stats(
         .get_bucket(&name)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .ok_or((StatusCode::NOT_FOUND, format!("Bucket '{}' not found", name)))?;
+        .ok_or((
+            StatusCode::NOT_FOUND,
+            format!("Bucket '{}' not found", name),
+        ))?;
 
     // Get objects
     let objects = metadata

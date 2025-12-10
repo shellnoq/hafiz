@@ -13,5 +13,5 @@
 mod client;
 mod types;
 
-pub use client::{LdapClient, LdapAuthProvider};
+pub use client::{LdapAuthProvider, LdapClient};
 pub use types::*;

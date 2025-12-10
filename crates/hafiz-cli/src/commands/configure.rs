@@ -42,7 +42,9 @@ fn list_config() -> Result<()> {
     println!();
 
     for key in Config::keys() {
-        let value = config.get_value(key).unwrap_or_else(|| "(not set)".to_string());
+        let value = config
+            .get_value(key)
+            .unwrap_or_else(|| "(not set)".to_string());
         println!("  {}: {}", key.cyan(), value);
     }
 
@@ -71,7 +73,10 @@ fn add_profile(name: &str) -> Result<()> {
     let config = Config::default();
     config.save(Some(name))?;
     println!("Created profile: {}", name.green());
-    println!("Use 'hafiz configure set <key> <value> --profile {}' to configure it.", name);
+    println!(
+        "Use 'hafiz configure set <key> <value> --profile {}' to configure it.",
+        name
+    );
     Ok(())
 }
 

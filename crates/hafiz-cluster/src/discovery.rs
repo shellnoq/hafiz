@@ -80,7 +80,10 @@ impl DiscoveryService {
 
     /// Start the discovery service
     pub async fn start(&self) -> ClusterResult<()> {
-        info!("Starting discovery service for cluster '{}'", self.config.name);
+        info!(
+            "Starting discovery service for cluster '{}'",
+            self.config.name
+        );
 
         // Try to join via seed nodes
         if !self.config.seed_nodes.is_empty() {
@@ -273,11 +276,7 @@ impl DiscoveryService {
     }
 
     /// Handle a heartbeat from another node
-    pub async fn handle_heartbeat(
-        &self,
-        node: ClusterNode,
-        stats: NodeStats,
-    ) -> ClusterResult<()> {
+    pub async fn handle_heartbeat(&self, node: ClusterNode, stats: NodeStats) -> ClusterResult<()> {
         let mut nodes = self.nodes.write();
 
         if let Some(existing) = nodes.get_mut(&node.id) {

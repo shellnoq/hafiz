@@ -429,10 +429,9 @@ impl LdapConfig {
 
     /// Build group search filter with DN/username substitution
     pub fn build_group_filter(&self, user_dn: &str, username: &str) -> Option<String> {
-        self.group_filter.as_ref().map(|f| {
-            f.replace("{dn}", user_dn)
-                .replace("{username}", username)
-        })
+        self.group_filter
+            .as_ref()
+            .map(|f| f.replace("{dn}", user_dn).replace("{username}", username))
     }
 
     /// Map groups to policies

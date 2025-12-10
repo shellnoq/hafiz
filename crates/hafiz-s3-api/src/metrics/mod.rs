@@ -143,8 +143,12 @@ impl S3Operation {
             ("GET", true) if query.contains("tagging") => Some(Self::GetObjectTagging),
             ("PUT", true) if query.contains("tagging") => Some(Self::PutObjectTagging),
             ("DELETE", true) if query.contains("tagging") => Some(Self::DeleteObjectTagging),
-            ("POST", true) if query.contains("uploads") && !query.contains("uploadId") => Some(Self::CreateMultipartUpload),
-            ("PUT", true) if query.contains("uploadId") && query.contains("partNumber") => Some(Self::UploadPart),
+            ("POST", true) if query.contains("uploads") && !query.contains("uploadId") => {
+                Some(Self::CreateMultipartUpload)
+            }
+            ("PUT", true) if query.contains("uploadId") && query.contains("partNumber") => {
+                Some(Self::UploadPart)
+            }
             ("POST", true) if query.contains("uploadId") => Some(Self::CompleteMultipartUpload),
             ("DELETE", true) if query.contains("uploadId") => Some(Self::AbortMultipartUpload),
             ("GET", true) if query.contains("uploadId") => Some(Self::ListParts),
@@ -332,7 +336,14 @@ pub async fn metrics_middleware(
         .unwrap_or(0);
 
     // Record HTTP metrics
-    metrics.record_http_request(&method, &path, status, duration, request_size, response_size);
+    metrics.record_http_request(
+        &method,
+        &path,
+        status,
+        duration,
+        request_size,
+        response_size,
+    );
 
     // Record S3 operation metrics
     if let Some(op) = s3_op {

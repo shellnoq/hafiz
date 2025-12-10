@@ -5,14 +5,14 @@ pub mod presigned;
 pub mod signature;
 
 pub use ldap::{
-    LdapAuthProvider, LdapClient, LdapConfig, LdapUser, LdapAuthResult,
-    LdapStatus, LdapServerType, AttributeMappings,
+    AttributeMappings, LdapAuthProvider, LdapAuthResult, LdapClient, LdapConfig, LdapServerType,
+    LdapStatus, LdapUser,
 };
 pub use presigned::{
-    generate_presigned_url, verify_presigned_url,
-    extract_access_key_from_presigned, is_presigned_request,
+    extract_access_key_from_presigned, generate_presigned_url, is_presigned_request,
+    verify_presigned_url,
 };
-pub use signature::{SignatureV4, verify_signature_v4};
+pub use signature::{verify_signature_v4, SignatureV4};
 
 use rand::Rng;
 

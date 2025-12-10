@@ -1,7 +1,7 @@
 //! 404 Not Found page
 
-use leptos::*;
 use crate::components::Button;
+use leptos::*;
 
 #[component]
 pub fn NotFoundPage() -> impl IntoView {

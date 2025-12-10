@@ -166,9 +166,7 @@ impl EventDispatcher {
                 records: vec![record],
             };
 
-            let result = self
-                .deliver_to_target(&target, &message)
-                .await;
+            let result = self.deliver_to_target(&target, &message).await;
 
             results.push(DispatchResult {
                 config_id,
