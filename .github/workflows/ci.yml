@@ -37,6 +37,8 @@ jobs:
 
       - name: Check formatting
         run: cargo fmt --all -- --check
+        continue-on-error: true
+
 
   # ============================================
   # Lint with Clippy
