@@ -22,7 +22,7 @@ env:
 
 jobs:
   # ============================================
-  # Format Check
+  # Format Check (soft fail - warns only)
   # ============================================
   fmt:
     name: Format
@@ -38,7 +38,6 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
         continue-on-error: true
-
 
   # ============================================
   # Lint with Clippy

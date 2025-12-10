@@ -3,7 +3,7 @@
 //! Pre-signed URLs allow temporary access to private objects
 //! without requiring authentication.
 
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// Pre-signed URL request parameters

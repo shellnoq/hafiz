@@ -242,7 +242,7 @@ impl Expiration {
                 now >= expiry
             }
             Self::Date(date) => {
-                let expiry = date.and_hms_opt(0, 0, 0).unwrap();
+                let _expiry = date.and_hms_opt(0, 0, 0).unwrap();
                 now.date_naive() >= *date
             }
             Self::ExpiredObjectDeleteMarker => {

@@ -181,18 +181,16 @@ impl ETag {
 
     /// Create ETag for multipart upload
     pub fn from_multipart(part_etags: &[String], part_count: usize) -> Self {
-        use md5::{Digest, Md5};
-
-        let mut hasher = Md5::new();
+        let mut data = Vec::new();
         for etag in part_etags {
             // Remove quotes and decode hex
             let clean = etag.trim_matches('"');
             if let Ok(bytes) = hex::decode(clean) {
-                hasher.update(&bytes);
+                data.extend_from_slice(&bytes);
             }
         }
-        let hash = hasher.finalize();
-        Self(format!("\"{}-{}\"", hex::encode(hash), part_count))
+        let hash = md5::compute(&data);
+        Self(format!("\"{:x}-{}\"", hash, part_count))
     }
 
     /// Get the hash value without quotes

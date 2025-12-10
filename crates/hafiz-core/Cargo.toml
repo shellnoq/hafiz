@@ -21,3 +21,5 @@ toml = { workspace = true }
 rand = { workspace = true }
 hex = { workspace = true }
 hostname = "0.3"
+md5 = "0.7"
+quick-xml = { version = "0.31", features = ["serialize"] }

@@ -6,7 +6,6 @@
 //! Reference: https://docs.aws.amazon.com/AmazonS3/latest/userguide/cors.html
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
 // ============================================================================
 // CORS Configuration

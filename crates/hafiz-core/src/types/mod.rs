@@ -14,6 +14,7 @@ mod replication;
 mod storage;
 mod user;
 
+// Re-export everything except modules with duplicates
 pub use acl::*;
 pub use bucket::*;
 pub use common::*;
@@ -24,6 +25,14 @@ pub use object::*;
 pub use object_lock::*;
 pub use policy::*;
 pub use presigned::*;
-pub use replication::*;
 pub use storage::*;
-pub use user::*;
+
+// Re-export from replication (except NodeStatus which conflicts with storage)
+pub use replication::{
+    ClusterConfig, ClusterMessage, ClusterNode, ClusterStats, ConflictResolution, ConsistencyLevel,
+    NodeRole, NodeStats, ReplicationConfig, ReplicationDestination, ReplicationEvent,
+    ReplicationEventType, ReplicationMode, ReplicationProgress, ReplicationRule, ReplicationStatus,
+};
+
+// Re-export from user (except Owner which conflicts with acl)
+pub use user::{Credentials, User, UserQuota};

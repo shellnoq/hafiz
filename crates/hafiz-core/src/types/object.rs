@@ -301,8 +301,8 @@ impl From<Object> for ObjectInfo {
             etag: o.etag,
             size: o.size,
             storage_class: "STANDARD".to_string(),
-            version_id: Some(o.version_id),
-            is_latest: Some(o.is_latest),
+            version_id: None,
+            is_latest: None,
         }
     }
 }
