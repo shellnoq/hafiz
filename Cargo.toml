@@ -35,36 +35,36 @@ tokio = { version = "1.35", features = ["full", "tracing"] }
 tokio-util = { version = "0.7", features = ["io", "codec"] }
 
 # HTTP framework
-axum = { version = "0.7", features = ["macros", "multipart", "tokio"] }
-axum-extra = { version = "0.9", features = ["typed-header"] }
-tower = { version = "0.4", features = ["full"] }
-tower-http = { version = "0.5", features = ["full"] }
+axum = { version = "0.8", features = ["macros", "multipart", "tokio"] }
+axum-extra = { version = "0.12", features = ["typed-header"] }
+tower = { version = "0.5", features = ["full"] }
+tower-http = { version = "0.6", features = ["full"] }
 hyper = { version = "1.1", features = ["full"] }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_urlencoded = "0.7"
-quick-xml = { version = "0.31", features = ["serialize"] }
-toml = "0.8"
+quick-xml = { version = "0.38", features = ["serialize"] }
+toml = "0.9"
 serde_yaml = "0.9"
 
 # Database
-sqlx = { version = "0.7", features = ["runtime-tokio", "tls-rustls", "postgres", "sqlite", "uuid", "chrono", "json", "migrate"] }
+sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "postgres", "sqlite", "uuid", "chrono", "json", "migrate"] }
 
 # Cryptography
 sha2 = "0.10"
 sha1 = "0.10"
 md-5 = "0.10"
-md5 = "0.7"
+md5 = "0.8"
 hmac = "0.12"
-base64 = "0.21"
+base64 = "0.22"
 hex = "0.4"
-rand = "0.8"
+rand = "0.9"
 aes-gcm = "0.10"
 
 # Error handling
-thiserror = "1.0"
+thiserror = "2.0"
 anyhow = "1.0"
 
 # Logging & tracing
@@ -72,8 +72,8 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt"] }
 
 # Metrics
-metrics = "0.22"
-metrics-exporter-prometheus = "0.13"
+metrics = "0.24"
+metrics-exporter-prometheus = "0.18"
 
 # Utilities
 uuid = { version = "1.6", features = ["v4", "serde"] }

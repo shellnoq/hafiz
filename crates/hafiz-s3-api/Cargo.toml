@@ -49,9 +49,9 @@ metrics-exporter-prometheus = { workspace = true }
 tokio-rustls = "0.26"
 rustls = "0.23"
 rustls-pemfile = "2.1"
-rcgen = { version = "0.13", features = ["x509-parser"] }
+rcgen = { version = "0.14", features = ["x509-parser"] }
 time = "0.3"
-x509-parser = "0.16"
+x509-parser = "0.18"
 
 # Event notifications
 regex = "1.10"
