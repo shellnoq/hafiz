@@ -20,7 +20,7 @@ base64 = { workspace = true }
 toml = { workspace = true }
 rand = { workspace = true }
 hex = { workspace = true }
-hostname = "0.3"
+hostname = "0.4"
 md-5 = { workspace = true }
 digest = { workspace = true }
-quick-xml = { version = "0.31", features = ["serialize"] }
+quick-xml = { version = "0.38", features = ["serialize"] }
