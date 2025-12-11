@@ -42,31 +42,35 @@ pub fn SettingsPage() -> impl IntoView {
                 <SettingsCard title="System Health" description="Current health status of system components">
                     <Suspense fallback=move || view! { <SettingsSkeleton /> }>
                         {move || health_status.get().map(|result| match result {
-                            Ok(health) => view! {
-                                <div class="space-y-3">
-                                    <div class="flex items-center justify-between p-3 bg-gray-750 rounded-lg">
-                                        <span class="text-gray-300">"Overall Status"</span>
-                                        <span class=move || if health.status == "healthy" {
-                                            "text-green-400 font-medium"
-                                        } else {
-                                            "text-yellow-400 font-medium"
-                                        }>
-                                            {health.status.clone()}
-                                        </span>
+                            Ok(health) => {
+                                let status_class = if health.status == "healthy" {
+                                    "text-green-400 font-medium"
+                                } else {
+                                    "text-yellow-400 font-medium"
+                                };
+                                let status_text = health.status.clone();
+                                view! {
+                                    <div class="space-y-3">
+                                        <div class="flex items-center justify-between p-3 bg-gray-750 rounded-lg">
+                                            <span class="text-gray-300">"Overall Status"</span>
+                                            <span class=status_class>
+                                                {status_text}
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center justify-between p-3 bg-gray-750 rounded-lg">
+                                            <span class="text-gray-300">"Storage"</span>
+                                            <span class=if health.storage_ok { "text-green-400" } else { "text-red-400" }>
+                                                {if health.storage_ok { "✓ OK" } else { "✗ Error" }}
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center justify-between p-3 bg-gray-750 rounded-lg">
+                                            <span class="text-gray-300">"Database"</span>
+                                            <span class=if health.database_ok { "text-green-400" } else { "text-red-400" }>
+                                                {if health.database_ok { "✓ OK" } else { "✗ Error" }}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div class="flex items-center justify-between p-3 bg-gray-750 rounded-lg">
-                                        <span class="text-gray-300">"Storage"</span>
-                                        <span class=if health.storage_ok { "text-green-400" } else { "text-red-400" }>
-                                            {if health.storage_ok { "✓ OK" } else { "✗ Error" }}
-                                        </span>
-                                    </div>
-                                    <div class="flex items-center justify-between p-3 bg-gray-750 rounded-lg">
-                                        <span class="text-gray-300">"Database"</span>
-                                        <span class=if health.database_ok { "text-green-400" } else { "text-red-400" }>
-                                            {if health.database_ok { "✓ OK" } else { "✗ Error" }}
-                                        </span>
-                                    </div>
-                                </div>
+                                }
                             }.into_view(),
                             Err(_) => view! { <p class="text-red-400">"Failed to load health status"</p> }.into_view()
                         })}

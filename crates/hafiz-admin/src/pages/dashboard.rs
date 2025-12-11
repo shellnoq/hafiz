@@ -24,27 +24,31 @@ pub fn DashboardPage() -> impl IntoView {
                                 <StatCardItem
                                     title="Total Buckets"
                                     value=s.total_buckets.to_string()
-                                    icon=IconBucket
                                     color="blue"
-                                />
+                                >
+                                    <IconBucket/>
+                                </StatCardItem>
                                 <StatCardItem
                                     title="Total Objects"
                                     value=format_number(s.total_objects)
-                                    icon=IconFile
                                     color="green"
-                                />
+                                >
+                                    <IconFile/>
+                                </StatCardItem>
                                 <StatCardItem
                                     title="Total Storage"
                                     value=format_bytes(s.total_size)
-                                    icon=IconStorage
                                     color="purple"
-                                />
+                                >
+                                    <IconStorage/>
+                                </StatCardItem>
                                 <StatCardItem
                                     title="Total Users"
                                     value=s.total_users.to_string()
-                                    icon=IconUsers
                                     color="orange"
-                                />
+                                >
+                                    <IconUsers/>
+                                </StatCardItem>
                             </>
                         }.into_view(),
                         Err(_) => view! {
@@ -63,34 +67,37 @@ pub fn DashboardPage() -> impl IntoView {
                     <h2 class="text-lg font-semibold text-white mb-4">"Recent Buckets"</h2>
                     <Suspense fallback=move || view! { <TableSkeleton rows=5 /> }>
                         {move || stats.get().map(|result| match result {
-                            Ok(s) => view! {
-                                <div class="space-y-3">
-                                    {s.recent_buckets.into_iter().map(|bucket| view! {
-                                        <a
-                                            href=format!("/buckets/{}", bucket.name)
-                                            class="flex items-center justify-between p-3 bg-gray-750 rounded-lg hover:bg-gray-700 transition-colors"
-                                        >
-                                            <div class="flex items-center space-x-3">
-                                                <div class="p-2 bg-blue-600/20 rounded-lg">
-                                                    <IconBucket />
+                            Ok(s) => {
+                                let is_empty = s.recent_buckets.is_empty();
+                                view! {
+                                    <div class="space-y-3">
+                                        {s.recent_buckets.into_iter().map(|bucket| view! {
+                                            <a
+                                                href=format!("/buckets/{}", bucket.name)
+                                                class="flex items-center justify-between p-3 bg-gray-750 rounded-lg hover:bg-gray-700 transition-colors"
+                                            >
+                                                <div class="flex items-center space-x-3">
+                                                    <div class="p-2 bg-blue-600/20 rounded-lg">
+                                                        <IconBucket />
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-white font-medium">{&bucket.name}</p>
+                                                        <p class="text-sm text-gray-400">
+                                                            {bucket.object_count} " objects"
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <p class="text-white font-medium">{&bucket.name}</p>
-                                                    <p class="text-sm text-gray-400">
-                                                        {bucket.object_count} " objects"
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <span class="text-sm text-gray-400">
-                                                {format_bytes(bucket.size)}
-                                            </span>
-                                        </a>
-                                    }).collect_view()}
-                                    {s.recent_buckets.is_empty().then(|| view! {
-                                        <p class="text-gray-400 text-center py-4">"No buckets yet"</p>
-                                    })}
-                                </div>
-                            }.into_view(),
+                                                <span class="text-sm text-gray-400">
+                                                    {format_bytes(bucket.size)}
+                                                </span>
+                                            </a>
+                                        }).collect_view()}
+                                        {is_empty.then(|| view! {
+                                            <p class="text-gray-400 text-center py-4">"No buckets yet"</p>
+                                        })}
+                                    </div>
+                                }.into_view()
+                            },
                             Err(_) => view! { <p class="text-red-400">"Failed to load"</p> }.into_view()
                         })}
                     </Suspense>
@@ -102,28 +109,32 @@ pub fn DashboardPage() -> impl IntoView {
                     <div class="grid grid-cols-2 gap-4">
                         <QuickAction
                             href="/buckets?action=create"
-                            icon=IconPlus
                             title="Create Bucket"
                             description="Add a new storage bucket"
-                        />
+                        >
+                            <IconPlus/>
+                        </QuickAction>
                         <QuickAction
                             href="/users?action=create"
-                            icon=IconUserPlus
                             title="Add User"
                             description="Create a new user account"
-                        />
+                        >
+                            <IconUserPlus/>
+                        </QuickAction>
                         <QuickAction
                             href="/settings"
-                            icon=IconSettings
                             title="Settings"
                             description="Configure your storage"
-                        />
+                        >
+                            <IconSettings/>
+                        </QuickAction>
                         <QuickAction
                             href="/buckets"
-                            icon=IconBucket
                             title="Browse Buckets"
                             description="View all buckets"
-                        />
+                        >
+                            <IconBucket/>
+                        </QuickAction>
                     </div>
                 </div>
             </div>
@@ -146,8 +157,8 @@ pub fn DashboardPage() -> impl IntoView {
 fn StatCardItem(
     title: &'static str,
     value: String,
-    icon: fn() -> impl IntoView,
     color: &'static str,
+    children: Children,
 ) -> impl IntoView {
     let bg_class = match color {
         "blue" => "bg-blue-600/20",
@@ -174,7 +185,7 @@ fn StatCardItem(
                 </div>
                 <div class=format!("p-3 rounded-lg {}", bg_class)>
                     <div class=icon_class>
-                        {icon()}
+                        {children()}
                     </div>
                 </div>
             </div>
@@ -185,9 +196,9 @@ fn StatCardItem(
 #[component]
 fn QuickAction(
     href: &'static str,
-    icon: fn() -> impl IntoView,
     title: &'static str,
     description: &'static str,
+    children: Children,
 ) -> impl IntoView {
     view! {
         <a
@@ -195,7 +206,7 @@ fn QuickAction(
             class="flex items-start space-x-3 p-4 bg-gray-750 rounded-lg hover:bg-gray-700 transition-colors"
         >
             <div class="p-2 bg-blue-600/20 rounded-lg text-blue-400">
-                {icon()}
+                {children()}
             </div>
             <div>
                 <p class="text-white font-medium">{title}</p>

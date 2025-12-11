@@ -112,7 +112,7 @@ pub fn ObjectsPage() -> impl IntoView {
                         Ok(list) => {
                             if list.objects.is_empty() && list.common_prefixes.is_empty() {
                                 view! {
-                                    <EmptyState on_upload=move || set_show_upload_modal.set(true) />
+                                    <EmptyState on_upload=Callback::new(move |_| set_show_upload_modal.set(true)) />
                                 }.into_view()
                             } else {
                                 let bucket = bucket_name();
@@ -158,7 +158,7 @@ pub fn ObjectsPage() -> impl IntoView {
                                                         bucket=bucket_clone
                                                         object=obj
                                                         name=file_name
-                                                        on_delete=move || set_refresh_trigger.update(|t| *t += 1)
+                                                        on_delete=Callback::new(move |_| set_refresh_trigger.update(|t| *t += 1))
                                                     />
                                                 }
                                             }).collect_view()}

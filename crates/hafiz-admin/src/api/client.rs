@@ -121,6 +121,52 @@ async fn post<T: serde::de::DeserializeOwned, B: serde::Serialize>(
     })
 }
 
+/// Make authenticated PUT request
+async fn put<T: serde::de::DeserializeOwned, B: serde::Serialize>(
+    endpoint: &str,
+    body: &B,
+) -> Result<T, ApiError> {
+    let url = format!("{}{}", api_base(), endpoint);
+
+    let mut request = Request::put(&url)
+        .header("Content-Type", "application/json");
+
+    if let Some(auth) = get_auth_header() {
+        request = request.header("Authorization", &auth);
+    }
+
+    let response = request
+        .body(serde_json::to_string(body).unwrap_or_default())
+        .map_err(|e| ApiError {
+            code: "SerializeError".to_string(),
+            message: e.to_string(),
+        })?
+        .send()
+        .await
+        .map_err(|e| ApiError {
+            code: "NetworkError".to_string(),
+            message: e.to_string(),
+        })?;
+
+    if !response.ok() {
+        let status = response.status();
+        let text = response.text().await.unwrap_or_default();
+        return Err(ApiError {
+            code: format!("HTTP{}", status),
+            message: if text.is_empty() {
+                format!("Request failed with status {}", status)
+            } else {
+                text
+            },
+        });
+    }
+
+    response.json().await.map_err(|e| ApiError {
+        code: "ParseError".to_string(),
+        message: e.to_string(),
+    })
+}
+
 /// Make authenticated DELETE request
 async fn delete(endpoint: &str) -> Result<(), ApiError> {
     let url = format!("{}{}", api_base(), endpoint);

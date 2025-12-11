@@ -2,7 +2,7 @@
 
 use leptos::*;
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, PartialEq)]
 pub enum ButtonVariant {
     #[default]
     Primary,
@@ -22,12 +22,24 @@ impl ButtonVariant {
     }
 }
 
+impl From<&str> for ButtonVariant {
+    fn from(s: &str) -> Self {
+        match s {
+            "primary" => Self::Primary,
+            "secondary" => Self::Secondary,
+            "danger" => Self::Danger,
+            "ghost" => Self::Ghost,
+            _ => Self::Primary,
+        }
+    }
+}
+
 #[component]
 pub fn Button(
-    #[prop(optional)] variant: Option<ButtonVariant>,
-    #[prop(optional)] disabled: Option<Signal<bool>>,
-    #[prop(optional)] loading: Option<Signal<bool>>,
-    #[prop(optional)] on_click: Option<Callback<()>>,
+    #[prop(into, optional)] variant: Option<ButtonVariant>,
+    #[prop(into, optional)] disabled: Option<Signal<bool>>,
+    #[prop(into, optional)] loading: Option<Signal<bool>>,
+    #[prop(into, optional)] on_click: Option<Callback<()>>,
     #[prop(optional)] class: Option<&'static str>,
     children: Children,
 ) -> impl IntoView {
@@ -64,9 +76,9 @@ pub fn Button(
 /// Icon button (square, icon only)
 #[component]
 pub fn IconButton(
-    #[prop(optional)] variant: Option<ButtonVariant>,
-    #[prop(optional)] disabled: Option<Signal<bool>>,
-    on_click: Callback<()>,
+    #[prop(into, optional)] variant: Option<ButtonVariant>,
+    #[prop(into, optional)] disabled: Option<Signal<bool>>,
+    #[prop(into)] on_click: Callback<()>,
     children: Children,
 ) -> impl IntoView {
     let variant = variant.unwrap_or(ButtonVariant::Ghost);

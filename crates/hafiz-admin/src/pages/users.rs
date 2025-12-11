@@ -343,7 +343,7 @@ fn CreateUserModal(
                                 <Button variant=ButtonVariant::Secondary on_click=Callback::new(move |_| on_close.call(()))>
                                     "Cancel"
                                 </Button>
-                                <Button loading=Some(creating.into()) on_click=Callback::new(on_submit)>
+                                <Button loading=Signal::derive(move || creating.get()) on_click=Callback::new(on_submit)>
                                     "Create"
                                 </Button>
                             </div>

@@ -3,8 +3,8 @@
 //! Displays cluster status, nodes, replication rules, and statistics.
 
 use leptos::*;
-use crate::api::{self, ClusterStatus, NodeInfo, ReplicationRule, ReplicationStats, NodesList, ReplicationRulesList, ClusterHealth};
-use crate::components::{Button, Modal, StatCard};
+use crate::api::{self, ClusterStatus, NodeInfo, ReplicationRule, ReplicationStats};
+use crate::components::{Button, ButtonVariant, Modal, StatCard};
 
 /// Cluster page component
 #[component]
@@ -128,7 +128,7 @@ pub fn ClusterPage() -> impl IntoView {
                     <h1 class="text-2xl font-bold text-gray-900 dark:text-white">"Cluster Management"</h1>
                     <p class="text-gray-500 dark:text-gray-400">"Monitor and manage cluster nodes and replication"</p>
                 </div>
-                <Button on_click=move |_| load_data() variant="secondary">
+                <Button on_click=Callback::new(move |_| load_data()) variant=ButtonVariant::Secondary>
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                     </svg>
@@ -227,7 +227,7 @@ pub fn ClusterPage() -> impl IntoView {
             // Create Rule Modal
             <Modal
                 show=show_rule_modal
-                on_close=move |_| set_show_rule_modal.set(false)
+                on_close=Callback::new(move |_| set_show_rule_modal.set(false))
                 title="Create Replication Rule"
             >
                 <div class="space-y-4">
@@ -268,10 +268,10 @@ pub fn ClusterPage() -> impl IntoView {
                         </select>
                     </div>
                     <div class="flex justify-end space-x-3 pt-4">
-                        <Button variant="secondary" on_click=move |_| set_show_rule_modal.set(false)>
+                        <Button variant=ButtonVariant::Secondary on_click=Callback::new(move |_| set_show_rule_modal.set(false))>
                             "Cancel"
                         </Button>
-                        <Button variant="primary" on_click=create_rule>
+                        <Button variant=ButtonVariant::Primary on_click=Callback::new(create_rule)>
                             "Create Rule"
                         </Button>
                     </div>
@@ -329,19 +329,31 @@ fn ClusterOverview(
                         </div>
                         <div>
                             <p class="text-sm text-gray-500 dark:text-gray-400">"Role"</p>
-                            <span class=move || format!("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {}",
-                                if s.local_node.role == "primary" { "bg-green-100 text-green-800" } else { "bg-blue-100 text-blue-800" }
-                            )>
-                                {&s.local_node.role}
-                            </span>
+                            {
+                                let role = s.local_node.role.clone();
+                                let role_display = s.local_node.role.clone();
+                                view! {
+                                    <span class=format!("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {}",
+                                        if role == "primary" { "bg-green-100 text-green-800" } else { "bg-blue-100 text-blue-800" }
+                                    )>
+                                        {role_display}
+                                    </span>
+                                }
+                            }
                         </div>
                         <div>
                             <p class="text-sm text-gray-500 dark:text-gray-400">"Status"</p>
-                            <span class=move || format!("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {}",
-                                if s.local_node.status == "healthy" { "bg-green-100 text-green-800" } else { "bg-yellow-100 text-yellow-800" }
-                            )>
-                                {&s.local_node.status}
-                            </span>
+                            {
+                                let status_val = s.local_node.status.clone();
+                                let status_display = s.local_node.status.clone();
+                                view! {
+                                    <span class=format!("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {}",
+                                        if status_val == "healthy" { "bg-green-100 text-green-800" } else { "bg-yellow-100 text-yellow-800" }
+                                    )>
+                                        {status_display}
+                                    </span>
+                                }
+                            }
                         </div>
                     </div>
                 })}
@@ -526,7 +538,7 @@ where
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">"Replication Rules"</h3>
-                    <Button variant="primary" on_click=move |_| on_create(())>
+                    <Button variant=ButtonVariant::Primary on_click=Callback::new(move |_| on_create(()))>
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                         </svg>

@@ -288,7 +288,7 @@ pub fn FileUploadModal(
                                             view! {
                                                 <UploadItemRow
                                                     item=item
-                                                    on_remove=move || remove_file(id)
+                                                    on_remove=Callback::new(move |_| remove_file(id))
                                                     can_remove=can_remove
                                                 />
                                             }

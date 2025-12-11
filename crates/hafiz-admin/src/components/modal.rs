@@ -7,7 +7,7 @@ pub fn Modal(
     title: &'static str,
     show: ReadSignal<bool>,
     on_close: Callback<()>,
-    children: Children,
+    children: ChildrenFn,
     #[prop(optional)] size: Option<&'static str>,
 ) -> impl IntoView {
     let size_class = match size.unwrap_or("md") {
@@ -18,7 +18,7 @@ pub fn Modal(
     };
 
     view! {
-        {move || show.get().then(|| view! {
+        <Show when=move || show.get()>
             <div class="fixed inset-0 z-50 overflow-y-auto">
                 // Backdrop
                 <div
@@ -49,7 +49,7 @@ pub fn Modal(
                     </div>
                 </div>
             </div>
-        })}
+        </Show>
     }
 }
 

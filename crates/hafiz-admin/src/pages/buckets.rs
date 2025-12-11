@@ -149,7 +149,7 @@ pub fn BucketsPage() -> impl IntoView {
                             "Cancel"
                         </Button>
                         <Button
-                            loading=Some(creating.into())
+                            loading=Signal::derive(move || creating.get())
                             on_click=Callback::new(on_create)
                         >
                             "Create"

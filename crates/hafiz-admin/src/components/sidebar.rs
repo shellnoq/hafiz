@@ -33,42 +33,48 @@ pub fn Sidebar() -> impl IntoView {
             <nav class="flex-1 px-4 py-6 space-y-2">
                 <NavItem
                     href="/"
-                    icon=IconDashboard
                     label="Dashboard"
                     active=Signal::derive(move || is_active("/") && !is_active("/buckets") && !is_active("/users") && !is_active("/cluster") && !is_active("/settings"))
-                />
+                >
+                    <IconDashboard/>
+                </NavItem>
                 <NavItem
                     href="/buckets"
-                    icon=IconBuckets
                     label="Buckets"
                     active=Signal::derive(move || is_active("/buckets"))
-                />
+                >
+                    <IconBuckets/>
+                </NavItem>
                 <NavItem
                     href="/users"
-                    icon=IconUsers
                     label="Users"
                     active=Signal::derive(move || is_active("/users"))
-                />
+                >
+                    <IconUsers/>
+                </NavItem>
                 <NavItem
                     href="/cluster"
-                    icon=IconCluster
                     label="Cluster"
                     active=Signal::derive(move || is_active("/cluster"))
-                />
+                >
+                    <IconCluster/>
+                </NavItem>
 
                 <div class="pt-4 mt-4 border-t border-gray-700">
                     <NavItem
                         href="/settings"
-                        icon=IconSettings
                         label="Settings"
                         active=Signal::derive(move || is_active("/settings") && !is_active("/settings/ldap"))
-                    />
+                    >
+                        <IconSettings/>
+                    </NavItem>
                     <NavItem
                         href="/settings/ldap"
-                        icon=IconLdap
                         label="LDAP / AD"
                         active=Signal::derive(move || is_active("/settings/ldap"))
-                    />
+                    >
+                        <IconLdap/>
+                    </NavItem>
                 </div>
             </nav>
 
@@ -86,9 +92,9 @@ pub fn Sidebar() -> impl IntoView {
 #[component]
 fn NavItem(
     href: &'static str,
-    icon: fn() -> impl IntoView,
     label: &'static str,
     active: Signal<bool>,
+    children: Children,
 ) -> impl IntoView {
     view! {
         <a
@@ -102,7 +108,7 @@ fn NavItem(
                 }
             }
         >
-            {icon()}
+            {children()}
             <span class="ml-3">{label}</span>
         </a>
     }

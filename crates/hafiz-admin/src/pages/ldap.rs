@@ -605,14 +605,14 @@ pub fn LdapSettingsPage() -> impl IntoView {
                     <div class="flex justify-end gap-4">
                         <Button
                             variant=ButtonVariant::Secondary
-                            on_click=clear_cache
+                            on_click=Callback::new(clear_cache)
                         >
                             "Clear Cache"
                         </Button>
                         <Button
                             variant=ButtonVariant::Primary
-                            on_click=save_config
-                            disabled=loading
+                            on_click=Callback::new(save_config)
+                            disabled=Signal::derive(move || loading.get())
                         >
                             {move || if loading.get() { "Saving..." } else { "Save Configuration" }}
                         </Button>
@@ -650,8 +650,8 @@ pub fn LdapSettingsPage() -> impl IntoView {
                         <div class="space-y-4">
                             <Button
                                 variant=ButtonVariant::Secondary
-                                on_click=test_connection
-                                disabled=loading
+                                on_click=Callback::new(test_connection)
+                                disabled=Signal::derive(move || loading.get())
                                 class="w-full"
                             >
                                 "Test Connection"
@@ -678,16 +678,16 @@ pub fn LdapSettingsPage() -> impl IntoView {
                                 <div class="flex gap-2">
                                     <Button
                                         variant=ButtonVariant::Secondary
-                                        on_click=test_search
-                                        disabled=loading
+                                        on_click=Callback::new(test_search)
+                                        disabled=Signal::derive(move || loading.get())
                                         class="flex-1"
                                     >
                                         "Search"
                                     </Button>
                                     <Button
                                         variant=ButtonVariant::Primary
-                                        on_click=test_auth
-                                        disabled=loading
+                                        on_click=Callback::new(test_auth)
+                                        disabled=Signal::derive(move || loading.get())
                                         class="flex-1"
                                     >
                                         "Authenticate"
@@ -764,11 +764,11 @@ fn StatusBadge(status: &'static str) -> impl IntoView {
 }
 
 #[component]
-fn StatusRow(label: &'static str, value: &str, ok: bool) -> impl IntoView {
+fn StatusRow(label: &'static str, value: String, ok: bool) -> impl IntoView {
     view! {
         <div class="flex justify-between items-center">
             <span class="text-gray-400">{label}</span>
-            <span class=if ok { "text-white" } else { "text-red-400" }>{value.to_string()}</span>
+            <span class=if ok { "text-white" } else { "text-red-400" }>{value}</span>
         </div>
     }
 }

@@ -53,10 +53,10 @@ COPY Cargo.toml Cargo.lock ./
 COPY crates/ crates/
 
 # Build release binaries
-RUN cargo build --release --bin hafiz-server --bin hafiz
+RUN cargo build --release --bin hafiz
 
 # Strip debug symbols for smaller binaries
-RUN strip target/release/hafiz-server target/release/hafiz
+RUN strip target/release/hafiz
 
 # ----------------------------------------------------------------------------
 # Stage 4: Runtime - Minimal production image
@@ -94,11 +94,10 @@ RUN mkdir -p \
     && chown -R hafiz:hafiz /data /etc/hafiz /var/log/hafiz
 
 # Copy binaries from builder
-COPY --from=builder /build/target/release/hafiz-server /usr/local/bin/
 COPY --from=builder /build/target/release/hafiz /usr/local/bin/
 
 # Set executable permissions
-RUN chmod +x /usr/local/bin/hafiz-server /usr/local/bin/hafiz
+RUN chmod +x /usr/local/bin/hafiz
 
 # Environment variables with sensible defaults
 ENV HAFIZ_S3_BIND=0.0.0.0 \

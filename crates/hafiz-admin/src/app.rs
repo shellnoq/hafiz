@@ -2,7 +2,7 @@
 
 use leptos::*;
 use leptos::spawn_local;
-use leptos_router::{Route, Router, Routes, Outlet, use_navigate, A};
+use leptos_router::{Route, Router, Routes, Outlet};
 
 use crate::components::{Header, Sidebar};
 use crate::pages::{
