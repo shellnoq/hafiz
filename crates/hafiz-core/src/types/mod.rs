@@ -30,9 +30,9 @@ pub use storage::*;
 // Re-export from replication (except NodeStatus which conflicts with storage)
 pub use replication::{
     ClusterConfig, ClusterMessage, ClusterNode, ClusterStats, ConflictResolution, ConsistencyLevel,
-    NodeRole, NodeStats, ReplicationConfig, ReplicationDestination, ReplicationEvent,
-    ReplicationEventType, ReplicationMode, ReplicationProgress, ReplicationRule, ReplicationStatus,
+    NodeRole, NodeStats, ReplicationEvent, ReplicationEventType, ReplicationMode,
+    ReplicationProgress, ReplicationRule, ReplicationStatus,
 };
 
 // Re-export from user (except Owner which conflicts with acl)
-pub use user::{Credentials, User, UserQuota};
+pub use user::{Credentials, User};
