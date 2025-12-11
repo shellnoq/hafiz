@@ -205,7 +205,7 @@ impl ObjectEncryptor {
         let mut hasher = Md5::new();
         hasher.update(&key);
         let key_md5 = hasher.finalize();
-        let key_md5_base64 = STANDARD.encode(key_md5.as_ref());
+        let key_md5_base64 = STANDARD.encode(&key_md5[..]);
 
         let mut dek = [0u8; 32];
         dek.copy_from_slice(&key);
