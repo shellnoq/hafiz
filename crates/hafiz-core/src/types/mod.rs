@@ -29,8 +29,9 @@ pub use storage::*;
 
 // Re-export from replication (except NodeStatus which conflicts with storage)
 pub use replication::{
-    ClusterConfig, ClusterMessage, ClusterNode, ClusterStats, ConflictResolution, ConsistencyLevel,
-    NodeRole, NodeStats, ReplicationEvent, ReplicationEventType, ReplicationMode,
+    ClusterConfig, ClusterMessage, ClusterNode, ClusterStats,
+    ConflictResolution, ConsistencyLevel, NodeRole, NodeStats,
+    ReplicationEvent, ReplicationEventType, ReplicationMode,
     ReplicationProgress, ReplicationRule, ReplicationStatus,
 };
 

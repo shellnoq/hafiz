@@ -6,7 +6,11 @@ use anyhow::{Context, Result};
 use aws_sdk_s3::types::{BucketLocationConstraint, CreateBucketConfiguration};
 use colored::Colorize;
 
-pub async fn execute(ctx: &CommandContext, bucket: &str, region: Option<String>) -> Result<()> {
+pub async fn execute(
+    ctx: &CommandContext,
+    bucket: &str,
+    region: Option<String>,
+) -> Result<()> {
     let client = create_client(&ctx.config).await?;
 
     // Parse bucket name from s3:// URI if provided
@@ -38,7 +42,11 @@ pub async fn execute(ctx: &CommandContext, bucket: &str, region: Option<String>)
     req.send().await.context("Failed to create bucket")?;
 
     if !ctx.quiet {
-        println!("{}: s3://{}", "make_bucket".green(), bucket_name);
+        println!(
+            "{}: s3://{}",
+            "make_bucket".green(),
+            bucket_name
+        );
     }
 
     Ok(())

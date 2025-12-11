@@ -6,13 +6,19 @@
 //! - User search testing
 //! - Status monitoring
 
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
+use axum::{
+    extract::State,
+    http::StatusCode,
+    response::IntoResponse,
+    Json,
+};
 use hafiz_auth::{
+    LdapConfig, LdapStatus, LdapAuthProvider, LdapClient,
     ldap::{
-        TestLdapConnectionRequest, TestLdapConnectionResponse, TestLdapSearchRequest,
-        TestLdapSearchResponse, UpdateLdapConfigRequest,
+        TestLdapConnectionRequest, TestLdapConnectionResponse,
+        TestLdapSearchRequest, TestLdapSearchResponse,
+        UpdateLdapConfigRequest,
     },
-    LdapAuthProvider, LdapClient, LdapConfig, LdapStatus,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -91,7 +97,9 @@ impl<T: Serialize> ApiResponse<T> {
 // ============================================================================
 
 /// GET /api/v1/ldap/status - Get LDAP status
-pub async fn get_ldap_status(State(state): State<Arc<LdapAdminState>>) -> impl IntoResponse {
+pub async fn get_ldap_status(
+    State(state): State<Arc<LdapAdminState>>,
+) -> impl IntoResponse {
     debug!("GET /api/v1/ldap/status");
 
     let config = state.config.read().await;
@@ -115,7 +123,9 @@ pub async fn get_ldap_status(State(state): State<Arc<LdapAdminState>>) -> impl I
 }
 
 /// GET /api/v1/ldap/config - Get LDAP configuration (sanitized)
-pub async fn get_ldap_config(State(state): State<Arc<LdapAdminState>>) -> impl IntoResponse {
+pub async fn get_ldap_config(
+    State(state): State<Arc<LdapAdminState>>,
+) -> impl IntoResponse {
     debug!("GET /api/v1/ldap/config");
 
     let config = state.config.read().await;
@@ -150,7 +160,10 @@ pub async fn update_ldap_config(
 
     // Validate configuration
     if let Err(e) = request.config.validate() {
-        return (StatusCode::BAD_REQUEST, Json(ApiResponse::<()>::error(e)));
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(ApiResponse::<()>::error(e)),
+        );
     }
 
     // Update configuration
@@ -202,10 +215,7 @@ pub async fn test_ldap_search(
     State(state): State<Arc<LdapAdminState>>,
     Json(request): Json<TestLdapSearchRequest>,
 ) -> impl IntoResponse {
-    debug!(
-        "POST /api/v1/ldap/test-search username={}",
-        request.username
-    );
+    debug!("POST /api/v1/ldap/test-search username={}", request.username);
 
     let provider = state.provider.read().await;
 
@@ -239,7 +249,9 @@ pub async fn test_ldap_search(
 }
 
 /// POST /api/v1/ldap/clear-cache - Clear user cache
-pub async fn clear_ldap_cache(State(state): State<Arc<LdapAdminState>>) -> impl IntoResponse {
+pub async fn clear_ldap_cache(
+    State(state): State<Arc<LdapAdminState>>,
+) -> impl IntoResponse {
     debug!("POST /api/v1/ldap/clear-cache");
 
     let provider = state.provider.read().await;
@@ -251,9 +263,7 @@ pub async fn clear_ldap_cache(State(state): State<Arc<LdapAdminState>>) -> impl 
             message: "Cache cleared successfully".to_string(),
         }))
     } else {
-        Json(ApiResponse::<ClearCacheResponse>::error(
-            "LDAP is not configured",
-        ))
+        Json(ApiResponse::<ClearCacheResponse>::error("LDAP is not configured"))
     }
 }
 
@@ -262,17 +272,12 @@ pub async fn test_ldap_authenticate(
     State(state): State<Arc<LdapAdminState>>,
     Json(request): Json<TestAuthenticateRequest>,
 ) -> impl IntoResponse {
-    debug!(
-        "POST /api/v1/ldap/authenticate username={}",
-        request.username
-    );
+    debug!("POST /api/v1/ldap/authenticate username={}", request.username);
 
     let provider = state.provider.read().await;
 
     let response = if let Some(ref provider) = *provider {
-        let result = provider
-            .authenticate(&request.username, &request.password)
-            .await;
+        let result = provider.authenticate(&request.username, &request.password).await;
 
         match result {
             hafiz_auth::LdapAuthResult::Success(user) => TestAuthenticateResponse {
@@ -366,10 +371,7 @@ pub struct TestAuthenticateResponse {
 // Router
 // ============================================================================
 
-use axum::{
-    routing::{get, post, put},
-    Router,
-};
+use axum::{routing::{get, post, put}, Router};
 
 /// Create LDAP admin routes
 pub fn ldap_routes(state: Arc<LdapAdminState>) -> Router {

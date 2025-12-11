@@ -26,8 +26,7 @@ use crate::server::AppState;
 // ============================================================================
 
 fn error_response(err: Error, request_id: &str) -> Response {
-    let status =
-        StatusCode::from_u16(err.http_status()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+    let status = StatusCode::from_u16(err.http_status()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
     let s3_error = hafiz_core::error::S3Error::from(err).with_request_id(request_id);
 
     Response::builder()
@@ -74,10 +73,7 @@ pub async fn get_bucket_policy(
     Path(bucket): Path<String>,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    debug!(
-        "GetBucketPolicy bucket={} request_id={}",
-        bucket, request_id
-    );
+    debug!("GetBucketPolicy bucket={} request_id={}", bucket, request_id);
 
     // Check if bucket exists
     match state.metadata.get_bucket(&bucket).await {
@@ -93,8 +89,12 @@ pub async fn get_bucket_policy(
 
     // Get bucket policy from metadata
     match state.metadata.get_bucket_policy(&bucket).await {
-        Ok(Some(policy_json)) => success_response_json(StatusCode::OK, policy_json, &request_id),
-        Ok(None) => error_response(Error::NoSuchBucketPolicy, &request_id),
+        Ok(Some(policy_json)) => {
+            success_response_json(StatusCode::OK, policy_json, &request_id)
+        }
+        Ok(None) => {
+            error_response(Error::NoSuchBucketPolicy, &request_id)
+        }
         Err(e) => {
             error!("Error getting bucket policy: {}", e);
             error_response(e, &request_id)
@@ -109,10 +109,7 @@ pub async fn put_bucket_policy(
     body: Bytes,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    debug!(
-        "PutBucketPolicy bucket={} request_id={}",
-        bucket, request_id
-    );
+    debug!("PutBucketPolicy bucket={} request_id={}", bucket, request_id);
 
     // Check if bucket exists
     match state.metadata.get_bucket(&bucket).await {
@@ -159,11 +156,7 @@ pub async fn put_bucket_policy(
     }
 
     // Store bucket policy
-    match state
-        .metadata
-        .put_bucket_policy(&bucket, &policy_json)
-        .await
-    {
+    match state.metadata.put_bucket_policy(&bucket, &policy_json).await {
         Ok(_) => {
             info!("Bucket policy set for {}", bucket);
             no_content_response(&request_id)
@@ -181,10 +174,7 @@ pub async fn delete_bucket_policy(
     Path(bucket): Path<String>,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    debug!(
-        "DeleteBucketPolicy bucket={} request_id={}",
-        bucket, request_id
-    );
+    debug!("DeleteBucketPolicy bucket={} request_id={}", bucket, request_id);
 
     // Check if bucket exists
     match state.metadata.get_bucket(&bucket).await {
@@ -298,7 +288,10 @@ pub async fn put_bucket_acl(
 
         // Basic validation - check it looks like XML
         if !acl_str.contains("<AccessControlPolicy") {
-            return error_response(Error::MalformedACL("Invalid ACL XML".into()), &request_id);
+            return error_response(
+                Error::MalformedACL("Invalid ACL XML".into()),
+                &request_id,
+            );
         }
 
         acl_str
@@ -363,10 +356,7 @@ pub async fn get_object_acl(
     version_id: Option<String>,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    debug!(
-        "GetObjectAcl bucket={} key={} request_id={}",
-        bucket, key, request_id
-    );
+    debug!("GetObjectAcl bucket={} key={} request_id={}", bucket, key, request_id);
 
     // Check if bucket exists
     match state.metadata.get_bucket(&bucket).await {
@@ -381,11 +371,7 @@ pub async fn get_object_acl(
     }
 
     // Check if object exists
-    let object = match state
-        .metadata
-        .get_object(&bucket, &key, version_id.as_deref())
-        .await
-    {
+    let object = match state.metadata.get_object(&bucket, &key, version_id.as_deref()).await {
         Ok(Some(obj)) => obj,
         Ok(None) => {
             return error_response(Error::NoSuchKeyNamed(key), &request_id);
@@ -397,11 +383,7 @@ pub async fn get_object_acl(
     };
 
     // Get ACL from metadata or return default
-    let acl = match state
-        .metadata
-        .get_object_acl(&bucket, &key, version_id.as_deref())
-        .await
-    {
+    let acl = match state.metadata.get_object_acl(&bucket, &key, version_id.as_deref()).await {
         Ok(Some(acl_xml)) => acl_xml,
         Ok(None) => {
             // Return default private ACL
@@ -426,10 +408,7 @@ pub async fn put_object_acl(
     body: Bytes,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    debug!(
-        "PutObjectAcl bucket={} key={} request_id={}",
-        bucket, key, request_id
-    );
+    debug!("PutObjectAcl bucket={} key={} request_id={}", bucket, key, request_id);
 
     // Check if bucket exists
     match state.metadata.get_bucket(&bucket).await {
@@ -444,11 +423,7 @@ pub async fn put_object_acl(
     }
 
     // Check if object exists
-    let object = match state
-        .metadata
-        .get_object(&bucket, &key, version_id.as_deref())
-        .await
-    {
+    let object = match state.metadata.get_object(&bucket, &key, version_id.as_deref()).await {
         Ok(Some(obj)) => obj,
         Ok(None) => {
             return error_response(Error::NoSuchKeyNamed(key), &request_id);
@@ -481,7 +456,10 @@ pub async fn put_object_acl(
         };
 
         if !acl_str.contains("<AccessControlPolicy") {
-            return error_response(Error::MalformedACL("Invalid ACL XML".into()), &request_id);
+            return error_response(
+                Error::MalformedACL("Invalid ACL XML".into()),
+                &request_id,
+            );
         }
 
         acl_str
@@ -517,16 +495,15 @@ pub async fn put_object_acl(
         if acl_headers.has_acl_headers() {
             acl_headers.build_acl(owner).to_xml()
         } else {
-            return error_response(Error::MalformedACL("No ACL specified".into()), &request_id);
+            return error_response(
+                Error::MalformedACL("No ACL specified".into()),
+                &request_id,
+            );
         }
     };
 
     // Store object ACL
-    match state
-        .metadata
-        .put_object_acl(&bucket, &key, version_id.as_deref(), &acl_xml)
-        .await
-    {
+    match state.metadata.put_object_acl(&bucket, &key, version_id.as_deref(), &acl_xml).await {
         Ok(_) => {
             info!("Object ACL set for {}/{}", bucket, key);
             no_content_response(&request_id)

@@ -5,10 +5,10 @@ use axum::{
     routing::{delete, get, head, options, post, put},
     Router,
 };
+use hyper_util::rt::{TokioExecutor, TokioIo};
 use hafiz_core::{config::HafizConfig, Result};
 use hafiz_metadata::MetadataStore;
 use hafiz_storage::LocalStorage;
-use hyper_util::rt::{TokioExecutor, TokioIo};
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::net::TcpListener;
@@ -17,9 +17,9 @@ use tower_http::trace::{DefaultMakeSpan, TraceLayer};
 use tower_service::Service as _;
 use tracing::{error, info, warn};
 
-use crate::admin;
-use crate::metrics::{metrics_handler, metrics_middleware, MetricsRecorder};
 use crate::routes;
+use crate::admin;
+use crate::metrics::{MetricsRecorder, metrics_handler, metrics_middleware};
 use crate::tls::TlsAcceptor;
 
 #[cfg(feature = "cluster")]
@@ -71,16 +71,9 @@ impl S3Server {
             self.config.auth.root_access_key.clone(),
             self.config.auth.root_secret_key.clone(),
         );
-        if metadata
-            .get_user_by_access_key(&root_user.access_key)
-            .await?
-            .is_none()
-        {
+        if metadata.get_user_by_access_key(&root_user.access_key).await?.is_none() {
             metadata.create_user(&root_user).await?;
-            info!(
-                "Created root user with access key: {}",
-                root_user.access_key
-            );
+            info!("Created root user with access key: {}", root_user.access_key);
         }
 
         let state = AppState {
@@ -94,10 +87,7 @@ impl S3Server {
         };
 
         let app = self.create_router(state, metrics);
-        let addr = format!(
-            "{}:{}",
-            self.config.server.bind_address, self.config.server.port
-        );
+        let addr = format!("{}:{}", self.config.server.bind_address, self.config.server.port);
 
         if self.config.tls.enabled {
             self.run_https(app, &addr).await
@@ -165,7 +155,9 @@ impl S3Server {
                 let io = TokioIo::new(tls_stream);
                 let service = hyper::service::service_fn(move |req| {
                     let mut app = app.clone();
-                    async move { app.call(req).await }
+                    async move {
+                        app.call(req).await
+                    }
                 });
 
                 // Serve the connection
@@ -186,29 +178,31 @@ impl S3Server {
         Router::new()
             // Metrics endpoint (no auth required)
             .route("/metrics", get(metrics_handler))
+
             // Admin API routes
             .nest("/api/v1", admin::admin_routes_no_auth())
+
             // Service operations
             .route("/", get(routes::list_buckets))
+
             // Bucket operations
             .route("/:bucket", head(routes::head_bucket))
-            .route("/:bucket", get(routes::bucket_get_handler)) // ListObjects, ListObjectVersions, GetBucketVersioning, GetBucketLifecycle, ListMultipartUploads
-            .route("/:bucket", put(routes::bucket_put_handler)) // CreateBucket, PutBucketVersioning, or PutBucketLifecycle
+            .route("/:bucket", get(routes::bucket_get_handler))  // ListObjects, ListObjectVersions, GetBucketVersioning, GetBucketLifecycle, ListMultipartUploads
+            .route("/:bucket", put(routes::bucket_put_handler))  // CreateBucket, PutBucketVersioning, or PutBucketLifecycle
             .route("/:bucket", delete(routes::bucket_delete_handler)) // DeleteBucket or DeleteBucketLifecycle
             .route("/:bucket", post(routes::bucket_post_handler)) // DeleteObjects
             .route("/:bucket", options(routes::handle_cors_preflight)) // CORS preflight for bucket
+
             // Object operations (including multipart, versioning, and tagging)
             .route("/:bucket/*key", head(routes::head_object))
-            .route("/:bucket/*key", get(routes::object_get_handler)) // GetObject, ListParts, or GetObjectTagging
-            .route("/:bucket/*key", put(routes::object_put_handler)) // PutObject, CopyObject, UploadPart, or PutObjectTagging
+            .route("/:bucket/*key", get(routes::object_get_handler))   // GetObject, ListParts, or GetObjectTagging
+            .route("/:bucket/*key", put(routes::object_put_handler))   // PutObject, CopyObject, UploadPart, or PutObjectTagging
             .route("/:bucket/*key", delete(routes::object_delete_handler)) // DeleteObject, AbortMultipart, or DeleteObjectTagging
             .route("/:bucket/*key", post(routes::object_post_handler)) // CreateMultipart or CompleteMultipart
             .route("/:bucket/*key", options(routes::handle_cors_preflight)) // CORS preflight for object
+
             // Metrics middleware for S3 routes
-            .layer(middleware::from_fn_with_state(
-                metrics.clone(),
-                metrics_middleware,
-            ))
+            .layer(middleware::from_fn_with_state(metrics.clone(), metrics_middleware))
             .layer(
                 TraceLayer::new_for_http()
                     .make_span_with(DefaultMakeSpan::default().include_headers(true)),

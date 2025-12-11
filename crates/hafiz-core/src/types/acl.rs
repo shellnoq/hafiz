@@ -139,9 +139,13 @@ pub enum Grantee {
         display_name: Option<String>,
     },
     /// AWS Account (by email)
-    AmazonCustomerByEmail { email_address: String },
+    AmazonCustomerByEmail {
+        email_address: String,
+    },
     /// Predefined group
-    Group { uri: String },
+    Group {
+        uri: String,
+    },
 }
 
 impl Grantee {
@@ -222,10 +226,7 @@ pub struct Grant {
 impl Grant {
     /// Create a new grant
     pub fn new(grantee: Grantee, permission: Permission) -> Self {
-        Self {
-            grantee,
-            permission,
-        }
+        Self { grantee, permission }
     }
 }
 
@@ -306,10 +307,7 @@ impl AccessControlPolicy {
 
         // Owner always has full control
         acl = acl.add_grant(Grant::new(
-            Grantee::canonical_user_with_name(
-                &owner.id,
-                owner.display_name.clone().unwrap_or_default(),
-            ),
+            Grantee::canonical_user_with_name(&owner.id, owner.display_name.clone().unwrap_or_default()),
             Permission::FullControl,
         ));
 
@@ -336,12 +334,7 @@ impl AccessControlPolicy {
     }
 
     /// Check if a principal has a specific permission
-    pub fn has_permission(
-        &self,
-        principal: &str,
-        permission: Permission,
-        is_authenticated: bool,
-    ) -> bool {
+    pub fn has_permission(&self, principal: &str, permission: Permission, is_authenticated: bool) -> bool {
         // Owner always has full control
         if self.owner.id == principal {
             return true;
@@ -401,10 +394,7 @@ impl AccessControlPolicy {
                 }
                 Grantee::AmazonCustomerByEmail { email_address } => {
                     xml.push_str(r#"<Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="AmazonCustomerByEmail">"#);
-                    xml.push_str(&format!(
-                        "<EmailAddress>{}</EmailAddress>",
-                        xml_escape(email_address)
-                    ));
+                    xml.push_str(&format!("<EmailAddress>{}</EmailAddress>", xml_escape(email_address)));
                     xml.push_str("</Grantee>");
                 }
                 Grantee::Group { uri } => {
@@ -554,10 +544,7 @@ mod tests {
     #[test]
     fn test_canned_acl_parsing() {
         assert_eq!(CannedAcl::from_str("private").unwrap(), CannedAcl::Private);
-        assert_eq!(
-            CannedAcl::from_str("public-read").unwrap(),
-            CannedAcl::PublicRead
-        );
+        assert_eq!(CannedAcl::from_str("public-read").unwrap(), CannedAcl::PublicRead);
     }
 
     #[test]

@@ -428,7 +428,10 @@ pub struct ClusterStats {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ClusterMessage {
     /// Heartbeat from a node
-    Heartbeat { node: ClusterNode, stats: NodeStats },
+    Heartbeat {
+        node: ClusterNode,
+        stats: NodeStats,
+    },
     /// Request to join cluster
     JoinRequest {
         node: ClusterNode,
@@ -442,7 +445,10 @@ pub enum ClusterMessage {
         message: Option<String>,
     },
     /// Node is leaving the cluster
-    LeaveNotification { node_id: NodeId, reason: String },
+    LeaveNotification {
+        node_id: NodeId,
+        reason: String,
+    },
     /// Replication event to be processed
     ReplicationEvent(ReplicationEvent),
     /// Request object data for replication

@@ -16,8 +16,8 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use hafiz_core::types::{
-    ClusterNode, ClusterStats, ConflictResolution, NodeId, NodeRole, NodeStatus, ReplicationMode,
-    ReplicationRule, ReplicationStatus,
+    ClusterNode, ClusterStats, ConflictResolution, NodeId, NodeRole, NodeStatus,
+    ReplicationMode, ReplicationRule, ReplicationStatus,
 };
 
 use crate::server::AppState;
@@ -175,10 +175,7 @@ pub async fn get_cluster_status(
     State(state): State<AppState>,
 ) -> Result<Json<ClusterStatusResponse>, (StatusCode, String)> {
     let cluster = state.cluster.as_ref().ok_or_else(|| {
-        (
-            StatusCode::SERVICE_UNAVAILABLE,
-            "Cluster mode not enabled".to_string(),
-        )
+        (StatusCode::SERVICE_UNAVAILABLE, "Cluster mode not enabled".to_string())
     })?;
 
     let local_node = cluster.local_node();
@@ -198,13 +195,14 @@ pub async fn list_cluster_nodes(
     State(state): State<AppState>,
 ) -> Result<Json<NodesListResponse>, (StatusCode, String)> {
     let cluster = state.cluster.as_ref().ok_or_else(|| {
-        (
-            StatusCode::SERVICE_UNAVAILABLE,
-            "Cluster mode not enabled".to_string(),
-        )
+        (StatusCode::SERVICE_UNAVAILABLE, "Cluster mode not enabled".to_string())
     })?;
 
-    let mut nodes: Vec<NodeInfoResponse> = cluster.nodes().into_iter().map(|n| n.into()).collect();
+    let mut nodes: Vec<NodeInfoResponse> = cluster
+        .nodes()
+        .into_iter()
+        .map(|n| n.into())
+        .collect();
 
     // Add local node
     nodes.insert(0, cluster.local_node().into());
@@ -226,10 +224,7 @@ pub async fn get_cluster_node(
     Path(node_id): Path<String>,
 ) -> Result<Json<NodeInfoResponse>, (StatusCode, String)> {
     let cluster = state.cluster.as_ref().ok_or_else(|| {
-        (
-            StatusCode::SERVICE_UNAVAILABLE,
-            "Cluster mode not enabled".to_string(),
-        )
+        (StatusCode::SERVICE_UNAVAILABLE, "Cluster mode not enabled".to_string())
     })?;
 
     // Check if it's the local node
@@ -240,10 +235,7 @@ pub async fn get_cluster_node(
 
     // Find in cluster nodes
     let node = cluster.get_node(&node_id).ok_or_else(|| {
-        (
-            StatusCode::NOT_FOUND,
-            format!("Node not found: {}", node_id),
-        )
+        (StatusCode::NOT_FOUND, format!("Node not found: {}", node_id))
     })?;
 
     Ok(Json(node.into()))
@@ -257,10 +249,7 @@ pub async fn drain_cluster_node(
     Json(request): Json<DrainNodeRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let cluster = state.cluster.as_ref().ok_or_else(|| {
-        (
-            StatusCode::SERVICE_UNAVAILABLE,
-            "Cluster mode not enabled".to_string(),
-        )
+        (StatusCode::SERVICE_UNAVAILABLE, "Cluster mode not enabled".to_string())
     })?;
 
     // TODO: Implement drain logic
@@ -283,10 +272,7 @@ pub async fn remove_cluster_node(
     Path(node_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let cluster = state.cluster.as_ref().ok_or_else(|| {
-        (
-            StatusCode::SERVICE_UNAVAILABLE,
-            "Cluster mode not enabled".to_string(),
-        )
+        (StatusCode::SERVICE_UNAVAILABLE, "Cluster mode not enabled".to_string())
     })?;
 
     // Don't allow removing the local node via API
@@ -315,10 +301,7 @@ pub async fn list_replication_rules(
     State(state): State<AppState>,
 ) -> Result<Json<ReplicationRulesResponse>, (StatusCode, String)> {
     let cluster = state.cluster.as_ref().ok_or_else(|| {
-        (
-            StatusCode::SERVICE_UNAVAILABLE,
-            "Cluster mode not enabled".to_string(),
-        )
+        (StatusCode::SERVICE_UNAVAILABLE, "Cluster mode not enabled".to_string())
     })?;
 
     let rules: Vec<ReplicationRuleResponse> = cluster
@@ -339,10 +322,7 @@ pub async fn create_replication_rule(
     Json(request): Json<CreateReplicationRuleRequest>,
 ) -> Result<(StatusCode, Json<ReplicationRuleResponse>), (StatusCode, String)> {
     let cluster = state.cluster.as_ref().ok_or_else(|| {
-        (
-            StatusCode::SERVICE_UNAVAILABLE,
-            "Cluster mode not enabled".to_string(),
-        )
+        (StatusCode::SERVICE_UNAVAILABLE, "Cluster mode not enabled".to_string())
     })?;
 
     // Validate source bucket exists
@@ -395,22 +375,14 @@ pub async fn get_replication_rule(
     Path(rule_id): Path<String>,
 ) -> Result<Json<ReplicationRuleResponse>, (StatusCode, String)> {
     let cluster = state.cluster.as_ref().ok_or_else(|| {
-        (
-            StatusCode::SERVICE_UNAVAILABLE,
-            "Cluster mode not enabled".to_string(),
-        )
+        (StatusCode::SERVICE_UNAVAILABLE, "Cluster mode not enabled".to_string())
     })?;
 
     let rule = cluster
         .replication_rules()
         .into_iter()
         .find(|r| r.id == rule_id)
-        .ok_or_else(|| {
-            (
-                StatusCode::NOT_FOUND,
-                format!("Rule not found: {}", rule_id),
-            )
-        })?;
+        .ok_or_else(|| (StatusCode::NOT_FOUND, format!("Rule not found: {}", rule_id)))?;
 
     Ok(Json(rule.into()))
 }
@@ -422,19 +394,13 @@ pub async fn delete_replication_rule(
     Path(rule_id): Path<String>,
 ) -> Result<StatusCode, (StatusCode, String)> {
     let cluster = state.cluster.as_ref().ok_or_else(|| {
-        (
-            StatusCode::SERVICE_UNAVAILABLE,
-            "Cluster mode not enabled".to_string(),
-        )
+        (StatusCode::SERVICE_UNAVAILABLE, "Cluster mode not enabled".to_string())
     })?;
 
     if cluster.remove_replication_rule(&rule_id) {
         Ok(StatusCode::NO_CONTENT)
     } else {
-        Err((
-            StatusCode::NOT_FOUND,
-            format!("Rule not found: {}", rule_id),
-        ))
+        Err((StatusCode::NOT_FOUND, format!("Rule not found: {}", rule_id)))
     }
 }
 
@@ -444,10 +410,7 @@ pub async fn get_replication_stats(
     State(state): State<AppState>,
 ) -> Result<Json<ReplicatorStatsResponse>, (StatusCode, String)> {
     let cluster = state.cluster.as_ref().ok_or_else(|| {
-        (
-            StatusCode::SERVICE_UNAVAILABLE,
-            "Cluster mode not enabled".to_string(),
-        )
+        (StatusCode::SERVICE_UNAVAILABLE, "Cluster mode not enabled".to_string())
     })?;
 
     let stats = cluster.replicator_stats();
@@ -478,11 +441,7 @@ pub async fn cluster_health_check(
         (false, true, 1)
     };
 
-    let status = if cluster_healthy {
-        "healthy"
-    } else {
-        "degraded"
-    };
+    let status = if cluster_healthy { "healthy" } else { "degraded" };
 
     Ok(Json(serde_json::json!({
         "status": status,

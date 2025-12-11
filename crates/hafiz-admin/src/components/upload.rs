@@ -1,9 +1,9 @@
 //! File upload component with drag & drop support
 
 use leptos::*;
+use web_sys::{DragEvent, File, FileList, HtmlInputElement};
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
-use web_sys::{DragEvent, File, FileList, HtmlInputElement};
 
 /// Upload state for tracking progress
 #[derive(Clone, Debug)]
@@ -154,8 +154,7 @@ pub fn FileUploadModal(
 
                             // Update status to uploading
                             set_uploads.update(|u| {
-                                if let Some(item) = u.iter_mut().find(|item| item.name == file_name)
-                                {
+                                if let Some(item) = u.iter_mut().find(|item| item.name == file_name) {
                                     item.status = UploadStatus::Uploading;
                                     item.progress = 0.0;
                                 }
@@ -165,9 +164,7 @@ pub fn FileUploadModal(
                             match crate::api::upload_object(&bucket, &key, file.clone()).await {
                                 Ok(_) => {
                                     set_uploads.update(|u| {
-                                        if let Some(item) =
-                                            u.iter_mut().find(|item| item.name == file_name)
-                                        {
+                                        if let Some(item) = u.iter_mut().find(|item| item.name == file_name) {
                                             item.status = UploadStatus::Complete;
                                             item.progress = 100.0;
                                         }
@@ -175,9 +172,7 @@ pub fn FileUploadModal(
                                 }
                                 Err(e) => {
                                     set_uploads.update(|u| {
-                                        if let Some(item) =
-                                            u.iter_mut().find(|item| item.name == file_name)
-                                        {
+                                        if let Some(item) = u.iter_mut().find(|item| item.name == file_name) {
                                             item.status = UploadStatus::Error;
                                             item.error = Some(e.message);
                                         }
@@ -201,10 +196,7 @@ pub fn FileUploadModal(
     };
 
     let has_pending = move || {
-        uploads
-            .get()
-            .iter()
-            .any(|u| u.status == UploadStatus::Pending)
+        uploads.get().iter().any(|u| u.status == UploadStatus::Pending)
     };
 
     view! {

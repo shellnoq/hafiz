@@ -8,5 +8,5 @@
 mod dispatcher;
 
 pub use dispatcher::{
-    DispatchResult, EventDispatcher, EventDispatcherConfig, NotificationConfigStore, S3Event,
+    EventDispatcher, EventDispatcherConfig, S3Event, DispatchResult, NotificationConfigStore,
 };

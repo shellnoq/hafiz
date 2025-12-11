@@ -103,16 +103,10 @@ impl HafizConfig {
             config.encryption.enabled = true;
             config.encryption.master_key = Some(key);
         }
-        if std::env::var("HAFIZ_SSE_S3_ENABLED")
-            .map(|v| v == "true")
-            .unwrap_or(false)
-        {
+        if std::env::var("HAFIZ_SSE_S3_ENABLED").map(|v| v == "true").unwrap_or(false) {
             config.encryption.sse_s3_enabled = true;
         }
-        if std::env::var("HAFIZ_SSE_C_ENABLED")
-            .map(|v| v == "true")
-            .unwrap_or(false)
-        {
+        if std::env::var("HAFIZ_SSE_C_ENABLED").map(|v| v == "true").unwrap_or(false) {
             config.encryption.sse_c_enabled = true;
         }
 
@@ -352,9 +346,8 @@ impl EncryptionConfig {
 
         // Try direct key first
         if let Some(ref key) = self.master_key {
-            let bytes = hex::decode(key).map_err(|e| {
-                crate::Error::InvalidArgument(format!("Invalid master key hex: {}", e))
-            })?;
+            let bytes = hex::decode(key)
+                .map_err(|e| crate::Error::InvalidArgument(format!("Invalid master key hex: {}", e)))?;
             if bytes.len() != 32 {
                 return Err(crate::Error::InvalidArgument(
                     "Master key must be 32 bytes (64 hex characters)".into(),
@@ -365,12 +358,10 @@ impl EncryptionConfig {
 
         // Try key file
         if let Some(ref path) = self.master_key_file {
-            let content = std::fs::read_to_string(path).map_err(|e| {
-                crate::Error::InternalError(format!("Failed to read key file: {}", e))
-            })?;
-            let bytes = hex::decode(content.trim()).map_err(|e| {
-                crate::Error::InvalidArgument(format!("Invalid master key in file: {}", e))
-            })?;
+            let content = std::fs::read_to_string(path)
+                .map_err(|e| crate::Error::InternalError(format!("Failed to read key file: {}", e)))?;
+            let bytes = hex::decode(content.trim())
+                .map_err(|e| crate::Error::InvalidArgument(format!("Invalid master key in file: {}", e)))?;
             if bytes.len() != 32 {
                 return Err(crate::Error::InvalidArgument(
                     "Master key must be 32 bytes (64 hex characters)".into(),
@@ -382,9 +373,8 @@ impl EncryptionConfig {
         // Try environment variable
         if let Some(ref env_var) = self.master_key_env {
             if let Ok(key) = std::env::var(env_var) {
-                let bytes = hex::decode(&key).map_err(|e| {
-                    crate::Error::InvalidArgument(format!("Invalid master key in env: {}", e))
-                })?;
+                let bytes = hex::decode(&key)
+                    .map_err(|e| crate::Error::InvalidArgument(format!("Invalid master key in env: {}", e)))?;
                 if bytes.len() != 32 {
                     return Err(crate::Error::InvalidArgument(
                         "Master key must be 32 bytes (64 hex characters)".into(),
@@ -512,10 +502,9 @@ impl Default for ClusterConfigSection {
 impl ClusterConfigSection {
     /// Convert to ClusterConfig for the cluster module
     pub fn to_cluster_config(&self, server_config: &ServerConfig) -> crate::types::ClusterConfig {
-        let node_id = self
-            .node_id
-            .clone()
-            .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+        let node_id = self.node_id.clone().unwrap_or_else(|| {
+            uuid::Uuid::new_v4().to_string()
+        });
 
         let node_name = self.node_name.clone().unwrap_or_else(|| {
             hostname::get()
@@ -524,15 +513,13 @@ impl ClusterConfigSection {
         });
 
         let advertise_endpoint = self.advertise_endpoint.clone().unwrap_or_else(|| {
-            format!(
-                "http://{}:{}",
-                server_config.bind_address, server_config.port
-            )
+            format!("http://{}:{}", server_config.bind_address, server_config.port)
         });
 
         let cluster_endpoint = format!(
             "http://{}:{}",
-            server_config.bind_address, self.cluster_port
+            server_config.bind_address,
+            self.cluster_port
         );
 
         crate::types::ClusterConfig {

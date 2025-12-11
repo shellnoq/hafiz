@@ -40,12 +40,9 @@ impl SignatureV4 {
             }
         }
 
-        let credential =
-            credential.ok_or_else(|| Error::InvalidRequest("Missing Credential".into()))?;
-        let signed_headers =
-            signed_headers.ok_or_else(|| Error::InvalidRequest("Missing SignedHeaders".into()))?;
-        let signature =
-            signature.ok_or_else(|| Error::InvalidRequest("Missing Signature".into()))?;
+        let credential = credential.ok_or_else(|| Error::InvalidRequest("Missing Credential".into()))?;
+        let signed_headers = signed_headers.ok_or_else(|| Error::InvalidRequest("Missing SignedHeaders".into()))?;
+        let signature = signature.ok_or_else(|| Error::InvalidRequest("Missing Signature".into()))?;
 
         // Parse credential: access_key/date/region/service/aws4_request
         let cred_parts: Vec<&str> = credential.split('/').collect();
@@ -58,10 +55,9 @@ impl SignatureV4 {
         let region = cred_parts[2].to_string();
         let service = cred_parts[3].to_string();
 
-        let date =
-            NaiveDateTime::parse_from_str(&format!("{}T000000Z", date_str), "%Y%m%dT%H%M%SZ")
-                .map_err(|_| Error::InvalidRequest("Invalid date format".into()))?
-                .and_utc();
+        let date = NaiveDateTime::parse_from_str(&format!("{}T000000Z", date_str), "%Y%m%dT%H%M%SZ")
+            .map_err(|_| Error::InvalidRequest("Invalid date format".into()))?
+            .and_utc();
 
         Ok(SignatureV4 {
             access_key,
@@ -96,7 +92,12 @@ pub fn verify_signature_v4(
 
     let canonical_request = format!(
         "{}\n{}\n{}\n{}\n{}\n{}",
-        method, canonical_uri, canonical_query, canonical_headers, signed_headers_str, payload_hash
+        method,
+        canonical_uri,
+        canonical_query,
+        canonical_headers,
+        signed_headers_str,
+        payload_hash
     );
 
     debug!("Canonical request:\n{}", canonical_request);
@@ -115,10 +116,7 @@ pub fn verify_signature_v4(
     debug!("String to sign:\n{}", string_to_sign);
 
     // Calculate signature
-    let k_date = hmac_sha256(
-        format!("AWS4{}", secret_key).as_bytes(),
-        date_stamp.as_bytes(),
-    );
+    let k_date = hmac_sha256(format!("AWS4{}", secret_key).as_bytes(), date_stamp.as_bytes());
     let k_region = hmac_sha256(&k_date, sig.region.as_bytes());
     let k_service = hmac_sha256(&k_region, sig.service.as_bytes());
     let k_signing = hmac_sha256(&k_service, b"aws4_request");
@@ -138,10 +136,13 @@ fn uri_encode_path(path: &str) -> String {
 
     path.split('/')
         .map(|segment| {
-            percent_encoding::utf8_percent_encode(segment, percent_encoding::NON_ALPHANUMERIC)
-                .to_string()
-                .replace("%2F", "/")
-                .replace("%7E", "~")
+            percent_encoding::utf8_percent_encode(
+                segment,
+                percent_encoding::NON_ALPHANUMERIC,
+            )
+            .to_string()
+            .replace("%2F", "/")
+            .replace("%7E", "~")
         })
         .collect::<Vec<_>>()
         .join("/")

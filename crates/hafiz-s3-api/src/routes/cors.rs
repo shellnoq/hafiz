@@ -30,8 +30,7 @@ use crate::server::AppState;
 // ============================================================================
 
 fn error_response(err: Error, request_id: &str) -> Response {
-    let status =
-        StatusCode::from_u16(err.http_status()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+    let status = StatusCode::from_u16(err.http_status()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
     let s3_error = hafiz_core::error::S3Error::from(err).with_request_id(request_id);
 
     Response::builder()
@@ -185,11 +184,7 @@ pub async fn put_bucket_cors(
     // Store in metadata
     match state.metadata.put_bucket_cors(&bucket, &clean_xml).await {
         Ok(_) => {
-            info!(
-                "PutBucketCors success bucket={} rules={}",
-                bucket,
-                config.cors_rules.len()
-            );
+            info!("PutBucketCors success bucket={} rules={}", bucket, config.cors_rules.len());
             no_content_response(&request_id)
         }
         Err(e) => {
@@ -205,10 +200,7 @@ pub async fn delete_bucket_cors(
     Path(bucket): Path<String>,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    debug!(
-        "DeleteBucketCors bucket={} request_id={}",
-        bucket, request_id
-    );
+    debug!("DeleteBucketCors bucket={} request_id={}", bucket, request_id);
 
     // Check if bucket exists
     match state.metadata.get_bucket(&bucket).await {
@@ -367,10 +359,7 @@ fn cors_forbidden_response(origin: &str, request_id: &str) -> Response {
     Response::builder()
         .status(StatusCode::FORBIDDEN)
         .header("x-amz-request-id", request_id)
-        .header(
-            "Vary",
-            "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
-        )
+        .header("Vary", "Origin, Access-Control-Request-Method, Access-Control-Request-Headers")
         .body(Body::empty())
         .unwrap()
 }
@@ -417,7 +406,12 @@ pub async fn add_cors_headers_to_response(
 }
 
 /// Check if origin is allowed for a bucket
-pub async fn is_origin_allowed(state: &AppState, bucket: &str, origin: &str, method: &str) -> bool {
+pub async fn is_origin_allowed(
+    state: &AppState,
+    bucket: &str,
+    origin: &str,
+    method: &str,
+) -> bool {
     match state.metadata.get_bucket_cors(bucket).await {
         Ok(Some(xml)) => match CorsConfiguration::from_xml(&xml) {
             Ok(config) => config.find_matching_rule(origin, method).is_some(),
@@ -450,40 +444,31 @@ mod tests {
 
         let config = CorsConfiguration::from_xml(xml).unwrap();
         assert_eq!(config.cors_rules.len(), 1);
-        assert_eq!(
-            config.cors_rules[0].allowed_origins,
-            vec!["https://example.com"]
-        );
+        assert_eq!(config.cors_rules[0].allowed_origins, vec!["https://example.com"]);
         assert_eq!(config.cors_rules[0].allowed_methods.len(), 2);
     }
 
     #[test]
     fn test_cors_rule_matching() {
         let config = CorsConfiguration {
-            cors_rules: vec![hafiz_core::types::CorsRule {
-                id: Some("rule1".to_string()),
-                allowed_origins: vec!["https://example.com".to_string()],
-                allowed_methods: vec![
-                    hafiz_core::types::CorsMethod::GET,
-                    hafiz_core::types::CorsMethod::PUT,
-                ],
-                allowed_headers: vec!["*".to_string()],
-                expose_headers: vec![],
-                max_age_seconds: Some(3600),
-            }],
+            cors_rules: vec![
+                hafiz_core::types::CorsRule {
+                    id: Some("rule1".to_string()),
+                    allowed_origins: vec!["https://example.com".to_string()],
+                    allowed_methods: vec![
+                        hafiz_core::types::CorsMethod::GET,
+                        hafiz_core::types::CorsMethod::PUT,
+                    ],
+                    allowed_headers: vec!["*".to_string()],
+                    expose_headers: vec![],
+                    max_age_seconds: Some(3600),
+                },
+            ],
         };
 
-        assert!(config
-            .find_matching_rule("https://example.com", "GET")
-            .is_some());
-        assert!(config
-            .find_matching_rule("https://example.com", "PUT")
-            .is_some());
-        assert!(config
-            .find_matching_rule("https://example.com", "DELETE")
-            .is_none());
-        assert!(config
-            .find_matching_rule("https://other.com", "GET")
-            .is_none());
+        assert!(config.find_matching_rule("https://example.com", "GET").is_some());
+        assert!(config.find_matching_rule("https://example.com", "PUT").is_some());
+        assert!(config.find_matching_rule("https://example.com", "DELETE").is_none());
+        assert!(config.find_matching_rule("https://other.com", "GET").is_none());
     }
 }

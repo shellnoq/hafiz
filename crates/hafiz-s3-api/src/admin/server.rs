@@ -1,6 +1,10 @@
 //! Server information and health check endpoints
 
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{
+    extract::State,
+    http::StatusCode,
+    Json,
+};
 use serde::Serialize;
 use std::time::Instant;
 
@@ -66,9 +70,8 @@ pub async fn get_server_info(
     // Determine database type
     let database_type = if state.config.database.url.contains("postgres") {
         "PostgreSQL".to_string()
-    } else if state.config.database.url.contains("sqlite")
-        || state.config.database.url.ends_with(".db")
-    {
+    } else if state.config.database.url.contains("sqlite") ||
+              state.config.database.url.ends_with(".db") {
         "SQLite".to_string()
     } else {
         "Unknown".to_string()
@@ -76,14 +79,8 @@ pub async fn get_server_info(
 
     Ok(Json(ServerInfo {
         version: env!("CARGO_PKG_VERSION").to_string(),
-        s3_endpoint: format!(
-            "http://{}:{}",
-            state.config.server.bind_address, state.config.server.port
-        ),
-        admin_endpoint: format!(
-            "http://{}:{}/api/v1",
-            state.config.server.bind_address, state.config.server.port
-        ),
+        s3_endpoint: format!("http://{}:{}", state.config.server.bind_address, state.config.server.port),
+        admin_endpoint: format!("http://{}:{}/api/v1", state.config.server.bind_address, state.config.server.port),
         storage_backend,
         database_type,
         uptime,

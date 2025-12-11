@@ -46,19 +46,11 @@ pub struct CorsRule {
 
     /// Headers allowed in the actual request
     /// Supports wildcards: "*" allows all headers
-    #[serde(
-        rename = "AllowedHeader",
-        default,
-        skip_serializing_if = "Vec::is_empty"
-    )]
+    #[serde(rename = "AllowedHeader", default, skip_serializing_if = "Vec::is_empty")]
     pub allowed_headers: Vec<String>,
 
     /// Headers that browsers can access from the response
-    #[serde(
-        rename = "ExposeHeader",
-        default,
-        skip_serializing_if = "Vec::is_empty"
-    )]
+    #[serde(rename = "ExposeHeader", default, skip_serializing_if = "Vec::is_empty")]
     pub expose_headers: Vec<String>,
 
     /// Time in seconds that browser can cache preflight response
@@ -124,11 +116,10 @@ impl CorsConfiguration {
 
         // Validate each rule
         for (index, rule) in self.cors_rules.iter().enumerate() {
-            rule.validate()
-                .map_err(|e| CorsValidationError::InvalidRule {
-                    index,
-                    error: e.to_string(),
-                })?;
+            rule.validate().map_err(|e| CorsValidationError::InvalidRule {
+                index,
+                error: e.to_string(),
+            })?;
         }
 
         Ok(())
@@ -138,9 +129,9 @@ impl CorsConfiguration {
     pub fn find_matching_rule(&self, origin: &str, method: &str) -> Option<&CorsRule> {
         let method = method.parse::<CorsMethod>().ok()?;
 
-        self.cors_rules
-            .iter()
-            .find(|rule| rule.matches_origin(origin) && rule.allowed_methods.contains(&method))
+        self.cors_rules.iter().find(|rule| {
+            rule.matches_origin(origin) && rule.allowed_methods.contains(&method)
+        })
     }
 
     /// Check if configuration is empty
@@ -216,9 +207,9 @@ impl CorsRule {
 
     /// Check if this rule matches an origin
     pub fn matches_origin(&self, origin: &str) -> bool {
-        self.allowed_origins
-            .iter()
-            .any(|pattern| Self::origin_matches_pattern(origin, pattern))
+        self.allowed_origins.iter().any(|pattern| {
+            Self::origin_matches_pattern(origin, pattern)
+        })
     }
 
     /// Check if an origin matches a pattern
@@ -252,12 +243,7 @@ impl CorsRule {
     /// Check if a header is allowed
     pub fn is_header_allowed(&self, header: &str) -> bool {
         // Simple headers are always allowed
-        let simple_headers = [
-            "accept",
-            "accept-language",
-            "content-language",
-            "content-type",
-        ];
+        let simple_headers = ["accept", "accept-language", "content-language", "content-type"];
         if simple_headers.contains(&header.to_lowercase().as_str()) {
             return true;
         }
@@ -354,18 +340,10 @@ impl std::fmt::Display for CorsRuleError {
             Self::NoAllowedMethods => write!(f, "At least one AllowedMethod is required"),
             Self::EmptyOrigin => write!(f, "AllowedOrigin cannot be empty"),
             Self::InvalidOriginScheme(origin) => {
-                write!(
-                    f,
-                    "Invalid origin scheme (must be http or https): {}",
-                    origin
-                )
+                write!(f, "Invalid origin scheme (must be http or https): {}", origin)
             }
             Self::InvalidWildcard(origin) => {
-                write!(
-                    f,
-                    "Wildcard (*) is only allowed at the start of hostname: {}",
-                    origin
-                )
+                write!(f, "Wildcard (*) is only allowed at the start of hostname: {}", origin)
             }
             Self::InvalidMaxAge(age) => {
                 write!(f, "MaxAgeSeconds must be <= 86400: {}", age)
@@ -410,9 +388,7 @@ impl CorsResponseHeaders {
             allow_methods: Some(rule.allowed_methods_header()),
             max_age: rule.max_age_seconds,
             allow_credentials: true,
-            vary: Some(
-                "Origin, Access-Control-Request-Method, Access-Control-Request-Headers".to_string(),
-            ),
+            vary: Some("Origin, Access-Control-Request-Method, Access-Control-Request-Headers".to_string()),
             ..Default::default()
         };
 
@@ -466,10 +442,7 @@ impl CorsResponseHeaders {
             headers.push(("Access-Control-Max-Age".to_string(), max_age.to_string()));
         }
         if self.allow_credentials {
-            headers.push((
-                "Access-Control-Allow-Credentials".to_string(),
-                "true".to_string(),
-            ));
+            headers.push(("Access-Control-Allow-Credentials".to_string(), "true".to_string()));
         }
         if let Some(ref vary) = self.vary {
             headers.push(("Vary".to_string(), vary.clone()));
@@ -584,20 +557,14 @@ mod tests {
             allowed_methods: vec![CorsMethod::GET],
             ..Default::default()
         };
-        assert!(matches!(
-            no_origins.validate(),
-            Err(CorsRuleError::NoAllowedOrigins)
-        ));
+        assert!(matches!(no_origins.validate(), Err(CorsRuleError::NoAllowedOrigins)));
 
         let no_methods = CorsRule {
             allowed_origins: vec!["*".to_string()],
             allowed_methods: vec![],
             ..Default::default()
         };
-        assert!(matches!(
-            no_methods.validate(),
-            Err(CorsRuleError::NoAllowedMethods)
-        ));
+        assert!(matches!(no_methods.validate(), Err(CorsRuleError::NoAllowedMethods)));
     }
 
     #[test]
@@ -643,11 +610,13 @@ mod tests {
     #[test]
     fn test_configuration_validation() {
         let config = CorsConfiguration {
-            cors_rules: vec![CorsRule {
-                allowed_origins: vec!["https://example.com".to_string()],
-                allowed_methods: vec![CorsMethod::GET],
-                ..Default::default()
-            }],
+            cors_rules: vec![
+                CorsRule {
+                    allowed_origins: vec!["https://example.com".to_string()],
+                    allowed_methods: vec![CorsMethod::GET],
+                    ..Default::default()
+                },
+            ],
         };
         assert!(config.validate().is_ok());
 

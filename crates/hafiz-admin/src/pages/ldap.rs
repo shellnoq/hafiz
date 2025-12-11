@@ -1,9 +1,9 @@
 //! LDAP/Active Directory Settings Page
 
+use leptos::*;
 use crate::api;
 use crate::api::types::*;
 use crate::components::{Button, ButtonVariant};
-use leptos::*;
 
 #[component]
 pub fn LdapSettingsPage() -> impl IntoView {
@@ -109,12 +109,9 @@ pub fn LdapSettingsPage() -> impl IntoView {
                 Ok(response) => {
                     set_test_success.set(response.success);
                     let msg = if response.success {
-                        let info = response
-                            .server_info
-                            .map(|i| {
-                                format!(" ({})", i.vendor.unwrap_or_else(|| "Unknown".to_string()))
-                            })
-                            .unwrap_or_default();
+                        let info = response.server_info.map(|i| {
+                            format!(" ({})", i.vendor.unwrap_or_else(|| "Unknown".to_string()))
+                        }).unwrap_or_default();
                         format!("✓ Connection successful{}", info)
                     } else {
                         format!("✗ {}", response.message)
@@ -145,14 +142,12 @@ pub fn LdapSettingsPage() -> impl IntoView {
                     set_test_success.set(response.success);
                     let msg = if response.success {
                         if let Some(user) = response.user {
-                            format!(
-                                "✓ User found: {} ({})\nDN: {}\nGroups: {}\nPolicies: {}",
+                            format!("✓ User found: {} ({})\nDN: {}\nGroups: {}\nPolicies: {}",
                                 user.display_name.unwrap_or_else(|| user.username.clone()),
                                 user.email.unwrap_or_else(|| "-".to_string()),
                                 user.dn,
                                 user.groups.join(", "),
-                                user.policies.join(", ")
-                            )
+                                user.policies.join(", "))
                         } else {
                             "✓ User found".to_string()
                         }
@@ -186,12 +181,10 @@ pub fn LdapSettingsPage() -> impl IntoView {
                     set_test_success.set(response.success);
                     let msg = if response.success {
                         if let Some(user) = response.user {
-                            format!(
-                                "✓ Authentication successful!\nUser: {} ({})\nPolicies: {}",
+                            format!("✓ Authentication successful!\nUser: {} ({})\nPolicies: {}",
                                 user.display_name.unwrap_or_else(|| user.username.clone()),
                                 user.email.unwrap_or_else(|| "-".to_string()),
-                                user.policies.join(", ")
-                            )
+                                user.policies.join(", "))
                         } else {
                             "✓ Authentication successful".to_string()
                         }
@@ -220,8 +213,7 @@ pub fn LdapSettingsPage() -> impl IntoView {
             serde_json::from_str(&group_policies_json.get()).unwrap_or_default();
 
         // Parse default policies
-        let default_policies_vec: Vec<String> = default_policies
-            .get()
+        let default_policies_vec: Vec<String> = default_policies.get()
             .split(',')
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
@@ -782,7 +774,10 @@ fn StatusRow(label: &'static str, value: &str, ok: bool) -> impl IntoView {
 }
 
 #[component]
-fn ToggleSwitch(enabled: ReadSignal<bool>, on_toggle: impl Fn(bool) + 'static) -> impl IntoView {
+fn ToggleSwitch(
+    enabled: ReadSignal<bool>,
+    on_toggle: impl Fn(bool) + 'static,
+) -> impl IntoView {
     view! {
         <button
             class=move || {

@@ -1,7 +1,7 @@
 //! Dashboard page with overview statistics
 
-use crate::api::{self, DashboardStats};
 use leptos::*;
+use crate::api::{self, DashboardStats};
 
 #[component]
 pub fn DashboardPage() -> impl IntoView {

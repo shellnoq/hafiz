@@ -2,12 +2,9 @@
 //!
 //! Displays cluster status, nodes, replication rules, and statistics.
 
-use crate::api::{
-    self, ClusterHealth, ClusterStatus, NodeInfo, NodesList, ReplicationRule, ReplicationRulesList,
-    ReplicationStats,
-};
-use crate::components::{Button, Modal, StatCard};
 use leptos::*;
+use crate::api::{self, ClusterStatus, NodeInfo, ReplicationRule, ReplicationStats, NodesList, ReplicationRulesList, ClusterHealth};
+use crate::components::{Button, Modal, StatCard};
 
 /// Cluster page component
 #[component]
@@ -89,11 +86,7 @@ pub fn ClusterPage() -> impl IntoView {
                 source_bucket: bucket,
                 destination_bucket: None,
                 target_nodes: None,
-                prefix_filter: if prefix.is_empty() {
-                    None
-                } else {
-                    Some(prefix)
-                },
+                prefix_filter: if prefix.is_empty() { None } else { Some(prefix) },
                 mode: Some(mode),
                 replicate_deletes: Some(true),
             };

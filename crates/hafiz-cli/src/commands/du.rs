@@ -46,7 +46,10 @@ pub async fn execute(
     let mut continuation_token: Option<String> = None;
 
     loop {
-        let mut req = client.list_objects_v2().bucket(&uri.bucket).prefix(&prefix);
+        let mut req = client
+            .list_objects_v2()
+            .bucket(&uri.bucket)
+            .prefix(&prefix);
 
         if let Some(token) = &continuation_token {
             req = req.continuation_token(token);

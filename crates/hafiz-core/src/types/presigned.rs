@@ -238,14 +238,8 @@ mod tests {
 
     #[test]
     fn test_method_parsing() {
-        assert_eq!(
-            "GET".parse::<PresignedMethod>().unwrap(),
-            PresignedMethod::Get
-        );
-        assert_eq!(
-            "put".parse::<PresignedMethod>().unwrap(),
-            PresignedMethod::Put
-        );
+        assert_eq!("GET".parse::<PresignedMethod>().unwrap(), PresignedMethod::Get);
+        assert_eq!("put".parse::<PresignedMethod>().unwrap(), PresignedMethod::Put);
         assert!("INVALID".parse::<PresignedMethod>().is_err());
     }
 }

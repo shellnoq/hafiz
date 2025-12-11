@@ -13,8 +13,10 @@ use aes_gcm::{
     aead::{Aead, KeyInit, OsRng},
     Aes256Gcm, Nonce,
 };
+use digest::Digest;
+use md5::Md5;
 use rand::RngCore;
-use sha2::{Digest, Sha256};
+use sha2::Sha256;
 use std::sync::Arc;
 use thiserror::Error;
 
@@ -144,11 +146,7 @@ impl KeyManager {
     }
 
     /// Decrypt DEK with Master Key
-    pub fn decrypt_dek(
-        &self,
-        encrypted_dek: &[u8],
-        nonce: &[u8],
-    ) -> Result<[u8; 32], EncryptionError> {
+    pub fn decrypt_dek(&self, encrypted_dek: &[u8], nonce: &[u8]) -> Result<[u8; 32], EncryptionError> {
         if nonce.len() != 12 {
             return Err(EncryptionError::InvalidKey("Nonce must be 12 bytes".into()));
         }
@@ -161,9 +159,7 @@ impl KeyManager {
             .map_err(|e| EncryptionError::DecryptionFailed(e.to_string()))?;
 
         if dek.len() != 32 {
-            return Err(EncryptionError::DecryptionFailed(
-                "Invalid DEK length".into(),
-            ));
+            return Err(EncryptionError::DecryptionFailed("Invalid DEK length".into()));
         }
 
         let mut result = [0u8; 32];
@@ -186,15 +182,17 @@ impl ObjectEncryptor {
         let cipher = Aes256Gcm::new_from_slice(dek)
             .map_err(|e| EncryptionError::InvalidKey(e.to_string()))?;
 
-        Ok(Self { dek: *dek, cipher })
+        Ok(Self {
+            dek: *dek,
+            cipher,
+        })
     }
 
     /// Create encryptor from customer-provided key (SSE-C)
     pub fn from_customer_key(key_base64: &str) -> Result<(Self, String), EncryptionError> {
-        use base64::{engine::general_purpose::STANDARD, Engine as _};
+        use base64::{Engine as _, engine::general_purpose::STANDARD};
 
-        let key = STANDARD
-            .decode(key_base64)
+        let key = STANDARD.decode(key_base64)
             .map_err(|e| EncryptionError::InvalidKey(format!("Invalid base64: {}", e)))?;
 
         if key.len() != 32 {
@@ -204,7 +202,9 @@ impl ObjectEncryptor {
         }
 
         // Calculate MD5 of customer key for verification
-        let key_md5 = md5::compute(&key);
+        let mut hasher = Md5::new();
+        hasher.update(&key);
+        let key_md5 = hasher.finalize();
         let key_md5_base64 = STANDARD.encode(key_md5.as_ref());
 
         let mut dek = [0u8; 32];
@@ -419,7 +419,7 @@ mod tests {
 
     #[test]
     fn test_sse_c() {
-        use base64::{engine::general_purpose::STANDARD, Engine as _};
+        use base64::{Engine as _, engine::general_purpose::STANDARD};
 
         // Generate random customer key
         let mut key = [0u8; 32];

@@ -83,7 +83,10 @@ async fn delete_prefix(
     let mut continuation_token: Option<String> = None;
 
     loop {
-        let mut req = client.list_objects_v2().bucket(&uri.bucket).prefix(&prefix);
+        let mut req = client
+            .list_objects_v2()
+            .bucket(&uri.bucket)
+            .prefix(&prefix);
 
         if let Some(token) = &continuation_token {
             req = req.continuation_token(token);
@@ -115,11 +118,7 @@ async fn delete_prefix(
     }
 
     if !opts.force && !ctx.quiet {
-        let msg = format!(
-            "Delete {} object(s) from s3://{}?",
-            objects.len(),
-            uri.bucket
-        );
+        let msg = format!("Delete {} object(s) from s3://{}?", objects.len(), uri.bucket);
         if !confirm(&msg) {
             ctx.info("Cancelled");
             return Ok(());

@@ -32,14 +32,12 @@ impl TlsAcceptor {
     pub fn from_config(config: &TlsConfig) -> Result<Self> {
         config.validate()?;
 
-        let cert_file = config
-            .cert_file
-            .as_ref()
-            .ok_or_else(|| Error::InvalidArgument("Certificate file not specified".into()))?;
-        let key_file = config
-            .key_file
-            .as_ref()
-            .ok_or_else(|| Error::InvalidArgument("Key file not specified".into()))?;
+        let cert_file = config.cert_file.as_ref().ok_or_else(|| {
+            Error::InvalidArgument("Certificate file not specified".into())
+        })?;
+        let key_file = config.key_file.as_ref().ok_or_else(|| {
+            Error::InvalidArgument("Key file not specified".into())
+        })?;
 
         // Load certificates
         let certs = load_certs(cert_file)?;
@@ -52,10 +50,9 @@ impl TlsAcceptor {
         // Build server config
         let mut server_config = if config.require_client_cert {
             // mTLS: require client certificates
-            let client_ca_file = config
-                .client_ca_file
-                .as_ref()
-                .ok_or_else(|| Error::InvalidArgument("Client CA file required for mTLS".into()))?;
+            let client_ca_file = config.client_ca_file.as_ref().ok_or_else(|| {
+                Error::InvalidArgument("Client CA file required for mTLS".into())
+            })?;
 
             let client_roots = load_root_certs(client_ca_file)?;
             info!("Loaded {} client CA certificate(s)", client_roots.len());
@@ -150,8 +147,9 @@ fn load_certs(path: &Path) -> Result<Vec<CertificateDer<'static>>> {
 
 /// Load private key from PEM file
 fn load_private_key(path: &Path) -> Result<PrivateKeyDer<'static>> {
-    let file = File::open(path)
-        .map_err(|e| Error::InternalError(format!("Failed to open key file {:?}: {}", path, e)))?;
+    let file = File::open(path).map_err(|e| {
+        Error::InternalError(format!("Failed to open key file {:?}: {}", path, e))
+    })?;
     let mut reader = BufReader::new(file);
 
     // Try different key formats
@@ -219,20 +217,23 @@ pub fn generate_self_signed_cert(
     ];
 
     // Generate certificate
-    let cert = Certificate::from_params(params)
-        .map_err(|e| Error::InternalError(format!("Failed to generate certificate: {}", e)))?;
+    let cert = Certificate::from_params(params).map_err(|e| {
+        Error::InternalError(format!("Failed to generate certificate: {}", e))
+    })?;
 
     // Write certificate PEM
-    let cert_pem = cert
-        .serialize_pem()
-        .map_err(|e| Error::InternalError(format!("Failed to serialize certificate: {}", e)))?;
-    std::fs::write(output_cert, &cert_pem)
-        .map_err(|e| Error::InternalError(format!("Failed to write certificate file: {}", e)))?;
+    let cert_pem = cert.serialize_pem().map_err(|e| {
+        Error::InternalError(format!("Failed to serialize certificate: {}", e))
+    })?;
+    std::fs::write(output_cert, &cert_pem).map_err(|e| {
+        Error::InternalError(format!("Failed to write certificate file: {}", e))
+    })?;
 
     // Write private key PEM
     let key_pem = cert.serialize_private_key_pem();
-    std::fs::write(output_key, &key_pem)
-        .map_err(|e| Error::InternalError(format!("Failed to write key file: {}", e)))?;
+    std::fs::write(output_key, &key_pem).map_err(|e| {
+        Error::InternalError(format!("Failed to write key file: {}", e))
+    })?;
 
     // Set permissions on key file (Unix only)
     #[cfg(unix)]
@@ -271,14 +272,17 @@ pub struct CertInfo {
 pub fn get_cert_info(cert_path: &Path) -> Result<CertInfo> {
     use x509_parser::prelude::*;
 
-    let pem_data = std::fs::read(cert_path)
-        .map_err(|e| Error::InternalError(format!("Failed to read certificate: {}", e)))?;
+    let pem_data = std::fs::read(cert_path).map_err(|e| {
+        Error::InternalError(format!("Failed to read certificate: {}", e))
+    })?;
 
-    let (_, pem) = parse_x509_pem(&pem_data)
-        .map_err(|e| Error::InternalError(format!("Failed to parse PEM: {:?}", e)))?;
+    let (_, pem) = parse_x509_pem(&pem_data).map_err(|e| {
+        Error::InternalError(format!("Failed to parse PEM: {:?}", e))
+    })?;
 
-    let (_, cert) = X509Certificate::from_der(&pem.contents)
-        .map_err(|e| Error::InternalError(format!("Failed to parse certificate: {:?}", e)))?;
+    let (_, cert) = X509Certificate::from_der(&pem.contents).map_err(|e| {
+        Error::InternalError(format!("Failed to parse certificate: {:?}", e))
+    })?;
 
     let subject = cert.subject().to_string();
     let issuer = cert.issuer().to_string();

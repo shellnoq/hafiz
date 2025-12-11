@@ -76,9 +76,7 @@ impl LocalStorage {
     pub async fn health_check(&self) -> Result<()> {
         // Check if data directory exists and is writable
         if !self.data_dir.exists() {
-            return Err(Error::InternalError(
-                "Data directory does not exist".to_string(),
-            ));
+            return Err(Error::InternalError("Data directory does not exist".to_string()));
         }
 
         // Try to create a temp file to verify write access

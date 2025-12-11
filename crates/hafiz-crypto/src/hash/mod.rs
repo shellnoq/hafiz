@@ -1,7 +1,9 @@
 //! Hash utilities
 
+use base64::{engine::general_purpose::STANDARD, Engine};
+use digest::Digest;
 use hmac::{Hmac, Mac};
-use md5::{Digest as Md5Digest, Md5};
+use md5::Md5;
 use sha1::Sha1;
 use sha2::Sha256;
 
@@ -37,7 +39,7 @@ pub fn hmac_sha256_hex(key: &[u8], data: &[u8]) -> String {
 pub fn md5_base64(data: &[u8]) -> String {
     let mut hasher = Md5::new();
     hasher.update(data);
-    base64::encode(hasher.finalize())
+    STANDARD.encode(hasher.finalize())
 }
 
 /// Calculate multipart upload ETag

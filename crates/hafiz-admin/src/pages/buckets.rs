@@ -1,9 +1,9 @@
 //! Buckets management page
 
-use crate::api::{self, BucketInfo};
-use crate::components::{Button, ButtonVariant, Modal};
 use leptos::*;
 use leptos_router::use_params_map;
+use crate::api::{self, BucketInfo};
+use crate::components::{Button, ButtonVariant, Modal};
 
 #[component]
 pub fn BucketsPage() -> impl IntoView {
@@ -285,10 +285,9 @@ pub fn BucketDetailPage() -> impl IntoView {
     let params = use_params_map();
     let bucket_name = move || params.get().get("name").cloned().unwrap_or_default();
 
-    let bucket = create_resource(
-        bucket_name,
-        |name| async move { api::get_bucket(&name).await },
-    );
+    let bucket = create_resource(bucket_name, |name| async move {
+        api::get_bucket(&name).await
+    });
 
     view! {
         <div class="space-y-6">

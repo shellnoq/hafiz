@@ -5,7 +5,7 @@ mod notification;
 mod object_lock;
 mod policy;
 
-pub use cors::{add_cors_headers_to_response, handle_cors_preflight, is_origin_allowed};
+pub use cors::{handle_cors_preflight, add_cors_headers_to_response, is_origin_allowed};
 pub use object_lock::{can_delete_object, get_lock_error_message};
 
 use axum::{
@@ -37,8 +37,7 @@ impl IntoResponse for S3Response {
 }
 
 fn error_response(err: Error, request_id: &str) -> Response {
-    let status =
-        StatusCode::from_u16(err.http_status()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+    let status = StatusCode::from_u16(err.http_status()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
     let s3_error = hafiz_core::error::S3Error::from(err).with_request_id(request_id);
 
     Response::builder()
@@ -102,9 +101,7 @@ pub async fn bucket_get_handler(
 
     // Check if this is a get bucket notification request
     if query_str == "notification" || query_str.starts_with("notification&") {
-        return notification::get_bucket_notification(state, path)
-            .await
-            .into_response();
+        return notification::get_bucket_notification(state, path).await.into_response();
     }
 
     // Check if this is a get bucket CORS request
@@ -114,28 +111,20 @@ pub async fn bucket_get_handler(
 
     // Check if this is a get bucket Object Lock request
     if query_str == "object-lock" || query_str.starts_with("object-lock&") {
-        return object_lock::get_bucket_object_lock_config(state, path)
-            .await
-            .into_response();
+        return object_lock::get_bucket_object_lock_config(state, path).await.into_response();
     }
 
     // Check if this is a list object versions request
     if query_str.contains("versions") {
-        let params: ListObjectVersionsQuery =
-            serde_urlencoded::from_str(&query_str).unwrap_or_default();
-        return list_object_versions(state, path, Query(params))
-            .await
-            .into_response();
+        let params: ListObjectVersionsQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
+        return list_object_versions(state, path, Query(params)).await.into_response();
     }
 
     // Check if this is a list multipart uploads request
     if query_str.contains("uploads") && !query_str.contains("uploadId") {
         // Parse as ListMultipartUploadsQuery
-        let params: ListMultipartUploadsQuery =
-            serde_urlencoded::from_str(&query_str).unwrap_or_default();
-        return list_multipart_uploads(state, path, Query(params))
-            .await
-            .into_response();
+        let params: ListMultipartUploadsQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
+        return list_multipart_uploads(state, path, Query(params)).await.into_response();
     }
 
     // Default: ListObjects
@@ -154,51 +143,37 @@ pub async fn bucket_put_handler(
 
     // Check if this is a put bucket versioning request
     if query_str == "versioning" || query_str.starts_with("versioning&") {
-        return put_bucket_versioning(state, path, body)
-            .await
-            .into_response();
+        return put_bucket_versioning(state, path, body).await.into_response();
     }
 
     // Check if this is a put bucket lifecycle request
     if query_str == "lifecycle" || query_str.starts_with("lifecycle&") {
-        return put_bucket_lifecycle(state, path, body)
-            .await
-            .into_response();
+        return put_bucket_lifecycle(state, path, body).await.into_response();
     }
 
     // Check if this is a put bucket policy request
     if query_str == "policy" || query_str.starts_with("policy&") {
-        return policy::put_bucket_policy(state, path, body)
-            .await
-            .into_response();
+        return policy::put_bucket_policy(state, path, body).await.into_response();
     }
 
     // Check if this is a put bucket ACL request
     if query_str == "acl" || query_str.starts_with("acl&") {
-        return policy::put_bucket_acl(state, path, headers, body)
-            .await
-            .into_response();
+        return policy::put_bucket_acl(state, path, headers, body).await.into_response();
     }
 
     // Check if this is a put bucket notification request
     if query_str == "notification" || query_str.starts_with("notification&") {
-        return notification::put_bucket_notification(state, path, body)
-            .await
-            .into_response();
+        return notification::put_bucket_notification(state, path, body).await.into_response();
     }
 
     // Check if this is a put bucket CORS request
     if query_str == "cors" || query_str.starts_with("cors&") {
-        return cors::put_bucket_cors(state, path, body)
-            .await
-            .into_response();
+        return cors::put_bucket_cors(state, path, body).await.into_response();
     }
 
     // Check if this is a put bucket Object Lock request
     if query_str == "object-lock" || query_str.starts_with("object-lock&") {
-        return object_lock::put_bucket_object_lock_config(state, path, body)
-            .await
-            .into_response();
+        return object_lock::put_bucket_object_lock_config(state, path, body).await.into_response();
     }
 
     // Default: CreateBucket
@@ -220,9 +195,7 @@ pub async fn bucket_delete_handler(
 
     // Check if this is a delete bucket policy request
     if query_str == "policy" || query_str.starts_with("policy&") {
-        return policy::delete_bucket_policy(state, path)
-            .await
-            .into_response();
+        return policy::delete_bucket_policy(state, path).await.into_response();
     }
 
     // Check if this is a delete bucket CORS request
@@ -245,17 +218,12 @@ pub async fn bucket_post_handler(
 
     if query_str.contains("delete") {
         let params: DeleteObjectsQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
-        return delete_objects(state, path, Query(params), body)
-            .await
-            .into_response();
+        return delete_objects(state, path, Query(params), body).await.into_response();
     }
 
     // Unknown POST operation
     let request_id = generate_request_id();
-    error_response(
-        Error::InvalidRequest("Unknown bucket POST operation".into()),
-        &request_id,
-    )
+    error_response(Error::InvalidRequest("Unknown bucket POST operation".into()), &request_id)
 }
 
 /// Object GET dispatcher - GetObject, ListParts, GetObjectTagging, or GetObjectAcl
@@ -268,50 +236,31 @@ pub async fn object_get_handler(
     let query_str = raw_query.0.unwrap_or_default();
 
     // Check if this is a get object tagging request
-    if query_str == "tagging" || query_str.starts_with("tagging&") || query_str.contains("&tagging")
-    {
-        let version_id: Option<String> =
-            serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
-                .ok()
-                .and_then(|m| m.get("versionId").cloned());
-        return get_object_tagging(state, path, version_id)
-            .await
-            .into_response();
+    if query_str == "tagging" || query_str.starts_with("tagging&") || query_str.contains("&tagging") {
+        let version_id: Option<String> = serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
+            .ok()
+            .and_then(|m| m.get("versionId").cloned());
+        return get_object_tagging(state, path, version_id).await.into_response();
     }
 
     // Check if this is a get object ACL request
     if query_str == "acl" || query_str.starts_with("acl&") || query_str.contains("&acl") {
-        let version_id: Option<String> =
-            serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
-                .ok()
-                .and_then(|m| m.get("versionId").cloned());
-        return policy::get_object_acl(state, path, version_id)
-            .await
-            .into_response();
+        let version_id: Option<String> = serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
+            .ok()
+            .and_then(|m| m.get("versionId").cloned());
+        return policy::get_object_acl(state, path, version_id).await.into_response();
     }
 
     // Check if this is a get object retention request
-    if query_str == "retention"
-        || query_str.starts_with("retention&")
-        || query_str.contains("&retention")
-    {
-        let query: object_lock::RetentionQuery =
-            serde_urlencoded::from_str(&query_str).unwrap_or_default();
-        return object_lock::get_object_retention(state, path, Query(query))
-            .await
-            .into_response();
+    if query_str == "retention" || query_str.starts_with("retention&") || query_str.contains("&retention") {
+        let query: object_lock::RetentionQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
+        return object_lock::get_object_retention(state, path, Query(query)).await.into_response();
     }
 
     // Check if this is a get object legal hold request
-    if query_str == "legal-hold"
-        || query_str.starts_with("legal-hold&")
-        || query_str.contains("&legal-hold")
-    {
-        let query: object_lock::RetentionQuery =
-            serde_urlencoded::from_str(&query_str).unwrap_or_default();
-        return object_lock::get_object_legal_hold(state, path, Query(query))
-            .await
-            .into_response();
+    if query_str == "legal-hold" || query_str.starts_with("legal-hold&") || query_str.contains("&legal-hold") {
+        let query: object_lock::RetentionQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
+        return object_lock::get_object_legal_hold(state, path, Query(query)).await.into_response();
     }
 
     // Check if this is a list parts request
@@ -321,15 +270,12 @@ pub async fn object_get_handler(
     }
 
     // Check for versionId query param
-    let version_id: Option<String> =
-        serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
-            .ok()
-            .and_then(|m| m.get("versionId").cloned());
+    let version_id: Option<String> = serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
+        .ok()
+        .and_then(|m| m.get("versionId").cloned());
 
     // Default: GetObject (with optional version)
-    get_object_versioned(state, path, headers, version_id)
-        .await
-        .into_response()
+    get_object_versioned(state, path, headers, version_id).await.into_response()
 }
 
 /// Object PUT dispatcher - PutObject, CopyObject, UploadPart, PutObjectTagging, or PutObjectAcl
@@ -343,58 +289,37 @@ pub async fn object_put_handler(
     let query_str = raw_query.0.unwrap_or_default();
 
     // Check if this is a put object tagging request
-    if query_str == "tagging" || query_str.starts_with("tagging&") || query_str.contains("&tagging")
-    {
-        let version_id: Option<String> =
-            serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
-                .ok()
-                .and_then(|m| m.get("versionId").cloned());
-        return put_object_tagging(state, path, version_id, body)
-            .await
-            .into_response();
+    if query_str == "tagging" || query_str.starts_with("tagging&") || query_str.contains("&tagging") {
+        let version_id: Option<String> = serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
+            .ok()
+            .and_then(|m| m.get("versionId").cloned());
+        return put_object_tagging(state, path, version_id, body).await.into_response();
     }
 
     // Check if this is a put object ACL request
     if query_str == "acl" || query_str.starts_with("acl&") || query_str.contains("&acl") {
-        let version_id: Option<String> =
-            serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
-                .ok()
-                .and_then(|m| m.get("versionId").cloned());
-        return policy::put_object_acl(state, path, headers.clone(), version_id, body)
-            .await
-            .into_response();
+        let version_id: Option<String> = serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
+            .ok()
+            .and_then(|m| m.get("versionId").cloned());
+        return policy::put_object_acl(state, path, headers.clone(), version_id, body).await.into_response();
     }
 
     // Check if this is a put object retention request
-    if query_str == "retention"
-        || query_str.starts_with("retention&")
-        || query_str.contains("&retention")
-    {
-        let query: object_lock::RetentionQuery =
-            serde_urlencoded::from_str(&query_str).unwrap_or_default();
-        return object_lock::put_object_retention(state, path, headers, Query(query), body)
-            .await
-            .into_response();
+    if query_str == "retention" || query_str.starts_with("retention&") || query_str.contains("&retention") {
+        let query: object_lock::RetentionQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
+        return object_lock::put_object_retention(state, path, headers, Query(query), body).await.into_response();
     }
 
     // Check if this is a put object legal hold request
-    if query_str == "legal-hold"
-        || query_str.starts_with("legal-hold&")
-        || query_str.contains("&legal-hold")
-    {
-        let query: object_lock::RetentionQuery =
-            serde_urlencoded::from_str(&query_str).unwrap_or_default();
-        return object_lock::put_object_legal_hold(state, path, Query(query), body)
-            .await
-            .into_response();
+    if query_str == "legal-hold" || query_str.starts_with("legal-hold&") || query_str.contains("&legal-hold") {
+        let query: object_lock::RetentionQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
+        return object_lock::put_object_legal_hold(state, path, Query(query), body).await.into_response();
     }
 
     // Check if this is an upload part request
     if query_str.contains("uploadId") && query_str.contains("partNumber") {
         let params: UploadPartQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
-        return upload_part(state, path, Query(params), body)
-            .await
-            .into_response();
+        return upload_part(state, path, Query(params), body).await.into_response();
     }
 
     // Check if this is a copy request
@@ -415,36 +340,26 @@ pub async fn object_delete_handler(
     let query_str = raw_query.0.unwrap_or_default();
 
     // Check if this is a delete object tagging request
-    if query_str == "tagging" || query_str.starts_with("tagging&") || query_str.contains("&tagging")
-    {
-        let version_id: Option<String> =
-            serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
-                .ok()
-                .and_then(|m| m.get("versionId").cloned());
-        return delete_object_tagging(state, path, version_id)
-            .await
-            .into_response();
+    if query_str == "tagging" || query_str.starts_with("tagging&") || query_str.contains("&tagging") {
+        let version_id: Option<String> = serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
+            .ok()
+            .and_then(|m| m.get("versionId").cloned());
+        return delete_object_tagging(state, path, version_id).await.into_response();
     }
 
     // Check if this is an abort multipart upload request
     if query_str.contains("uploadId") && !query_str.contains("versionId") {
-        let params: AbortMultipartQuery =
-            serde_urlencoded::from_str(&query_str).unwrap_or_default();
-        return abort_multipart_upload(state, path, Query(params))
-            .await
-            .into_response();
+        let params: AbortMultipartQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
+        return abort_multipart_upload(state, path, Query(params)).await.into_response();
     }
 
     // Check for versionId query param
-    let version_id: Option<String> =
-        serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
-            .ok()
-            .and_then(|m| m.get("versionId").cloned());
+    let version_id: Option<String> = serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(&query_str)
+        .ok()
+        .and_then(|m| m.get("versionId").cloned());
 
     // Default: DeleteObject (with optional version)
-    delete_object_versioned(state, path, version_id)
-        .await
-        .into_response()
+    delete_object_versioned(state, path, version_id).await.into_response()
 }
 
 /// Object POST dispatcher - CreateMultipartUpload or CompleteMultipartUpload
@@ -459,34 +374,28 @@ pub async fn object_post_handler(
 
     // Check if this is a complete multipart upload request
     if query_str.contains("uploadId") {
-        let params: CompleteMultipartQuery =
-            serde_urlencoded::from_str(&query_str).unwrap_or_default();
-        return complete_multipart_upload(state, path, Query(params), body)
-            .await
-            .into_response();
+        let params: CompleteMultipartQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
+        return complete_multipart_upload(state, path, Query(params), body).await.into_response();
     }
 
     // Check if this is a create multipart upload request
     if query_str.contains("uploads") {
-        let params: CreateMultipartQuery =
-            serde_urlencoded::from_str(&query_str).unwrap_or_default();
-        return create_multipart_upload(state, path, headers, Query(params))
-            .await
-            .into_response();
+        let params: CreateMultipartQuery = serde_urlencoded::from_str(&query_str).unwrap_or_default();
+        return create_multipart_upload(state, path, headers, Query(params)).await.into_response();
     }
 
     // Unknown POST operation
     let request_id = generate_request_id();
-    error_response(
-        Error::InvalidRequest("Unknown object POST operation".into()),
-        &request_id,
-    )
+    error_response(Error::InvalidRequest("Unknown object POST operation".into()), &request_id)
 }
 
 // ============= Service Operations =============
 
 /// List all buckets
-pub async fn list_buckets(State(state): State<AppState>, headers: HeaderMap) -> impl IntoResponse {
+pub async fn list_buckets(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
     let request_id = generate_request_id();
     debug!("ListBuckets request_id={}", request_id);
 
@@ -546,10 +455,7 @@ pub async fn get_bucket(
     Query(params): Query<ListObjectsQuery>,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    debug!(
-        "GetBucket/ListObjects bucket={} request_id={}",
-        bucket, request_id
-    );
+    debug!("GetBucket/ListObjects bucket={} request_id={}", bucket, request_id);
 
     // Check bucket exists
     match state.metadata.get_bucket(&bucket).await {
@@ -559,23 +465,16 @@ pub async fn get_bucket(
     }
 
     let max_keys = params.max_keys.unwrap_or(1000).min(1000);
-    let continuation = params
-        .continuation_token
-        .as_deref()
-        .or(params.marker.as_deref());
+    let continuation = params.continuation_token.as_deref().or(params.marker.as_deref());
     let is_v2 = params.list_type.as_deref() == Some("2");
 
-    match state
-        .metadata
-        .list_objects(
-            &bucket,
-            params.prefix.as_deref(),
-            params.delimiter.as_deref(),
-            max_keys,
-            continuation,
-        )
-        .await
-    {
+    match state.metadata.list_objects(
+        &bucket,
+        params.prefix.as_deref(),
+        params.delimiter.as_deref(),
+        max_keys,
+        continuation,
+    ).await {
         Ok((objects, common_prefixes, is_truncated, next_token)) => {
             let result = ListObjectsResult {
                 name: bucket,
@@ -610,10 +509,7 @@ pub async fn create_bucket(
     Path(bucket_name): Path<String>,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    info!(
-        "CreateBucket bucket={} request_id={}",
-        bucket_name, request_id
-    );
+    info!("CreateBucket bucket={} request_id={}", bucket_name, request_id);
 
     // Validate bucket name
     if let Err(e) = Bucket::validate_name(&bucket_name) {
@@ -676,10 +572,7 @@ pub async fn head_object(
     Path((bucket, key)): Path<(String, String)>,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    debug!(
-        "HeadObject bucket={} key={} request_id={}",
-        bucket, key, request_id
-    );
+    debug!("HeadObject bucket={} key={} request_id={}", bucket, key, request_id);
 
     match state.metadata.get_object(&bucket, &key).await {
         Ok(Some(obj)) => Response::builder()
@@ -703,10 +596,7 @@ pub async fn get_object(
     headers: HeaderMap,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    debug!(
-        "GetObject bucket={} key={} request_id={}",
-        bucket, key, request_id
-    );
+    debug!("GetObject bucket={} key={} request_id={}", bucket, key, request_id);
 
     // Get metadata
     let obj = match state.metadata.get_object(&bucket, &key).await {
@@ -720,18 +610,20 @@ pub async fn get_object(
 
     let (data, status, content_range) = if let Some(range_str) = range_header {
         match ByteRange::parse(range_str) {
-            Ok(range) => match range.resolve(obj.size) {
-                Ok((start, end)) => {
-                    match state.storage.get_range(&bucket, &key, start, end).await {
-                        Ok(data) => {
-                            let content_range = format!("bytes {}-{}/{}", start, end, obj.size);
-                            (data, StatusCode::PARTIAL_CONTENT, Some(content_range))
+            Ok(range) => {
+                match range.resolve(obj.size) {
+                    Ok((start, end)) => {
+                        match state.storage.get_range(&bucket, &key, start, end).await {
+                            Ok(data) => {
+                                let content_range = format!("bytes {}-{}/{}", start, end, obj.size);
+                                (data, StatusCode::PARTIAL_CONTENT, Some(content_range))
+                            }
+                            Err(e) => return error_response(e, &request_id),
                         }
-                        Err(e) => return error_response(e, &request_id),
                     }
+                    Err(e) => return error_response(e, &request_id),
                 }
-                Err(e) => return error_response(e, &request_id),
-            },
+            }
             Err(e) => return error_response(e, &request_id),
         }
     } else {
@@ -765,13 +657,7 @@ pub async fn put_object(
     body: Bytes,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    info!(
-        "PutObject bucket={} key={} size={} request_id={}",
-        bucket,
-        key,
-        body.len(),
-        request_id
-    );
+    info!("PutObject bucket={} key={} size={} request_id={}", bucket, key, body.len(), request_id);
 
     // Check bucket exists
     match state.metadata.get_bucket(&bucket).await {
@@ -840,8 +726,7 @@ pub async fn put_object(
         body.len() as i64,
         etag.clone(),
         content_type,
-    )
-    .with_encryption(encryption.clone());
+    ).with_encryption(encryption.clone());
 
     if let Err(e) = state.metadata.put_object(&object).await {
         // Rollback storage
@@ -857,10 +742,7 @@ pub async fn put_object(
 
     // Add SSE response headers
     if encryption.encryption_type != hafiz_core::types::EncryptionType::None {
-        builder = builder.header(
-            "x-amz-server-side-encryption",
-            encryption.encryption_type.as_str(),
-        );
+        builder = builder.header("x-amz-server-side-encryption", encryption.encryption_type.as_str());
     }
     if let Some(ref md5) = encryption.sse_customer_key_md5 {
         builder = builder.header("x-amz-server-side-encryption-customer-key-MD5", md5);
@@ -875,10 +757,7 @@ pub async fn delete_object(
     Path((bucket, key)): Path<(String, String)>,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    info!(
-        "DeleteObject bucket={} key={} request_id={}",
-        bucket, key, request_id
-    );
+    info!("DeleteObject bucket={} key={} request_id={}", bucket, key, request_id);
 
     // Delete from storage
     if let Err(e) = state.storage.delete(&bucket, &key).await {
@@ -910,34 +789,21 @@ pub async fn copy_object(
     // Get copy source header
     let copy_source = match headers.get("x-amz-copy-source") {
         Some(v) => v.to_str().unwrap_or(""),
-        None => {
-            return error_response(
-                Error::InvalidRequest("Missing x-amz-copy-source header".into()),
-                &request_id,
-            )
-        }
+        None => return error_response(Error::InvalidRequest("Missing x-amz-copy-source header".into()), &request_id),
     };
 
-    info!(
-        "CopyObject source={} dest={}/{} request_id={}",
-        copy_source, dest_bucket, dest_key, request_id
-    );
+    info!("CopyObject source={} dest={}/{} request_id={}", copy_source, dest_bucket, dest_key, request_id);
 
     // Parse source: /bucket/key or bucket/key
     let source = copy_source.trim_start_matches('/');
     let parts: Vec<&str> = source.splitn(2, '/').collect();
     if parts.len() != 2 {
-        return error_response(
-            Error::InvalidRequest("Invalid copy source format".into()),
-            &request_id,
-        );
+        return error_response(Error::InvalidRequest("Invalid copy source format".into()), &request_id);
     }
     let (src_bucket, src_key) = (parts[0], parts[1]);
 
     // URL decode the key
-    let src_key = urlencoding::decode(src_key)
-        .unwrap_or_else(|_| src_key.into())
-        .to_string();
+    let src_key = urlencoding::decode(src_key).unwrap_or_else(|_| src_key.into()).to_string();
 
     // Check destination bucket exists
     match state.metadata.get_bucket(&dest_bucket).await {
@@ -979,11 +845,7 @@ pub async fn copy_object(
     };
 
     // Store to destination
-    let etag = match state
-        .storage
-        .put(&dest_bucket, &dest_key, data.clone())
-        .await
-    {
+    let etag = match state.storage.put(&dest_bucket, &dest_key, data.clone()).await {
         Ok(etag) => etag,
         Err(e) => return error_response(e, &request_id),
     };
@@ -1023,7 +885,8 @@ fn extract_user_metadata(headers: &HeaderMap) -> std::collections::HashMap<Strin
 }
 
 /// DELETE multiple objects (POST /?delete)
-#[derive(Debug, Deserialize, Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct DeleteObjectsQuery {
     delete: Option<String>,
 }
@@ -1099,10 +962,7 @@ pub async fn create_multipart_upload(
     Query(_params): Query<CreateMultipartQuery>,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    info!(
-        "CreateMultipartUpload bucket={} key={} request_id={}",
-        bucket, key, request_id
-    );
+    info!("CreateMultipartUpload bucket={} key={} request_id={}", bucket, key, request_id);
 
     // Check bucket exists
     match state.metadata.get_bucket(&bucket).await {
@@ -1131,11 +991,7 @@ pub async fn create_multipart_upload(
     let metadata = extract_user_metadata(&headers);
 
     // Create multipart upload
-    match state
-        .metadata
-        .create_multipart_upload(&bucket, &key, &content_type, &metadata)
-        .await
-    {
+    match state.metadata.create_multipart_upload(&bucket, &key, &content_type, &metadata).await {
         Ok(upload_id) => {
             let xml = xml::initiate_multipart_upload_response(&bucket, &key, &upload_id);
             success_response(StatusCode::OK, xml, &request_id)
@@ -1144,7 +1000,8 @@ pub async fn create_multipart_upload(
     }
 }
 
-#[derive(Debug, Deserialize, Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct UploadPartQuery {
     #[serde(rename = "uploadId", default)]
     upload_id: String,
@@ -1162,12 +1019,7 @@ pub async fn upload_part(
     let request_id = generate_request_id();
     info!(
         "UploadPart bucket={} key={} uploadId={} partNumber={} size={} request_id={}",
-        bucket,
-        key,
-        params.upload_id,
-        params.part_number,
-        body.len(),
-        request_id
+        bucket, key, params.upload_id, params.part_number, body.len(), request_id
     );
 
     // Validate part number (1-10000)
@@ -1179,11 +1031,7 @@ pub async fn upload_part(
     }
 
     // Verify upload exists
-    match state
-        .metadata
-        .get_multipart_upload(&bucket, &key, &params.upload_id)
-        .await
-    {
+    match state.metadata.get_multipart_upload(&bucket, &key, &params.upload_id).await {
         Ok(None) => return error_response(Error::NoSuchUpload, &request_id),
         Err(e) => return error_response(e, &request_id),
         _ => {}
@@ -1197,16 +1045,12 @@ pub async fn upload_part(
     };
 
     // Record part in metadata
-    if let Err(e) = state
-        .metadata
-        .put_upload_part(
-            &params.upload_id,
-            params.part_number,
-            body.len() as i64,
-            &etag,
-        )
-        .await
-    {
+    if let Err(e) = state.metadata.put_upload_part(
+        &params.upload_id,
+        params.part_number,
+        body.len() as i64,
+        &etag,
+    ).await {
         let _ = state.storage.delete(&bucket, &part_key).await;
         return error_response(e, &request_id);
     }
@@ -1245,11 +1089,7 @@ pub async fn complete_multipart_upload(
     };
 
     // Get upload info
-    let upload = match state
-        .metadata
-        .get_multipart_upload(&bucket, &key, &params.upload_id)
-        .await
-    {
+    let upload = match state.metadata.get_multipart_upload(&bucket, &key, &params.upload_id).await {
         Ok(Some(u)) => u,
         Ok(None) => return error_response(Error::NoSuchUpload, &request_id),
         Err(e) => return error_response(e, &request_id),
@@ -1279,10 +1119,7 @@ pub async fn complete_multipart_upload(
         match stored_part {
             Some(sp) if sp.part_number == completed_part.part_number => {
                 // Read part data
-                let part_key = format!(
-                    "{}/.parts/{}/{}",
-                    key, params.upload_id, completed_part.part_number
-                );
+                let part_key = format!("{}/.parts/{}/{}", key, params.upload_id, completed_part.part_number);
                 match state.storage.get(&bucket, &part_key).await {
                     Ok(data) => {
                         final_data.extend_from_slice(&data);
@@ -1293,10 +1130,7 @@ pub async fn complete_multipart_upload(
             }
             _ => {
                 return error_response(
-                    Error::InvalidPart(format!(
-                        "Invalid part number: {}",
-                        completed_part.part_number
-                    )),
+                    Error::InvalidPart(format!("Invalid part number: {}", completed_part.part_number)),
                     &request_id,
                 );
             }
@@ -1307,11 +1141,7 @@ pub async fn complete_multipart_upload(
     let final_etag = hafiz_crypto::multipart_etag(&part_etags, parts.len());
 
     // Store final object
-    if let Err(e) = state
-        .storage
-        .put(&bucket, &key, Bytes::from(final_data.clone()))
-        .await
-    {
+    if let Err(e) = state.storage.put(&bucket, &key, Bytes::from(final_data.clone())).await {
         return error_response(e, &request_id);
     }
 
@@ -1337,10 +1167,7 @@ pub async fn complete_multipart_upload(
     }
 
     // Delete upload record
-    let _ = state
-        .metadata
-        .delete_multipart_upload(&params.upload_id)
-        .await;
+    let _ = state.metadata.delete_multipart_upload(&params.upload_id).await;
 
     let xml = xml::complete_multipart_upload_response(&bucket, &key, &final_etag);
     success_response(StatusCode::OK, xml, &request_id)
@@ -1373,11 +1200,7 @@ pub async fn abort_multipart_upload(
     }
 
     // Delete upload record
-    if let Err(e) = state
-        .metadata
-        .delete_multipart_upload(&params.upload_id)
-        .await
-    {
+    if let Err(e) = state.metadata.delete_multipart_upload(&params.upload_id).await {
         return error_response(e, &request_id);
     }
 
@@ -1411,11 +1234,7 @@ pub async fn list_parts(
     );
 
     // Verify upload exists
-    let upload = match state
-        .metadata
-        .get_multipart_upload(&bucket, &key, &params.upload_id)
-        .await
-    {
+    let upload = match state.metadata.get_multipart_upload(&bucket, &key, &params.upload_id).await {
         Ok(Some(u)) => u,
         Ok(None) => return error_response(Error::NoSuchUpload, &request_id),
         Err(e) => return error_response(e, &request_id),
@@ -1485,10 +1304,7 @@ pub async fn list_multipart_uploads(
     Query(params): Query<ListMultipartUploadsQuery>,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    debug!(
-        "ListMultipartUploads bucket={} request_id={}",
-        bucket, request_id
-    );
+    debug!("ListMultipartUploads bucket={} request_id={}", bucket, request_id);
 
     // Check bucket exists
     match state.metadata.get_bucket(&bucket).await {
@@ -1499,17 +1315,13 @@ pub async fn list_multipart_uploads(
 
     let max_uploads = params.max_uploads.unwrap_or(1000).min(1000);
 
-    match state
-        .metadata
-        .list_multipart_uploads(
-            &bucket,
-            params.prefix.as_deref(),
-            params.key_marker.as_deref(),
-            params.upload_id_marker.as_deref(),
-            max_uploads,
-        )
-        .await
-    {
+    match state.metadata.list_multipart_uploads(
+        &bucket,
+        params.prefix.as_deref(),
+        params.key_marker.as_deref(),
+        params.upload_id_marker.as_deref(),
+        max_uploads,
+    ).await {
         Ok((uploads, is_truncated)) => {
             // Convert to UploadInfo for XML response
             let upload_infos: Vec<xml::UploadInfo> = uploads
@@ -1547,10 +1359,7 @@ pub async fn get_bucket_versioning(
     Path(bucket): Path<String>,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    debug!(
-        "GetBucketVersioning bucket={} request_id={}",
-        bucket, request_id
-    );
+    debug!("GetBucketVersioning bucket={} request_id={}", bucket, request_id);
 
     match state.metadata.get_bucket(&bucket).await {
         Ok(Some(b)) => {
@@ -1569,10 +1378,7 @@ pub async fn put_bucket_versioning(
     body: Bytes,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    info!(
-        "PutBucketVersioning bucket={} request_id={}",
-        bucket, request_id
-    );
+    info!("PutBucketVersioning bucket={} request_id={}", bucket, request_id);
 
     // Check bucket exists
     let bucket_info = match state.metadata.get_bucket(&bucket).await {
@@ -1628,10 +1434,7 @@ pub async fn list_object_versions(
     Query(params): Query<ListObjectVersionsQuery>,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    debug!(
-        "ListObjectVersions bucket={} request_id={}",
-        bucket, request_id
-    );
+    debug!("ListObjectVersions bucket={} request_id={}", bucket, request_id);
 
     // Check bucket exists
     match state.metadata.get_bucket(&bucket).await {
@@ -1642,26 +1445,15 @@ pub async fn list_object_versions(
 
     let max_keys = params.max_keys.unwrap_or(1000).min(1000);
 
-    match state
-        .metadata
-        .list_object_versions(
-            &bucket,
-            params.prefix.as_deref(),
-            params.delimiter.as_deref(),
-            max_keys,
-            params.key_marker.as_deref(),
-            params.version_id_marker.as_deref(),
-        )
-        .await
-    {
-        Ok((
-            versions,
-            delete_markers,
-            common_prefixes,
-            is_truncated,
-            next_key_marker,
-            next_version_id_marker,
-        )) => {
+    match state.metadata.list_object_versions(
+        &bucket,
+        params.prefix.as_deref(),
+        params.delimiter.as_deref(),
+        max_keys,
+        params.key_marker.as_deref(),
+        params.version_id_marker.as_deref(),
+    ).await {
+        Ok((versions, delete_markers, common_prefixes, is_truncated, next_key_marker, next_version_id_marker)) => {
             let xml = xml::list_object_versions_response(
                 &bucket,
                 params.prefix.as_deref(),
@@ -1698,11 +1490,7 @@ pub async fn get_object_versioned(
     );
 
     // Get object metadata (with optional version)
-    let object = match state
-        .metadata
-        .get_object_version(&bucket, &key, version_id.as_deref())
-        .await
-    {
+    let object = match state.metadata.get_object_version(&bucket, &key, version_id.as_deref()).await {
         Ok(Some(obj)) => obj,
         Ok(None) => return error_response(Error::NoSuchKey, &request_id),
         Err(e) => return error_response(e, &request_id),
@@ -1736,20 +1524,13 @@ pub async fn get_object_versioned(
     let data = if let Some(Ok(byte_range)) = range {
         match byte_range.resolve(object.size) {
             Ok((start, end)) => {
-                match state
-                    .storage
-                    .get_range(&bucket, &storage_key, start as u64, end as u64)
-                    .await
-                {
+                match state.storage.get_range(&bucket, &storage_key, start as u64, end as u64).await {
                     Ok(data) => {
                         return Response::builder()
                             .status(StatusCode::PARTIAL_CONTENT)
                             .header("Content-Type", &object.content_type)
                             .header("Content-Length", data.len())
-                            .header(
-                                "Content-Range",
-                                format!("bytes {}-{}/{}", start, end, object.size),
-                            )
+                            .header("Content-Range", format!("bytes {}-{}/{}", start, end, object.size))
                             .header("ETag", format!("\"{}\"", object.etag))
                             .header("Last-Modified", format_http_datetime(&object.last_modified))
                             .header("x-amz-request-id", &request_id)
@@ -1780,10 +1561,7 @@ pub async fn get_object_versioned(
 
     // Add SSE headers if encrypted
     if object.encryption.is_encrypted() {
-        response = response.header(
-            "x-amz-server-side-encryption",
-            object.encryption.encryption_type.as_str(),
-        );
+        response = response.header("x-amz-server-side-encryption", object.encryption.encryption_type.as_str());
         if let Some(ref md5) = object.encryption.sse_customer_key_md5 {
             response = response.header("x-amz-server-side-encryption-customer-key-MD5", md5);
         }
@@ -1818,19 +1596,11 @@ pub async fn delete_object_versioned(
 
     if let Some(vid) = version_id {
         // Delete specific version
-        if let Err(e) = state
-            .storage
-            .delete(&bucket, &format!("{}?versionId={}", key, vid))
-            .await
-        {
+        if let Err(e) = state.storage.delete(&bucket, &format!("{}?versionId={}", key, vid)).await {
             error!("Failed to delete object storage: {}", e);
         }
 
-        match state
-            .metadata
-            .delete_object_version(&bucket, &key, &vid)
-            .await
-        {
+        match state.metadata.delete_object_version(&bucket, &key, &vid).await {
             Ok(deleted) => {
                 let mut builder = Response::builder()
                     .status(StatusCode::NO_CONTENT)
@@ -1848,13 +1618,15 @@ pub async fn delete_object_versioned(
     } else if bucket_info.versioning.is_versioning_enabled() {
         // Versioned bucket without version ID: create delete marker
         match state.metadata.create_delete_marker(&bucket, &key).await {
-            Ok(marker_version_id) => Response::builder()
-                .status(StatusCode::NO_CONTENT)
-                .header("x-amz-request-id", &request_id)
-                .header("x-amz-version-id", &marker_version_id)
-                .header("x-amz-delete-marker", "true")
-                .body(Body::empty())
-                .unwrap(),
+            Ok(marker_version_id) => {
+                Response::builder()
+                    .status(StatusCode::NO_CONTENT)
+                    .header("x-amz-request-id", &request_id)
+                    .header("x-amz-version-id", &marker_version_id)
+                    .header("x-amz-delete-marker", "true")
+                    .body(Body::empty())
+                    .unwrap()
+            }
             Err(e) => error_response(e, &request_id),
         }
     } else {
@@ -1890,21 +1662,13 @@ pub async fn get_object_tagging(
     );
 
     // Check object exists
-    match state
-        .metadata
-        .get_object_version(&bucket, &key, version_id.as_deref())
-        .await
-    {
+    match state.metadata.get_object_version(&bucket, &key, version_id.as_deref()).await {
         Ok(Some(_)) => {}
         Ok(None) => return error_response(Error::NoSuchKey, &request_id),
         Err(e) => return error_response(e, &request_id),
     }
 
-    match state
-        .metadata
-        .get_object_tags(&bucket, &key, version_id.as_deref())
-        .await
-    {
+    match state.metadata.get_object_tags(&bucket, &key, version_id.as_deref()).await {
         Ok(tags) => {
             let xml = xml::get_object_tagging_response(&tags);
             let mut builder = Response::builder()
@@ -1936,11 +1700,7 @@ pub async fn put_object_tagging(
     );
 
     // Check object exists
-    match state
-        .metadata
-        .get_object_version(&bucket, &key, version_id.as_deref())
-        .await
-    {
+    match state.metadata.get_object_version(&bucket, &key, version_id.as_deref()).await {
         Ok(Some(_)) => {}
         Ok(None) => return error_response(Error::NoSuchKey, &request_id),
         Err(e) => return error_response(e, &request_id),
@@ -1959,11 +1719,7 @@ pub async fn put_object_tagging(
         }
     }
 
-    if let Err(e) = state
-        .metadata
-        .put_object_tags(&bucket, &key, version_id.as_deref(), &tags)
-        .await
-    {
+    if let Err(e) = state.metadata.put_object_tags(&bucket, &key, version_id.as_deref(), &tags).await {
         return error_response(e, &request_id);
     }
 
@@ -1991,21 +1747,13 @@ pub async fn delete_object_tagging(
     );
 
     // Check object exists
-    match state
-        .metadata
-        .get_object_version(&bucket, &key, version_id.as_deref())
-        .await
-    {
+    match state.metadata.get_object_version(&bucket, &key, version_id.as_deref()).await {
         Ok(Some(_)) => {}
         Ok(None) => return error_response(Error::NoSuchKey, &request_id),
         Err(e) => return error_response(e, &request_id),
     }
 
-    if let Err(e) = state
-        .metadata
-        .delete_object_tags(&bucket, &key, version_id.as_deref())
-        .await
-    {
+    if let Err(e) = state.metadata.delete_object_tags(&bucket, &key, version_id.as_deref()).await {
         return error_response(e, &request_id);
     }
 
@@ -2028,10 +1776,7 @@ pub async fn get_bucket_lifecycle(
     Path(bucket): Path<String>,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    debug!(
-        "GetBucketLifecycle bucket={} request_id={}",
-        bucket, request_id
-    );
+    debug!("GetBucketLifecycle bucket={} request_id={}", bucket, request_id);
 
     // Check bucket exists
     match state.metadata.get_bucket(&bucket).await {
@@ -2060,10 +1805,7 @@ pub async fn put_bucket_lifecycle(
     body: Bytes,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    info!(
-        "PutBucketLifecycle bucket={} request_id={}",
-        bucket, request_id
-    );
+    info!("PutBucketLifecycle bucket={} request_id={}", bucket, request_id);
 
     // Check bucket exists
     match state.metadata.get_bucket(&bucket).await {
@@ -2102,10 +1844,7 @@ pub async fn delete_bucket_lifecycle(
     Path(bucket): Path<String>,
 ) -> impl IntoResponse {
     let request_id = generate_request_id();
-    info!(
-        "DeleteBucketLifecycle bucket={} request_id={}",
-        bucket, request_id
-    );
+    info!("DeleteBucketLifecycle bucket={} request_id={}", bucket, request_id);
 
     // Check bucket exists
     match state.metadata.get_bucket(&bucket).await {

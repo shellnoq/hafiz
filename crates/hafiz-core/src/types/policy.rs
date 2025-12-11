@@ -298,11 +298,7 @@ pub struct PolicyRequest {
 }
 
 impl PolicyRequest {
-    pub fn new(
-        action: impl Into<String>,
-        resource: impl Into<String>,
-        principal: impl Into<String>,
-    ) -> Self {
+    pub fn new(action: impl Into<String>, resource: impl Into<String>, principal: impl Into<String>) -> Self {
         Self {
             action: action.into(),
             resource: resource.into(),
@@ -421,24 +417,22 @@ mod tests {
         assert!(matches_wildcard("s3:Get*", "s3:GetObject"));
         assert!(matches_wildcard("s3:GetObject", "s3:GetObject"));
         assert!(!matches_wildcard("s3:Get*", "s3:PutObject"));
-        assert!(matches_wildcard(
-            "arn:*:s3:::bucket/*",
-            "arn:hafiz:s3:::bucket/key"
-        ));
+        assert!(matches_wildcard("arn:*:s3:::bucket/*", "arn:hafiz:s3:::bucket/key"));
     }
 
     #[test]
     fn test_policy_evaluation() {
-        let policy = PolicyDocument::new().add_statement(
-            Statement::allow()
-                .with_actions(vec!["s3:GetObject".to_string()])
-                .with_resources(vec!["arn:hafiz:s3:::my-bucket/*".to_string()]),
-        );
+        let policy = PolicyDocument::new()
+            .add_statement(
+                Statement::allow()
+                    .with_actions(vec!["s3:GetObject".to_string()])
+                    .with_resources(vec!["arn:hafiz:s3:::my-bucket/*".to_string()])
+            );
 
         let request = PolicyRequest::new(
             "s3:GetObject",
             "arn:hafiz:s3:::my-bucket/test.txt",
-            "user123",
+            "user123"
         );
 
         assert_eq!(policy.evaluate(&request), PolicyEffect::Allow);
@@ -450,17 +444,16 @@ mod tests {
             .add_statement(
                 Statement::allow()
                     .with_actions(vec!["s3:*".to_string()])
-                    .with_resources(vec!["*".to_string()]),
+                    .with_resources(vec!["*".to_string()])
             )
             .add_statement(
                 Statement::deny()
                     .with_actions(vec!["s3:DeleteObject".to_string()])
-                    .with_resources(vec!["*".to_string()]),
+                    .with_resources(vec!["*".to_string()])
             );
 
         let get_request = PolicyRequest::new("s3:GetObject", "arn:hafiz:s3:::bucket/key", "user");
-        let delete_request =
-            PolicyRequest::new("s3:DeleteObject", "arn:hafiz:s3:::bucket/key", "user");
+        let delete_request = PolicyRequest::new("s3:DeleteObject", "arn:hafiz:s3:::bucket/key", "user");
 
         assert_eq!(policy.evaluate(&get_request), PolicyEffect::Allow);
         assert_eq!(policy.evaluate(&delete_request), PolicyEffect::Deny);
@@ -473,9 +466,6 @@ mod tests {
 
     #[test]
     fn test_object_arn() {
-        assert_eq!(
-            object_arn("my-bucket", "path/to/key"),
-            "arn:hafiz:s3:::my-bucket/path/to/key"
-        );
+        assert_eq!(object_arn("my-bucket", "path/to/key"), "arn:hafiz:s3:::my-bucket/path/to/key");
     }
 }

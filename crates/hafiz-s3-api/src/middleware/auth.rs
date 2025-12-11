@@ -7,7 +7,7 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 
 use crate::server::AppState;
 
@@ -40,14 +40,11 @@ pub async fn admin_auth(
                 if query.contains("access_key=") && query.contains("secret_key=") {
                     // Extract from query params (development only)
                     // In production this should be disabled
-                    let params: std::collections::HashMap<_, _> =
-                        url::form_urlencoded::parse(query.as_bytes())
-                            .into_owned()
-                            .collect();
+                    let params: std::collections::HashMap<_, _> = url::form_urlencoded::parse(query.as_bytes())
+                        .into_owned()
+                        .collect();
 
-                    if let (Some(ak), Some(sk)) =
-                        (params.get("access_key"), params.get("secret_key"))
-                    {
+                    if let (Some(ak), Some(sk)) = (params.get("access_key"), params.get("secret_key")) {
                         validate_credentials(ak, sk, &state).await?;
                     } else {
                         return Err(StatusCode::UNAUTHORIZED);
@@ -91,7 +88,8 @@ async fn validate_basic_auth(header: &str, state: &AppState) -> Result<(), Statu
         .decode(encoded)
         .map_err(|_| StatusCode::UNAUTHORIZED)?;
 
-    let credentials = String::from_utf8(decoded).map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let credentials = String::from_utf8(decoded)
+        .map_err(|_| StatusCode::UNAUTHORIZED)?;
 
     let parts: Vec<&str> = credentials.splitn(2, ':').collect();
     if parts.len() != 2 {
@@ -102,11 +100,7 @@ async fn validate_basic_auth(header: &str, state: &AppState) -> Result<(), Statu
 }
 
 /// Validate credentials against the metadata store
-async fn validate_credentials(
-    access_key: &str,
-    secret_key: &str,
-    state: &AppState,
-) -> Result<(), StatusCode> {
+async fn validate_credentials(access_key: &str, secret_key: &str, state: &AppState) -> Result<(), StatusCode> {
     let metadata = &state.metadata;
 
     let cred = metadata

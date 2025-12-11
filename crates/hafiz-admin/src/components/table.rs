@@ -11,10 +11,7 @@ pub struct TableColumn {
 
 impl TableColumn {
     pub fn new(header: &'static str) -> Self {
-        Self {
-            header,
-            width: None,
-        }
+        Self { header, width: None }
     }
 
     pub fn with_width(mut self, width: &'static str) -> Self {

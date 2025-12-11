@@ -195,17 +195,12 @@ impl LifecycleFilter {
         match self {
             Self::All => true,
             Self::Prefix(prefix) => key.starts_with(prefix),
-            Self::Tag(tag) => tags
-                .iter()
-                .any(|t| t.key == tag.key && t.value == tag.value),
-            Self::And {
-                prefix,
-                tags: filter_tags,
-            } => {
+            Self::Tag(tag) => tags.iter().any(|t| t.key == tag.key && t.value == tag.value),
+            Self::And { prefix, tags: filter_tags } => {
                 let prefix_match = prefix.as_ref().map_or(true, |p| key.starts_with(p));
-                let tags_match = filter_tags
-                    .iter()
-                    .all(|ft| tags.iter().any(|t| t.key == ft.key && t.value == ft.value));
+                let tags_match = filter_tags.iter().all(|ft| {
+                    tags.iter().any(|t| t.key == ft.key && t.value == ft.value)
+                });
                 prefix_match && tags_match
             }
         }

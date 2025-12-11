@@ -2,8 +2,9 @@
 
 use chrono::{DateTime, Utc};
 use hafiz_core::types::{
-    Bucket, BucketInfo, DeleteMarker, EncryptionInfo, EncryptionType, LifecycleConfiguration,
-    LifecycleRule, Object, ObjectInfo, ObjectVersion, Tag, TagSet, User, VersioningStatus,
+    Bucket, BucketInfo, Object, ObjectInfo, User, VersioningStatus,
+    ObjectVersion, DeleteMarker, Tag, TagSet, LifecycleConfiguration, LifecycleRule,
+    EncryptionInfo, EncryptionType
 };
 use hafiz_core::{Error, Result};
 use sqlx::sqlite::{SqlitePool, SqlitePoolOptions};
@@ -287,24 +288,17 @@ impl MetadataStore {
     }
 
     pub async fn get_user_by_access_key(&self, access_key: &str) -> Result<Option<User>> {
-        let row: Option<(
-            String,
-            String,
-            String,
-            Option<String>,
-            Option<String>,
-            bool,
-            String,
-        )> = sqlx::query_as(
-            r#"
+        let row: Option<(String, String, String, Option<String>, Option<String>, bool, String)> =
+            sqlx::query_as(
+                r#"
                 SELECT id, access_key, secret_key, display_name, email, is_admin, created_at
                 FROM users WHERE access_key = ?
                 "#,
-        )
-        .bind(access_key)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| Error::DatabaseError(e.to_string()))?;
+            )
+            .bind(access_key)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| User {
             id: r.0,
@@ -348,17 +342,16 @@ impl MetadataStore {
     }
 
     pub async fn get_bucket(&self, name: &str) -> Result<Option<Bucket>> {
-        let row: Option<(String, String, String, Option<String>, Option<i32>, String)> =
-            sqlx::query_as(
-                r#"
+        let row: Option<(String, String, String, Option<String>, Option<i32>, String)> = sqlx::query_as(
+            r#"
             SELECT name, owner_id, region, versioning, object_lock_enabled, created_at
             FROM buckets WHERE name = ?
             "#,
-            )
-            .bind(name)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        )
+        .bind(name)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| Bucket {
             name: r.0,
@@ -374,12 +367,14 @@ impl MetadataStore {
 
     /// Update bucket versioning status
     pub async fn set_bucket_versioning(&self, name: &str, status: VersioningStatus) -> Result<()> {
-        sqlx::query(r#"UPDATE buckets SET versioning = ? WHERE name = ?"#)
-            .bind(status.as_str())
-            .bind(name)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        sqlx::query(
+            r#"UPDATE buckets SET versioning = ? WHERE name = ?"#,
+        )
+        .bind(status.as_str())
+        .bind(name)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         debug!("Set bucket {} versioning to {:?}", name, status);
         Ok(())
@@ -387,11 +382,13 @@ impl MetadataStore {
 
     pub async fn delete_bucket(&self, name: &str) -> Result<()> {
         // Check if bucket has objects (including delete markers)
-        let count: (i64,) = sqlx::query_as(r#"SELECT COUNT(*) FROM objects WHERE bucket = ?"#)
-            .bind(name)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        let count: (i64,) = sqlx::query_as(
+            r#"SELECT COUNT(*) FROM objects WHERE bucket = ?"#,
+        )
+        .bind(name)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         if count.0 > 0 {
             return Err(Error::BucketNotEmpty);
@@ -441,12 +438,14 @@ impl MetadataStore {
             .map_err(|e| Error::InternalError(e.to_string()))?;
 
         // Mark all existing versions of this key as non-latest
-        sqlx::query(r#"UPDATE objects SET is_latest = 0 WHERE bucket = ? AND key = ?"#)
-            .bind(&object.bucket)
-            .bind(&object.key)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        sqlx::query(
+            r#"UPDATE objects SET is_latest = 0 WHERE bucket = ? AND key = ?"#,
+        )
+        .bind(&object.bucket)
+        .bind(&object.key)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         sqlx::query(
             r#"
@@ -470,13 +469,8 @@ impl MetadataStore {
         .await
         .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
-        debug!(
-            "Put object: {}/{} version={} encrypted={}",
-            object.bucket,
-            object.key,
-            object.version_id,
-            object.encryption.is_encrypted()
-        );
+        debug!("Put object: {}/{} version={} encrypted={}",
+            object.bucket, object.key, object.version_id, object.encryption.is_encrypted());
         Ok(())
     }
 
@@ -486,26 +480,10 @@ impl MetadataStore {
     }
 
     /// Get a specific version of an object
-    pub async fn get_object_version(
-        &self,
-        bucket: &str,
-        key: &str,
-        version_id: Option<&str>,
-    ) -> Result<Option<Object>> {
-        let row: Option<(
-            String,
-            String,
-            String,
-            i64,
-            String,
-            String,
-            Option<String>,
-            String,
-            i32,
-            i32,
-            Option<String>,
-        )> = if let Some(vid) = version_id {
-            sqlx::query_as(
+    pub async fn get_object_version(&self, bucket: &str, key: &str, version_id: Option<&str>) -> Result<Option<Object>> {
+        let row: Option<(String, String, String, i64, String, String, Option<String>, String, i32, i32, Option<String>)> =
+            if let Some(vid) = version_id {
+                sqlx::query_as(
                     r#"
                     SELECT bucket, key, version_id, size, etag, content_type, metadata, last_modified, is_latest, is_delete_marker, encryption
                     FROM objects WHERE bucket = ? AND key = ? AND version_id = ?
@@ -517,8 +495,8 @@ impl MetadataStore {
                 .fetch_optional(&self.pool)
                 .await
                 .map_err(|e| Error::DatabaseError(e.to_string()))?
-        } else {
-            sqlx::query_as(
+            } else {
+                sqlx::query_as(
                     r#"
                     SELECT bucket, key, version_id, size, etag, content_type, metadata, last_modified, is_latest, is_delete_marker, encryption
                     FROM objects WHERE bucket = ? AND key = ? AND is_latest = 1
@@ -529,16 +507,18 @@ impl MetadataStore {
                 .fetch_optional(&self.pool)
                 .await
                 .map_err(|e| Error::DatabaseError(e.to_string()))?
-        };
+            };
 
         Ok(row.map(|r| {
-            let metadata: HashMap<String, String> =
-                r.6.and_then(|m| serde_json::from_str(&m).ok())
-                    .unwrap_or_default();
+            let metadata: HashMap<String, String> = r
+                .6
+                .and_then(|m| serde_json::from_str(&m).ok())
+                .unwrap_or_default();
 
-            let encryption: EncryptionInfo =
-                r.10.and_then(|e| serde_json::from_str(&e).ok())
-                    .unwrap_or_default();
+            let encryption: EncryptionInfo = r
+                .10
+                .and_then(|e| serde_json::from_str(&e).ok())
+                .unwrap_or_default();
 
             Object {
                 bucket: r.0,
@@ -653,14 +633,7 @@ impl MetadataStore {
         max_keys: i32,
         key_marker: Option<&str>,
         version_id_marker: Option<&str>,
-    ) -> Result<(
-        Vec<ObjectVersion>,
-        Vec<DeleteMarker>,
-        Vec<String>,
-        bool,
-        Option<String>,
-        Option<String>,
-    )> {
+    ) -> Result<(Vec<ObjectVersion>, Vec<DeleteMarker>, Vec<String>, bool, Option<String>, Option<String>)> {
         let prefix = prefix.unwrap_or("");
         let key_marker = key_marker.unwrap_or("");
 
@@ -686,9 +659,7 @@ impl MetadataStore {
         let rows: Vec<_> = rows.into_iter().take(max_keys as usize).collect();
 
         let (next_key_marker, next_version_id_marker) = if is_truncated {
-            rows.last()
-                .map(|r| (Some(r.0.clone()), Some(r.1.clone())))
-                .unwrap_or((None, None))
+            rows.last().map(|r| (Some(r.0.clone()), Some(r.1.clone()))).unwrap_or((None, None))
         } else {
             (None, None)
         };
@@ -739,31 +710,20 @@ impl MetadataStore {
 
         let common_prefixes: Vec<String> = common_prefixes.into_iter().collect();
 
-        Ok((
-            versions,
-            delete_markers,
-            common_prefixes,
-            is_truncated,
-            next_key_marker,
-            next_version_id_marker,
-        ))
+        Ok((versions, delete_markers, common_prefixes, is_truncated, next_key_marker, next_version_id_marker))
     }
 
     /// Delete a specific version of an object
-    pub async fn delete_object_version(
-        &self,
-        bucket: &str,
-        key: &str,
-        version_id: &str,
-    ) -> Result<bool> {
-        let result =
-            sqlx::query(r#"DELETE FROM objects WHERE bucket = ? AND key = ? AND version_id = ?"#)
-                .bind(bucket)
-                .bind(key)
-                .bind(version_id)
-                .execute(&self.pool)
-                .await
-                .map_err(|e| Error::DatabaseError(e.to_string()))?;
+    pub async fn delete_object_version(&self, bucket: &str, key: &str, version_id: &str) -> Result<bool> {
+        let result = sqlx::query(
+            r#"DELETE FROM objects WHERE bucket = ? AND key = ? AND version_id = ?"#
+        )
+        .bind(bucket)
+        .bind(key)
+        .bind(version_id)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         // If we deleted the latest version, mark the next most recent as latest
         if result.rows_affected() > 0 {
@@ -787,18 +747,18 @@ impl MetadataStore {
             .map_err(|e| Error::DatabaseError(e.to_string()))?;
         }
 
-        debug!(
-            "Deleted object version: {}/{} version={}",
-            bucket, key, version_id
-        );
+        debug!("Deleted object version: {}/{} version={}", bucket, key, version_id);
         Ok(result.rows_affected() > 0)
     }
 
     /// Create a delete marker for versioned delete
     pub async fn create_delete_marker(&self, bucket: &str, key: &str) -> Result<String> {
         let version_id = Object::generate_version_id();
-        let delete_marker =
-            Object::as_delete_marker(bucket.to_string(), key.to_string(), version_id.clone());
+        let delete_marker = Object::as_delete_marker(
+            bucket.to_string(),
+            key.to_string(),
+            version_id.clone(),
+        );
         self.put_object(&delete_marker).await?;
         Ok(version_id)
     }
@@ -866,8 +826,8 @@ impl MetadataStore {
         self.init_multipart_tables().await?;
 
         let upload_id = uuid::Uuid::new_v4().to_string().replace("-", "");
-        let metadata_json =
-            serde_json::to_string(metadata).map_err(|e| Error::InternalError(e.to_string()))?;
+        let metadata_json = serde_json::to_string(metadata)
+            .map_err(|e| Error::InternalError(e.to_string()))?;
 
         sqlx::query(
             r#"
@@ -885,10 +845,7 @@ impl MetadataStore {
         .await
         .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
-        debug!(
-            "Created multipart upload: {} for {}/{}",
-            upload_id, bucket, key
-        );
+        debug!("Created multipart upload: {} for {}/{}", upload_id, bucket, key);
         Ok(upload_id)
     }
 
@@ -915,9 +872,10 @@ impl MetadataStore {
             .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| {
-            let metadata: HashMap<String, String> =
-                r.4.and_then(|m| serde_json::from_str(&m).ok())
-                    .unwrap_or_default();
+            let metadata: HashMap<String, String> = r
+                .4
+                .and_then(|m| serde_json::from_str(&m).ok())
+                .unwrap_or_default();
 
             MultipartUpload {
                 upload_id: r.0,
@@ -1106,13 +1064,15 @@ impl MetadataStore {
         let vid = version_id.unwrap_or("null");
 
         // Delete existing tags
-        sqlx::query(r#"DELETE FROM object_tags WHERE bucket = ? AND key = ? AND version_id = ?"#)
-            .bind(bucket)
-            .bind(key)
-            .bind(vid)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        sqlx::query(
+            r#"DELETE FROM object_tags WHERE bucket = ? AND key = ? AND version_id = ?"#,
+        )
+        .bind(bucket)
+        .bind(key)
+        .bind(vid)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         // Insert new tags
         for tag in &tags.tags {
@@ -1175,13 +1135,15 @@ impl MetadataStore {
     ) -> Result<()> {
         let vid = version_id.unwrap_or("null");
 
-        sqlx::query(r#"DELETE FROM object_tags WHERE bucket = ? AND key = ? AND version_id = ?"#)
-            .bind(bucket)
-            .bind(key)
-            .bind(vid)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        sqlx::query(
+            r#"DELETE FROM object_tags WHERE bucket = ? AND key = ? AND version_id = ?"#,
+        )
+        .bind(bucket)
+        .bind(key)
+        .bind(vid)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         debug!("Deleted tags for {}/{}", bucket, key);
         Ok(())
@@ -1197,8 +1159,8 @@ impl MetadataStore {
         bucket: &str,
         config: &LifecycleConfiguration,
     ) -> Result<()> {
-        let config_json =
-            serde_json::to_string(config).map_err(|e| Error::InternalError(e.to_string()))?;
+        let config_json = serde_json::to_string(config)
+            .map_err(|e| Error::InternalError(e.to_string()))?;
 
         sqlx::query(
             r#"
@@ -1213,25 +1175,19 @@ impl MetadataStore {
         .await
         .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
-        debug!(
-            "Put lifecycle config for bucket {} with {} rules",
-            bucket,
-            config.rules.len()
-        );
+        debug!("Put lifecycle config for bucket {} with {} rules", bucket, config.rules.len());
         Ok(())
     }
 
     /// Get bucket lifecycle configuration
-    pub async fn get_bucket_lifecycle(
-        &self,
-        bucket: &str,
-    ) -> Result<Option<LifecycleConfiguration>> {
-        let row: Option<(String,)> =
-            sqlx::query_as(r#"SELECT configuration FROM bucket_lifecycle WHERE bucket = ?"#)
-                .bind(bucket)
-                .fetch_optional(&self.pool)
-                .await
-                .map_err(|e| Error::DatabaseError(e.to_string()))?;
+    pub async fn get_bucket_lifecycle(&self, bucket: &str) -> Result<Option<LifecycleConfiguration>> {
+        let row: Option<(String,)> = sqlx::query_as(
+            r#"SELECT configuration FROM bucket_lifecycle WHERE bucket = ?"#,
+        )
+        .bind(bucket)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         match row {
             Some((config_json,)) => {
@@ -1257,10 +1213,12 @@ impl MetadataStore {
 
     /// Get all buckets with lifecycle configurations (for lifecycle worker)
     pub async fn get_buckets_with_lifecycle(&self) -> Result<Vec<String>> {
-        let rows: Vec<(String,)> = sqlx::query_as(r#"SELECT bucket FROM bucket_lifecycle"#)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        let rows: Vec<(String,)> = sqlx::query_as(
+            r#"SELECT bucket FROM bucket_lifecycle"#,
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(rows.into_iter().map(|r| r.0).collect())
     }
@@ -1353,12 +1311,13 @@ impl MetadataStore {
 
     /// Get bucket policy JSON
     pub async fn get_bucket_policy(&self, bucket: &str) -> Result<Option<String>> {
-        let row: Option<(String,)> =
-            sqlx::query_as(r#"SELECT policy_json FROM bucket_policies WHERE bucket = ?"#)
-                .bind(bucket)
-                .fetch_optional(&self.pool)
-                .await
-                .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        let row: Option<(String,)> = sqlx::query_as(
+            r#"SELECT policy_json FROM bucket_policies WHERE bucket = ?"#,
+        )
+        .bind(bucket)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| r.0))
     }
@@ -1401,12 +1360,13 @@ impl MetadataStore {
 
     /// Get bucket ACL XML
     pub async fn get_bucket_acl(&self, bucket: &str) -> Result<Option<String>> {
-        let row: Option<(String,)> =
-            sqlx::query_as(r#"SELECT acl_xml FROM bucket_acls WHERE bucket = ?"#)
-                .bind(bucket)
-                .fetch_optional(&self.pool)
-                .await
-                .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        let row: Option<(String,)> = sqlx::query_as(
+            r#"SELECT acl_xml FROM bucket_acls WHERE bucket = ?"#,
+        )
+        .bind(bucket)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| r.0))
     }
@@ -1492,12 +1452,13 @@ impl MetadataStore {
 
     /// Get bucket notification configuration JSON
     pub async fn get_bucket_notification(&self, bucket: &str) -> Result<Option<String>> {
-        let row: Option<(String,)> =
-            sqlx::query_as(r#"SELECT config_json FROM bucket_notifications WHERE bucket = ?"#)
-                .bind(bucket)
-                .fetch_optional(&self.pool)
-                .await
-                .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        let row: Option<(String,)> = sqlx::query_as(
+            r#"SELECT config_json FROM bucket_notifications WHERE bucket = ?"#,
+        )
+        .bind(bucket)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| r.0))
     }
@@ -1530,12 +1491,13 @@ impl MetadataStore {
 
     /// Get bucket CORS configuration XML
     pub async fn get_bucket_cors(&self, bucket: &str) -> Result<Option<String>> {
-        let row: Option<(String,)> =
-            sqlx::query_as(r#"SELECT cors_xml FROM bucket_cors WHERE bucket = ?"#)
-                .bind(bucket)
-                .fetch_optional(&self.pool)
-                .await
-                .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        let row: Option<(String,)> = sqlx::query_as(
+            r#"SELECT cors_xml FROM bucket_cors WHERE bucket = ?"#,
+        )
+        .bind(bucket)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| r.0))
     }
@@ -1555,11 +1517,7 @@ impl MetadataStore {
     // ============= Object Lock Operations =============
 
     /// Store bucket Object Lock configuration
-    pub async fn put_bucket_object_lock_config(
-        &self,
-        bucket: &str,
-        config_xml: &str,
-    ) -> Result<()> {
+    pub async fn put_bucket_object_lock_config(&self, bucket: &str, config_xml: &str) -> Result<()> {
         let now = Utc::now().to_rfc3339();
 
         sqlx::query(
@@ -1584,12 +1542,13 @@ impl MetadataStore {
 
     /// Get bucket Object Lock configuration
     pub async fn get_bucket_object_lock_config(&self, bucket: &str) -> Result<Option<String>> {
-        let row: Option<(String,)> =
-            sqlx::query_as(r#"SELECT config_xml FROM bucket_object_lock WHERE bucket = ?"#)
-                .bind(bucket)
-                .fetch_optional(&self.pool)
-                .await
-                .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        let row: Option<(String,)> = sqlx::query_as(
+            r#"SELECT config_xml FROM bucket_object_lock WHERE bucket = ?"#,
+        )
+        .bind(bucket)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(row.map(|r| r.0))
     }
@@ -1805,10 +1764,7 @@ impl MetadataStore {
             }
         })?;
 
-        debug!(
-            "Created credentials for: {}",
-            cred.name.as_deref().unwrap_or(&cred.access_key)
-        );
+        debug!("Created credentials for: {}", cred.name.as_deref().unwrap_or(&cred.access_key));
         Ok(())
     }
 
@@ -1849,12 +1805,13 @@ impl MetadataStore {
 
     /// Get bucket versioning status
     pub async fn get_bucket_versioning(&self, bucket: &str) -> Result<Option<String>> {
-        let row: Option<(Option<String>,)> =
-            sqlx::query_as(r#"SELECT versioning FROM buckets WHERE name = ?"#)
-                .bind(bucket)
-                .fetch_optional(&self.pool)
-                .await
-                .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        let row: Option<(Option<String>,)> = sqlx::query_as(
+            r#"SELECT versioning FROM buckets WHERE name = ?"#,
+        )
+        .bind(bucket)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(row.and_then(|r| r.0).filter(|s| !s.is_empty()))
     }
@@ -1883,12 +1840,7 @@ impl MetadataStore {
     }
 
     /// List delete markers in a bucket
-    pub async fn list_delete_markers(
-        &self,
-        bucket: &str,
-        prefix: &str,
-        max_keys: i32,
-    ) -> Result<Vec<DeleteMarker>> {
+    pub async fn list_delete_markers(&self, bucket: &str, prefix: &str, max_keys: i32) -> Result<Vec<DeleteMarker>> {
         let rows: Vec<(String, String, String)> = sqlx::query_as(
             r#"
             SELECT key, version_id, last_modified
@@ -1922,11 +1874,7 @@ impl MetadataStore {
 
 // ============= MetadataRepository Trait Implementation =============
 
-use crate::traits::{
-    MetadataRepository, MultipartUpload as TraitMultipartUpload,
-    MultipartUploadInfo as TraitMultipartUploadInfo, ObjectWithTags as TraitObjectWithTags,
-    UploadPart as TraitUploadPart,
-};
+use crate::traits::{MetadataRepository, MultipartUpload as TraitMultipartUpload, MultipartUploadInfo as TraitMultipartUploadInfo, ObjectWithTags as TraitObjectWithTags, UploadPart as TraitUploadPart};
 use async_trait::async_trait;
 
 #[async_trait]
@@ -1969,16 +1917,15 @@ impl MetadataRepository for MetadataStore {
 
     async fn list_buckets(&self) -> Result<Vec<Bucket>> {
         // Get all buckets (not just for owner)
-        let rows: Vec<(String, String, String, Option<String>, Option<i32>, String)> =
-            sqlx::query_as(
-                r#"
+        let rows: Vec<(String, String, String, Option<String>, Option<i32>, String)> = sqlx::query_as(
+            r#"
             SELECT name, owner_id, region, versioning, object_lock_enabled, created_at
             FROM buckets ORDER BY name
             "#,
-            )
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| Error::DatabaseError(e.to_string()))?;
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| Error::DatabaseError(e.to_string()))?;
 
         Ok(rows
             .into_iter()
@@ -2030,11 +1977,7 @@ impl MetadataRepository for MetadataStore {
         MetadataStore::put_object(self, &internal_obj).await
     }
 
-    async fn get_object(
-        &self,
-        bucket: &str,
-        key: &str,
-    ) -> Result<Option<hafiz_core::types::Object>> {
+    async fn get_object(&self, bucket: &str, key: &str) -> Result<Option<hafiz_core::types::Object>> {
         let result = MetadataStore::get_object(self, bucket, key).await?;
         Ok(result.map(|o| hafiz_core::types::Object {
             bucket: o.bucket,
@@ -2045,20 +1988,11 @@ impl MetadataRepository for MetadataStore {
             metadata: o.metadata,
             last_modified: o.last_modified,
             owner: o.owner,
-            encryption: if o.encryption.is_encrypted() {
-                Some(o.encryption)
-            } else {
-                None
-            },
+            encryption: if o.encryption.is_encrypted() { Some(o.encryption) } else { None },
         }))
     }
 
-    async fn get_object_version(
-        &self,
-        bucket: &str,
-        key: &str,
-        version_id: &str,
-    ) -> Result<Option<hafiz_core::types::Object>> {
+    async fn get_object_version(&self, bucket: &str, key: &str, version_id: &str) -> Result<Option<hafiz_core::types::Object>> {
         let result = MetadataStore::get_object_version(self, bucket, key, Some(version_id)).await?;
         Ok(result.map(|o| hafiz_core::types::Object {
             bucket: o.bucket,
@@ -2069,21 +2003,11 @@ impl MetadataRepository for MetadataStore {
             metadata: o.metadata,
             last_modified: o.last_modified,
             owner: o.owner,
-            encryption: if o.encryption.is_encrypted() {
-                Some(o.encryption)
-            } else {
-                None
-            },
+            encryption: if o.encryption.is_encrypted() { Some(o.encryption) } else { None },
         }))
     }
 
-    async fn list_objects(
-        &self,
-        bucket: &str,
-        prefix: &str,
-        marker: &str,
-        max_keys: i32,
-    ) -> Result<Vec<hafiz_core::types::Object>> {
+    async fn list_objects(&self, bucket: &str, prefix: &str, marker: &str, max_keys: i32) -> Result<Vec<hafiz_core::types::Object>> {
         let results = MetadataStore::list_objects(self, bucket, prefix, marker, max_keys).await?;
         Ok(results
             .into_iter()
@@ -2096,11 +2020,7 @@ impl MetadataRepository for MetadataStore {
                 metadata: o.metadata,
                 last_modified: o.last_modified,
                 owner: o.owner,
-                encryption: if o.encryption.is_encrypted() {
-                    Some(o.encryption)
-                } else {
-                    None
-                },
+                encryption: if o.encryption.is_encrypted() { Some(o.encryption) } else { None },
             })
             .collect())
     }
@@ -2113,11 +2033,7 @@ impl MetadataRepository for MetadataStore {
         MetadataStore::delete_object(self, bucket, key, Some(version_id)).await
     }
 
-    async fn create_object_version(
-        &self,
-        object: &hafiz_core::types::Object,
-        version_id: &str,
-    ) -> Result<()> {
+    async fn create_object_version(&self, object: &hafiz_core::types::Object, version_id: &str) -> Result<()> {
         let internal_obj = crate::repository::Object {
             bucket: object.bucket.clone(),
             key: object.key.clone(),
@@ -2135,13 +2051,7 @@ impl MetadataRepository for MetadataStore {
         MetadataStore::put_object(self, &internal_obj).await
     }
 
-    async fn list_object_versions(
-        &self,
-        bucket: &str,
-        prefix: &str,
-        marker: &str,
-        max_keys: i32,
-    ) -> Result<Vec<ObjectVersion>> {
+    async fn list_object_versions(&self, bucket: &str, prefix: &str, marker: &str, max_keys: i32) -> Result<Vec<ObjectVersion>> {
         MetadataStore::list_object_versions(self, bucket, prefix, marker, max_keys).await
     }
 
@@ -2149,48 +2059,23 @@ impl MetadataRepository for MetadataStore {
         MetadataStore::create_delete_marker(self, bucket, key, version_id).await
     }
 
-    async fn list_delete_markers(
-        &self,
-        bucket: &str,
-        prefix: &str,
-        max_keys: i32,
-    ) -> Result<Vec<DeleteMarker>> {
+    async fn list_delete_markers(&self, bucket: &str, prefix: &str, max_keys: i32) -> Result<Vec<DeleteMarker>> {
         MetadataStore::list_delete_markers(self, bucket, prefix, max_keys).await
     }
 
-    async fn put_object_tags(
-        &self,
-        bucket: &str,
-        key: &str,
-        version_id: Option<&str>,
-        tags: &TagSet,
-    ) -> Result<()> {
+    async fn put_object_tags(&self, bucket: &str, key: &str, version_id: Option<&str>, tags: &TagSet) -> Result<()> {
         MetadataStore::put_object_tags(self, bucket, key, version_id, tags).await
     }
 
-    async fn get_object_tags(
-        &self,
-        bucket: &str,
-        key: &str,
-        version_id: Option<&str>,
-    ) -> Result<TagSet> {
+    async fn get_object_tags(&self, bucket: &str, key: &str, version_id: Option<&str>) -> Result<TagSet> {
         MetadataStore::get_object_tags(self, bucket, key, version_id).await
     }
 
-    async fn delete_object_tags(
-        &self,
-        bucket: &str,
-        key: &str,
-        version_id: Option<&str>,
-    ) -> Result<()> {
+    async fn delete_object_tags(&self, bucket: &str, key: &str, version_id: Option<&str>) -> Result<()> {
         MetadataStore::delete_object_tags(self, bucket, key, version_id).await
     }
 
-    async fn put_bucket_lifecycle(
-        &self,
-        bucket: &str,
-        config: &LifecycleConfiguration,
-    ) -> Result<()> {
+    async fn put_bucket_lifecycle(&self, bucket: &str, config: &LifecycleConfiguration) -> Result<()> {
         MetadataStore::put_bucket_lifecycle(self, bucket, config).await
     }
 
@@ -2210,12 +2095,7 @@ impl MetadataRepository for MetadataStore {
         MetadataStore::get_lifecycle_rules(self, bucket).await
     }
 
-    async fn get_objects_for_lifecycle(
-        &self,
-        bucket: &str,
-        prefix: Option<&str>,
-        limit: i32,
-    ) -> Result<Vec<TraitObjectWithTags>> {
+    async fn get_objects_for_lifecycle(&self, bucket: &str, prefix: Option<&str>, limit: i32) -> Result<Vec<TraitObjectWithTags>> {
         let results = MetadataStore::get_objects_for_lifecycle(self, bucket, prefix, limit).await?;
         Ok(results
             .into_iter()
@@ -2246,12 +2126,7 @@ impl MetadataRepository for MetadataStore {
         MetadataStore::create_multipart_upload(self, &internal).await
     }
 
-    async fn get_multipart_upload(
-        &self,
-        bucket: &str,
-        key: &str,
-        upload_id: &str,
-    ) -> Result<Option<TraitMultipartUpload>> {
+    async fn get_multipart_upload(&self, bucket: &str, key: &str, upload_id: &str) -> Result<Option<TraitMultipartUpload>> {
         let result = MetadataStore::get_multipart_upload(self, bucket, key, upload_id).await?;
         Ok(result.map(|u| TraitMultipartUpload {
             upload_id: u.upload_id,
@@ -2265,16 +2140,8 @@ impl MetadataRepository for MetadataStore {
         }))
     }
 
-    async fn list_multipart_uploads(
-        &self,
-        bucket: &str,
-        prefix: &str,
-        marker: &str,
-        max_uploads: i32,
-    ) -> Result<Vec<TraitMultipartUploadInfo>> {
-        let results =
-            MetadataStore::list_multipart_uploads(self, bucket, prefix, marker, max_uploads)
-                .await?;
+    async fn list_multipart_uploads(&self, bucket: &str, prefix: &str, marker: &str, max_uploads: i32) -> Result<Vec<TraitMultipartUploadInfo>> {
+        let results = MetadataStore::list_multipart_uploads(self, bucket, prefix, marker, max_uploads).await?;
         Ok(results
             .into_iter()
             .map(|u| TraitMultipartUploadInfo {
@@ -2287,22 +2154,11 @@ impl MetadataRepository for MetadataStore {
             .collect())
     }
 
-    async fn delete_multipart_upload(
-        &self,
-        bucket: &str,
-        key: &str,
-        upload_id: &str,
-    ) -> Result<()> {
+    async fn delete_multipart_upload(&self, bucket: &str, key: &str, upload_id: &str) -> Result<()> {
         MetadataStore::delete_multipart_upload(self, bucket, key, upload_id).await
     }
 
-    async fn create_upload_part(
-        &self,
-        bucket: &str,
-        key: &str,
-        upload_id: &str,
-        part: &TraitUploadPart,
-    ) -> Result<()> {
+    async fn create_upload_part(&self, bucket: &str, key: &str, upload_id: &str, part: &TraitUploadPart) -> Result<()> {
         let internal = UploadPart {
             part_number: part.part_number,
             size: part.size,
@@ -2312,12 +2168,7 @@ impl MetadataRepository for MetadataStore {
         MetadataStore::create_upload_part(self, bucket, key, upload_id, &internal).await
     }
 
-    async fn get_upload_parts(
-        &self,
-        bucket: &str,
-        key: &str,
-        upload_id: &str,
-    ) -> Result<Vec<TraitUploadPart>> {
+    async fn get_upload_parts(&self, bucket: &str, key: &str, upload_id: &str) -> Result<Vec<TraitUploadPart>> {
         let results = MetadataStore::get_upload_parts(self, bucket, key, upload_id).await?;
         Ok(results
             .into_iter()
@@ -2354,22 +2205,11 @@ impl MetadataRepository for MetadataStore {
         MetadataStore::get_bucket_acl(self, bucket).await
     }
 
-    async fn put_object_acl(
-        &self,
-        bucket: &str,
-        key: &str,
-        version_id: Option<&str>,
-        acl_xml: &str,
-    ) -> Result<()> {
+    async fn put_object_acl(&self, bucket: &str, key: &str, version_id: Option<&str>, acl_xml: &str) -> Result<()> {
         MetadataStore::put_object_acl(self, bucket, key, version_id, acl_xml).await
     }
 
-    async fn get_object_acl(
-        &self,
-        bucket: &str,
-        key: &str,
-        version_id: Option<&str>,
-    ) -> Result<Option<String>> {
+    async fn get_object_acl(&self, bucket: &str, key: &str, version_id: Option<&str>) -> Result<Option<String>> {
         MetadataStore::get_object_acl(self, bucket, key, version_id).await
     }
 
@@ -2407,41 +2247,19 @@ impl MetadataRepository for MetadataStore {
         MetadataStore::get_bucket_object_lock_config(self, bucket).await
     }
 
-    async fn put_object_retention(
-        &self,
-        bucket: &str,
-        key: &str,
-        version_id: Option<&str>,
-        retention_xml: &str,
-    ) -> Result<()> {
+    async fn put_object_retention(&self, bucket: &str, key: &str, version_id: Option<&str>, retention_xml: &str) -> Result<()> {
         MetadataStore::put_object_retention(self, bucket, key, version_id, retention_xml).await
     }
 
-    async fn get_object_retention(
-        &self,
-        bucket: &str,
-        key: &str,
-        version_id: Option<&str>,
-    ) -> Result<Option<String>> {
+    async fn get_object_retention(&self, bucket: &str, key: &str, version_id: Option<&str>) -> Result<Option<String>> {
         MetadataStore::get_object_retention(self, bucket, key, version_id).await
     }
 
-    async fn put_object_legal_hold(
-        &self,
-        bucket: &str,
-        key: &str,
-        version_id: Option<&str>,
-        hold_xml: &str,
-    ) -> Result<()> {
+    async fn put_object_legal_hold(&self, bucket: &str, key: &str, version_id: Option<&str>, hold_xml: &str) -> Result<()> {
         MetadataStore::put_object_legal_hold(self, bucket, key, version_id, hold_xml).await
     }
 
-    async fn get_object_legal_hold(
-        &self,
-        bucket: &str,
-        key: &str,
-        version_id: Option<&str>,
-    ) -> Result<Option<String>> {
+    async fn get_object_legal_hold(&self, bucket: &str, key: &str, version_id: Option<&str>) -> Result<Option<String>> {
         MetadataStore::get_object_legal_hold(self, bucket, key, version_id).await
     }
 }

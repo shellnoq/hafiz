@@ -48,7 +48,8 @@ pub use transport::ClusterTransport;
 
 // Re-export types from core
 pub use hafiz_core::types::{
-    ClusterConfig, ClusterMessage, ClusterNode, ClusterStats, ConflictResolution, ConsistencyLevel,
-    NodeId, NodeRole, NodeStats, NodeStatus, ReplicationEvent, ReplicationEventType,
-    ReplicationMode, ReplicationProgress, ReplicationRule, ReplicationStatus,
+    ClusterConfig, ClusterMessage, ClusterNode, ClusterStats, ConflictResolution,
+    ConsistencyLevel, NodeId, NodeRole, NodeStats, NodeStatus, ReplicationEvent,
+    ReplicationEventType, ReplicationMode, ReplicationProgress, ReplicationRule,
+    ReplicationStatus,
 };

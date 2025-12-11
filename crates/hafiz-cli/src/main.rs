@@ -357,7 +357,9 @@ async fn run() -> Result<()> {
             human_readable,
             recursive,
             summarize,
-        } => commands::ls::execute(&ctx, &path, long, human_readable, recursive, summarize).await,
+        } => {
+            commands::ls::execute(&ctx, &path, long, human_readable, recursive, summarize).await
+        }
 
         Commands::Cp {
             source,

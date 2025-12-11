@@ -11,12 +11,7 @@ pub struct RequestId(pub String);
 impl RequestId {
     /// Generate a new request ID
     pub fn new() -> Self {
-        Self(
-            uuid::Uuid::new_v4()
-                .to_string()
-                .replace("-", "")
-                .to_uppercase(),
-        )
+        Self(uuid::Uuid::new_v4().to_string().replace("-", "").to_uppercase())
     }
 
     /// Create from string
@@ -181,16 +176,19 @@ impl ETag {
 
     /// Create ETag for multipart upload
     pub fn from_multipart(part_etags: &[String], part_count: usize) -> Self {
-        let mut data = Vec::new();
+        use digest::Digest;
+        use md5::Md5;
+
+        let mut hasher = Md5::new();
         for etag in part_etags {
             // Remove quotes and decode hex
             let clean = etag.trim_matches('"');
             if let Ok(bytes) = hex::decode(clean) {
-                data.extend_from_slice(&bytes);
+                hasher.update(&bytes);
             }
         }
-        let hash = md5::compute(&data);
-        Self(format!("\"{:x}-{}\"", hash, part_count))
+        let hash = hasher.finalize();
+        Self(format!("\"{}-{}\"", hex::encode(hash), part_count))
     }
 
     /// Get the hash value without quotes
@@ -257,25 +255,24 @@ impl ByteSize {
         let s = s.trim().to_uppercase();
 
         let (num_str, unit) = if s.ends_with("PB") || s.ends_with("PIB") {
-            (&s[..s.len() - 2], Self::PB)
+            (&s[..s.len()-2], Self::PB)
         } else if s.ends_with("TB") || s.ends_with("TIB") {
-            (&s[..s.len() - 2], Self::TB)
+            (&s[..s.len()-2], Self::TB)
         } else if s.ends_with("GB") || s.ends_with("GIB") {
-            (&s[..s.len() - 2], Self::GB)
+            (&s[..s.len()-2], Self::GB)
         } else if s.ends_with("MB") || s.ends_with("MIB") {
-            (&s[..s.len() - 2], Self::MB)
+            (&s[..s.len()-2], Self::MB)
         } else if s.ends_with("KB") || s.ends_with("KIB") {
-            (&s[..s.len() - 2], Self::KB)
+            (&s[..s.len()-2], Self::KB)
         } else if s.ends_with('B') {
-            (&s[..s.len() - 1], Self::BYTE)
+            (&s[..s.len()-1], Self::BYTE)
         } else {
             (s.as_str(), Self::BYTE)
         };
 
-        let num: f64 = num_str
-            .trim()
-            .parse()
-            .map_err(|_| crate::error::Error::InvalidArgument(format!("Invalid size: {}", s)))?;
+        let num: f64 = num_str.trim().parse().map_err(|_| {
+            crate::error::Error::InvalidArgument(format!("Invalid size: {}", s))
+        })?;
 
         Ok(Self((num * unit as f64) as i64))
     }
@@ -447,18 +444,12 @@ mod tests {
     fn test_content_type_from_extension() {
         assert_eq!(ContentType::from_extension("json").0, "application/json");
         assert_eq!(ContentType::from_extension("png").0, "image/png");
-        assert_eq!(
-            ContentType::from_extension("unknown").0,
-            "application/octet-stream"
-        );
+        assert_eq!(ContentType::from_extension("unknown").0, "application/octet-stream");
     }
 
     #[test]
     fn test_content_type_from_filename() {
-        assert_eq!(
-            ContentType::from_filename("file.json").0,
-            "application/json"
-        );
+        assert_eq!(ContentType::from_filename("file.json").0, "application/json");
         assert_eq!(ContentType::from_filename("image.PNG").0, "image/png");
     }
 
@@ -470,14 +461,8 @@ mod tests {
 
     #[test]
     fn test_byte_size_parse() {
-        assert_eq!(
-            ByteSize::parse("10MB").unwrap().as_bytes(),
-            10 * 1024 * 1024
-        );
-        assert_eq!(
-            ByteSize::parse("1GB").unwrap().as_bytes(),
-            1024 * 1024 * 1024
-        );
+        assert_eq!(ByteSize::parse("10MB").unwrap().as_bytes(), 10 * 1024 * 1024);
+        assert_eq!(ByteSize::parse("1GB").unwrap().as_bytes(), 1024 * 1024 * 1024);
         assert_eq!(ByteSize::parse("1024").unwrap().as_bytes(), 1024);
     }
 
@@ -497,8 +482,13 @@ mod tests {
 
     #[test]
     fn test_etag() {
-        let hash = md5::compute(b"hello");
-        let etag = ETag::from_md5(&hash.0);
+        use digest::Digest;
+        use md5::Md5;
+
+        let mut hasher = Md5::new();
+        hasher.update(b"hello");
+        let hash = hasher.finalize();
+        let etag = ETag::from_md5(&hash);
         assert!(etag.0.starts_with('"'));
         assert!(etag.0.ends_with('"'));
         assert!(!etag.is_multipart());
