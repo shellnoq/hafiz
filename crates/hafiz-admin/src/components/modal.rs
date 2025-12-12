@@ -70,23 +70,40 @@ pub fn ConfirmModal(
         "bg-blue-600 hover:bg-blue-700"
     };
 
+    let confirm_text = confirm_text.unwrap_or("Confirm");
+
     view! {
-        <Modal title=title show=show on_close=on_cancel>
-            <p class="text-gray-300 mb-6">{message}</p>
-            <div class="flex justify-end space-x-3">
-                <button
-                    class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+        <Show when=move || show.get()>
+            <div class="fixed inset-0 z-50 overflow-y-auto">
+                <div
+                    class="fixed inset-0 bg-black/60 transition-opacity"
                     on:click=move |_| on_cancel.call(())
-                >
-                    "Cancel"
-                </button>
-                <button
-                    class=format!("px-4 py-2 {} text-white rounded-lg transition-colors", confirm_btn_class)
-                    on:click=move |_| on_confirm.call(())
-                >
-                    {confirm_text.unwrap_or("Confirm")}
-                </button>
+                />
+                <div class="flex min-h-full items-center justify-center p-4">
+                    <div class="relative w-full max-w-lg bg-gray-800 rounded-xl shadow-2xl border border-gray-700">
+                        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-700">
+                            <h3 class="text-lg font-semibold text-white">{title}</h3>
+                        </div>
+                        <div class="px-6 py-4">
+                            <p class="text-gray-300 mb-6">{message.clone()}</p>
+                            <div class="flex justify-end space-x-3">
+                                <button
+                                    class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                                    on:click=move |_| on_cancel.call(())
+                                >
+                                    "Cancel"
+                                </button>
+                                <button
+                                    class=format!("px-4 py-2 {} text-white rounded-lg transition-colors", confirm_btn_class)
+                                    on:click=move |_| on_confirm.call(())
+                                >
+                                    {confirm_text}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </Modal>
+        </Show>
     }
 }

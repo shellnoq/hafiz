@@ -6,8 +6,8 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use hafiz_core::types::{
-    Bucket, Object, User, VersioningStatus, ObjectVersion, DeleteMarker,
-    TagSet, LifecycleConfiguration, LifecycleRule, Credentials,
+    Bucket, ObjectInternal, User, VersioningStatus, ObjectVersion, DeleteMarker,
+    TagSet, LifecycleConfiguration, LifecycleRule, Credentials, Owner,
 };
 use hafiz_core::Result;
 use std::collections::HashMap;
@@ -57,7 +57,25 @@ pub struct ObjectWithTags {
     pub tags: TagSet,
 }
 
-/// Metadata repository trait
+/// Object info for listing (simplified)
+#[derive(Debug, Clone)]
+pub struct ObjectInfo {
+    pub key: String,
+    pub size: i64,
+    pub etag: String,
+    pub last_modified: DateTime<Utc>,
+    pub storage_class: Option<String>,
+    pub owner: Option<Owner>,
+}
+
+/// Bucket info for listing
+#[derive(Debug, Clone)]
+pub struct BucketInfo {
+    pub name: String,
+    pub creation_date: DateTime<Utc>,
+}
+
+/// Metadata repository trait - simplified version
 #[async_trait]
 pub trait MetadataRepository: Send + Sync {
     // ============= User Operations =============
@@ -82,19 +100,33 @@ pub trait MetadataRepository: Send + Sync {
 
     // ============= Object Operations =============
 
-    async fn create_object(&self, object: &Object) -> Result<()>;
-    async fn get_object(&self, bucket: &str, key: &str) -> Result<Option<Object>>;
-    async fn get_object_version(&self, bucket: &str, key: &str, version_id: &str) -> Result<Option<Object>>;
-    async fn list_objects(&self, bucket: &str, prefix: &str, marker: &str, max_keys: i32) -> Result<Vec<Object>>;
+    async fn create_object(&self, object: &ObjectInternal) -> Result<()>;
+    async fn get_object(&self, bucket: &str, key: &str) -> Result<Option<ObjectInternal>>;
+    async fn get_object_version(&self, bucket: &str, key: &str, version_id: Option<&str>) -> Result<Option<ObjectInternal>>;
+    async fn list_objects(
+        &self,
+        bucket: &str,
+        prefix: Option<&str>,
+        delimiter: Option<&str>,
+        max_keys: i32,
+        continuation_token: Option<&str>,
+    ) -> Result<(Vec<ObjectInfo>, Vec<String>, bool, Option<String>)>;
     async fn delete_object(&self, bucket: &str, key: &str) -> Result<()>;
-    async fn delete_object_version(&self, bucket: &str, key: &str, version_id: &str) -> Result<()>;
+    async fn delete_object_version(&self, bucket: &str, key: &str, version_id: &str) -> Result<bool>;
 
     // ============= Versioning Operations =============
 
-    async fn create_object_version(&self, object: &Object, version_id: &str) -> Result<()>;
-    async fn list_object_versions(&self, bucket: &str, prefix: &str, marker: &str, max_keys: i32) -> Result<Vec<ObjectVersion>>;
-    async fn create_delete_marker(&self, bucket: &str, key: &str, version_id: &str) -> Result<()>;
-    async fn list_delete_markers(&self, bucket: &str, prefix: &str, max_keys: i32) -> Result<Vec<DeleteMarker>>;
+    async fn list_object_versions(
+        &self,
+        bucket: &str,
+        prefix: Option<&str>,
+        delimiter: Option<&str>,
+        max_keys: i32,
+        key_marker: Option<&str>,
+        version_id_marker: Option<&str>,
+    ) -> Result<(Vec<ObjectVersion>, Vec<DeleteMarker>, Vec<String>, bool, Option<String>, Option<String>)>;
+    
+    async fn create_delete_marker(&self, bucket: &str, key: &str) -> Result<String>;
 
     // ============= Tagging Operations =============
 
@@ -113,74 +145,26 @@ pub trait MetadataRepository: Send + Sync {
 
     // ============= Multipart Operations =============
 
-    async fn create_multipart_upload(&self, upload: &MultipartUpload) -> Result<()>;
+    async fn create_multipart_upload(
+        &self,
+        bucket: &str,
+        key: &str,
+        content_type: &str,
+        metadata: &HashMap<String, String>,
+    ) -> Result<String>;
+    
     async fn get_multipart_upload(&self, bucket: &str, key: &str, upload_id: &str) -> Result<Option<MultipartUpload>>;
-    async fn list_multipart_uploads(&self, bucket: &str, prefix: &str, marker: &str, max_uploads: i32) -> Result<Vec<MultipartUploadInfo>>;
-    async fn delete_multipart_upload(&self, bucket: &str, key: &str, upload_id: &str) -> Result<()>;
-    async fn create_upload_part(&self, bucket: &str, key: &str, upload_id: &str, part: &UploadPart) -> Result<()>;
-    async fn get_upload_parts(&self, bucket: &str, key: &str, upload_id: &str) -> Result<Vec<UploadPart>>;
-
-    // ============= Policy Operations =============
-
-    /// Store bucket policy JSON
-    async fn put_bucket_policy(&self, bucket: &str, policy_json: &str) -> Result<()>;
-
-    /// Get bucket policy JSON
-    async fn get_bucket_policy(&self, bucket: &str) -> Result<Option<String>>;
-
-    /// Delete bucket policy
-    async fn delete_bucket_policy(&self, bucket: &str) -> Result<()>;
-
-    // ============= ACL Operations =============
-
-    /// Store bucket ACL XML
-    async fn put_bucket_acl(&self, bucket: &str, acl_xml: &str) -> Result<()>;
-
-    /// Get bucket ACL XML
-    async fn get_bucket_acl(&self, bucket: &str) -> Result<Option<String>>;
-
-    /// Store object ACL XML
-    async fn put_object_acl(&self, bucket: &str, key: &str, version_id: Option<&str>, acl_xml: &str) -> Result<()>;
-
-    /// Get object ACL XML
-    async fn get_object_acl(&self, bucket: &str, key: &str, version_id: Option<&str>) -> Result<Option<String>>;
-
-    // ============= Notification Operations =============
-
-    /// Store bucket notification configuration JSON
-    async fn put_bucket_notification(&self, bucket: &str, config_json: &str) -> Result<()>;
-
-    /// Get bucket notification configuration JSON
-    async fn get_bucket_notification(&self, bucket: &str) -> Result<Option<String>>;
-
-    // ============= CORS Operations =============
-
-    /// Store bucket CORS configuration XML
-    async fn put_bucket_cors(&self, bucket: &str, cors_xml: &str) -> Result<()>;
-
-    /// Get bucket CORS configuration XML
-    async fn get_bucket_cors(&self, bucket: &str) -> Result<Option<String>>;
-
-    /// Delete bucket CORS configuration
-    async fn delete_bucket_cors(&self, bucket: &str) -> Result<()>;
-
-    // ============= Object Lock Operations =============
-
-    /// Store bucket Object Lock configuration XML
-    async fn put_bucket_object_lock_config(&self, bucket: &str, config_xml: &str) -> Result<()>;
-
-    /// Get bucket Object Lock configuration XML
-    async fn get_bucket_object_lock_config(&self, bucket: &str) -> Result<Option<String>>;
-
-    /// Store object retention XML
-    async fn put_object_retention(&self, bucket: &str, key: &str, version_id: Option<&str>, retention_xml: &str) -> Result<()>;
-
-    /// Get object retention XML
-    async fn get_object_retention(&self, bucket: &str, key: &str, version_id: Option<&str>) -> Result<Option<String>>;
-
-    /// Store object legal hold XML
-    async fn put_object_legal_hold(&self, bucket: &str, key: &str, version_id: Option<&str>, hold_xml: &str) -> Result<()>;
-
-    /// Get object legal hold XML
-    async fn get_object_legal_hold(&self, bucket: &str, key: &str, version_id: Option<&str>) -> Result<Option<String>>;
+    
+    async fn list_multipart_uploads(
+        &self,
+        bucket: &str,
+        prefix: Option<&str>,
+        key_marker: Option<&str>,
+        upload_id_marker: Option<&str>,
+        max_uploads: i32,
+    ) -> Result<(Vec<MultipartUploadInfo>, bool)>;
+    
+    async fn delete_multipart_upload(&self, upload_id: &str) -> Result<()>;
+    async fn create_upload_part(&self, upload_id: &str, part: &UploadPart) -> Result<()>;
+    async fn get_upload_parts(&self, upload_id: &str) -> Result<Vec<UploadPart>>;
 }

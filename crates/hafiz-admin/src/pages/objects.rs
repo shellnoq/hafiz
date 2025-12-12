@@ -42,10 +42,11 @@ pub fn ObjectsPage() -> impl IntoView {
                     if path.is_empty() {
                         view! { <span class="text-white">"Objects"</span> }.into_view()
                     } else {
-                        let parts: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
-                        parts.into_iter().enumerate().map(|(i, part)| {
+                        let parts: Vec<String> = path.split('/').filter(|s| !s.is_empty()).map(|s| s.to_string()).collect();
+                        let parts_clone = parts.clone();
+                        parts.into_iter().enumerate().map(move |(i, part)| {
                             let href = format!("/buckets/{}/objects/{}", bucket_name(),
-                                parts[..=i].join("/"));
+                                parts_clone[..=i].join("/"));
                             view! {
                                 <>
                                     <a href=href class="text-gray-400 hover:text-white">{part}</a>
@@ -129,8 +130,9 @@ pub fn ObjectsPage() -> impl IntoView {
                                         <tbody class="divide-y divide-gray-700">
                                             // Folders (common prefixes)
                                             {list.common_prefixes.into_iter().map(|prefix| {
-                                                let folder_name = prefix.trim_end_matches('/').rsplit('/').next().unwrap_or(&prefix);
-                                                let href = format!("/buckets/{}/objects/{}", bucket_name(), prefix);
+                                                let prefix_owned = prefix.clone();
+                                                let folder_name = prefix.trim_end_matches('/').rsplit('/').next().unwrap_or(&prefix).to_string();
+                                                let href = format!("/buckets/{}/objects/{}", bucket_name(), prefix_owned);
                                                 view! {
                                                     <tr class="hover:bg-gray-750 transition-colors">
                                                         <td class="px-4 py-3">

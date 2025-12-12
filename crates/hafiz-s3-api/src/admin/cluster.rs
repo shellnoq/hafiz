@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use hafiz_core::types::{
-    ClusterNode, ClusterStats, ConflictResolution, NodeId, NodeRole, NodeStatus,
+    ClusterNode, ClusterNodeStatus, ClusterStats, ConflictResolution, NodeId, NodeRole,
     ReplicationMode, ReplicationRule, ReplicationStatus,
 };
 

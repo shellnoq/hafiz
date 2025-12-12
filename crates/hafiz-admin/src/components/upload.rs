@@ -118,12 +118,12 @@ pub fn FileUploadModal(
         set_uploads.update(|u| u.retain(|item| item.id != id));
     };
 
-    // Start upload
-    let bucket_for_upload = bucket_clone.clone();
-    let prefix_for_upload = prefix_clone.clone();
-    let on_upload_complete_clone = on_upload_complete.clone();
+    // Start upload - use store_value to allow multiple calls
+    let bucket_for_upload = store_value(bucket_clone.clone());
+    let prefix_for_upload = store_value(prefix_clone.clone());
+    let on_upload_complete_stored = store_value(on_upload_complete.clone());
 
-    let start_upload = move |_| {
+    let start_upload = move |_: web_sys::MouseEvent| {
         let uploads_list = uploads.get();
         if uploads_list.is_empty() || is_uploading.get() {
             return;
@@ -131,9 +131,9 @@ pub fn FileUploadModal(
 
         set_is_uploading.set(true);
 
-        let bucket = bucket_for_upload.clone();
-        let prefix = prefix_for_upload.clone();
-        let on_complete = on_upload_complete_clone.clone();
+        let bucket = bucket_for_upload.get_value();
+        let prefix = prefix_for_upload.get_value();
+        let on_complete = on_upload_complete_stored.get_value();
 
         spawn_local(async move {
             // Get file input and iterate through files
@@ -309,46 +309,42 @@ pub fn FileUploadModal(
                         {move || if all_complete() { "Close" } else { "Cancel" }}
                     </button>
 
-                    {move || if !all_complete() && has_pending() {
-                        view! {
-                            <button
-                                class=move || format!(
-                                    "px-4 py-2 rounded-lg transition-colors {}",
-                                    if is_uploading.get() {
-                                        "bg-blue-600/50 text-gray-300 cursor-not-allowed"
-                                    } else {
-                                        "bg-blue-600 hover:bg-blue-700 text-white"
-                                    }
-                                )
-                                disabled=is_uploading
-                                on:click=start_upload
-                            >
-                                {move || if is_uploading.get() {
-                                    view! {
-                                        <span class="flex items-center">
-                                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                            "Uploading..."
-                                        </span>
-                                    }.into_view()
+                    <Show when=move || !all_complete() && has_pending()>
+                        <button
+                            class=move || format!(
+                                "px-4 py-2 rounded-lg transition-colors {}",
+                                if is_uploading.get() {
+                                    "bg-blue-600/50 text-gray-300 cursor-not-allowed"
                                 } else {
-                                    view! {
-                                        <span class="flex items-center">
-                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                                            </svg>
-                                            "Upload"
-                                        </span>
-                                    }.into_view()
-                                }}
-                            </button>
-                        }.into_view()
-                    } else {
-                        view! {}.into_view()
-                    }}
+                                    "bg-blue-600 hover:bg-blue-700 text-white"
+                                }
+                            )
+                            disabled=is_uploading
+                            on:click=start_upload
+                        >
+                            {move || if is_uploading.get() {
+                                view! {
+                                    <span class="flex items-center">
+                                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        "Uploading..."
+                                    </span>
+                                }.into_view()
+                            } else {
+                                view! {
+                                    <span class="flex items-center">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                        </svg>
+                                        "Upload"
+                                    </span>
+                                }.into_view()
+                            }}
+                        </button>
+                    </Show>
                 </div>
             </div>
         </div>

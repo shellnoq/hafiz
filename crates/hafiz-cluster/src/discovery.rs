@@ -17,7 +17,7 @@ use tokio::time::{interval, Instant};
 use tracing::{debug, error, info, warn};
 
 use hafiz_core::types::{
-    ClusterConfig, ClusterMessage, ClusterNode, NodeId, NodeRole, NodeStats, NodeStatus,
+    ClusterConfig, ClusterMessage, ClusterNode, ClusterNodeStatus, NodeId, NodeRole, NodeStats,
 };
 
 use crate::error::{ClusterError, ClusterResult};
@@ -87,7 +87,7 @@ impl DiscoveryService {
             self.join_cluster().await?;
         } else {
             info!("No seed nodes configured, starting as standalone node");
-            self.local_node.write().status = NodeStatus::Healthy;
+            self.local_node.write().status = ClusterNodeStatus::Healthy;
         }
 
         // Start heartbeat loop
@@ -199,7 +199,7 @@ impl DiscoveryService {
                     }
 
                     // Update local node status
-                    self.local_node.write().status = NodeStatus::Healthy;
+                    self.local_node.write().status = ClusterNodeStatus::Healthy;
 
                     // Notify about state sync
                     let _ = self.event_tx.send(DiscoveryEvent::StateSynced).await;
@@ -217,7 +217,7 @@ impl DiscoveryService {
 
         // If we couldn't join, start as a new cluster
         warn!("Could not join existing cluster, starting as new primary");
-        self.local_node.write().status = NodeStatus::Healthy;
+        self.local_node.write().status = ClusterNodeStatus::Healthy;
         Ok(())
     }
 
@@ -286,10 +286,10 @@ impl DiscoveryService {
             existing.last_heartbeat = Utc::now();
 
             // Check if node recovered
-            if existing.status == NodeStatus::Healthy
+            if existing.status == ClusterNodeStatus::Healthy
                 && matches!(
                     existing.status,
-                    NodeStatus::Unreachable | NodeStatus::Degraded
+                    ClusterNodeStatus::Unreachable | ClusterNodeStatus::Degraded
                 )
             {
                 let _ = self
@@ -314,7 +314,7 @@ impl DiscoveryService {
         info!("Node {} leaving cluster: {}", node_id, reason);
 
         if let Some(mut node) = self.nodes.write().remove(node_id) {
-            node.status = NodeStatus::Left;
+            node.status = ClusterNodeStatus::Left;
             let _ = self
                 .event_tx
                 .send(DiscoveryEvent::NodeLeft(node_id.to_string()))
@@ -327,7 +327,7 @@ impl DiscoveryService {
     /// Start the heartbeat loop
     fn start_heartbeat_loop(&self) {
         let local_node = Arc::clone(&self.local_node);
-        let nodes = Arc::clone(&self.nodes);
+        let nodes: Arc<RwLock<HashMap<NodeId, ClusterNode>>> = Arc::clone(&self.nodes);
         let transport = Arc::clone(&self.transport);
         let shutdown = Arc::clone(&self.shutdown);
         let interval_secs = self.config.heartbeat_interval_secs;
@@ -373,7 +373,7 @@ impl DiscoveryService {
 
     /// Start the health check loop
     fn start_health_check_loop(&self) {
-        let nodes = Arc::clone(&self.nodes);
+        let nodes: Arc<RwLock<HashMap<NodeId, ClusterNode>>> = Arc::clone(&self.nodes);
         let transport = Arc::clone(&self.transport);
         let shutdown = Arc::clone(&self.shutdown);
         let event_tx = self.event_tx.clone();
@@ -390,7 +390,7 @@ impl DiscoveryService {
                 }
 
                 let now = Utc::now();
-                let timeout = chrono::Duration::seconds(timeout_secs as i64);
+                let timeout = chrono::TimeDelta::seconds(timeout_secs as i64);
 
                 let mut unhealthy_nodes = Vec::new();
 
@@ -398,14 +398,14 @@ impl DiscoveryService {
                 {
                     let mut nodes_write = nodes.write();
                     for (id, node) in nodes_write.iter_mut() {
-                        let since_heartbeat = now - node.last_heartbeat;
+                        let since_heartbeat: chrono::TimeDelta = now - node.last_heartbeat;
 
-                        if since_heartbeat > timeout && node.status == NodeStatus::Healthy {
+                        if since_heartbeat > timeout && node.status == ClusterNodeStatus::Healthy {
                             warn!(
                                 "Node {} hasn't sent heartbeat in {:?}, marking unhealthy",
                                 id, since_heartbeat
                             );
-                            node.status = NodeStatus::Unreachable;
+                            node.status = ClusterNodeStatus::Unreachable;
                             unhealthy_nodes.push(id.clone());
                         }
                     }

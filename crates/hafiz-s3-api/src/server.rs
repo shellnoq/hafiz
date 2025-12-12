@@ -4,6 +4,7 @@ use axum::{
     middleware,
     routing::{delete, get, head, options, post, put},
     Router,
+    response::Html,
 };
 use hyper_util::rt::{TokioExecutor, TokioIo};
 use hafiz_core::{config::HafizConfig, Result};
@@ -24,6 +25,14 @@ use crate::tls::TlsAcceptor;
 
 #[cfg(feature = "cluster")]
 use hafiz_cluster::ClusterManager;
+
+// Embed the admin panel HTML at compile time
+const ADMIN_HTML: &str = include_str!("../static/index.html");
+
+/// Admin panel handler
+async fn admin_panel() -> Html<&'static str> {
+    Html(ADMIN_HTML)
+}
 
 /// Application state shared across handlers
 #[derive(Clone)]
@@ -100,6 +109,7 @@ impl S3Server {
         let listener = TcpListener::bind(addr).await?;
 
         info!("🚀 Hafiz S3 API server listening on http://{}", addr);
+        info!("🖥️  Admin Panel at http://{}/admin", addr);
         info!("📊 Admin API available at http://{}/api/v1", addr);
         info!("📈 Prometheus metrics at http://{}/metrics", addr);
         info!("🔑 Access Key: {}", self.config.auth.root_access_key);
@@ -113,6 +123,7 @@ impl S3Server {
         let listener = TcpListener::bind(addr).await?;
 
         info!("🔒 Hafiz S3 API server listening on https://{}", addr);
+        info!("🖥️  Admin Panel at https://{}/admin", addr);
         info!("📊 Admin API available at https://{}/api/v1", addr);
         info!("📈 Prometheus metrics at https://{}/metrics", addr);
         info!("🔑 Access Key: {}", self.config.auth.root_access_key);
@@ -176,6 +187,9 @@ impl S3Server {
 
     fn create_router(&self, state: AppState, metrics: Arc<MetricsRecorder>) -> Router {
         Router::new()
+            // Admin panel (web UI)
+            .route("/admin", get(admin_panel))
+            
             // Metrics endpoint (no auth required)
             .route("/metrics", get(metrics_handler))
 

@@ -13,7 +13,7 @@ use tokio::sync::mpsc;
 use tracing::{error, info, warn};
 
 use hafiz_core::types::{
-    ClusterConfig, ClusterMessage, ClusterNode, ClusterStats, NodeId, NodeStats, NodeStatus,
+    ClusterConfig, ClusterMessage, ClusterNode, ClusterNodeStatus, ClusterStats, NodeId, NodeStats,
     ReplicationEvent, ReplicationRule,
 };
 

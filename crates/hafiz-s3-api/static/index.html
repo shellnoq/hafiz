@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hafiz Admin Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gray: {
+                            750: '#2d3748',
+                            850: '#1a202c',
+                            900: '#171923',
+                            950: '#0d1117'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background: #0d1117; }
+        .sidebar { background: linear-gradient(180deg, #1a202c 0%, #171923 100%); }
+        .card { background: rgba(26, 32, 44, 0.8); backdrop-filter: blur(10px); }
+        .stat-card { background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%); }
+        .btn-primary { background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); }
+        .btn-primary:hover { background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%); }
+        .table-row:hover { background: rgba(59, 130, 246, 0.1); }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .loading { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    </style>
+</head>
+<body class="min-h-screen text-gray-100">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="sidebar w-64 flex-shrink-0 border-r border-gray-800">
+            <div class="p-6">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-white">Hafiz</h1>
+                        <p class="text-xs text-gray-500">Object Storage</p>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="mt-4 px-3">
+                <a href="#" onclick="showPage('dashboard')" id="nav-dashboard" class="nav-item flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-800 transition-colors mb-1">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                    </svg>
+                    Dashboard
+                </a>
+                <a href="#" onclick="showPage('buckets')" id="nav-buckets" class="nav-item flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-800 transition-colors mb-1">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+                    </svg>
+                    Buckets
+                </a>
+                <a href="#" onclick="showPage('objects')" id="nav-objects" class="nav-item flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-800 transition-colors mb-1">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Objects
+                </a>
+                <a href="#" onclick="showPage('users')" id="nav-users" class="nav-item flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-800 transition-colors mb-1">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                    Users
+                </a>
+                <a href="#" onclick="showPage('settings')" id="nav-settings" class="nav-item flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-800 transition-colors mb-1">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    Settings
+                </a>
+            </nav>
+            
+            <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center text-white text-sm font-medium">
+                        A
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-white truncate">Admin</p>
+                        <p class="text-xs text-gray-500 truncate" id="server-status">Connecting...</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-auto">
+            <!-- Dashboard Page -->
+            <div id="page-dashboard" class="page p-8">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-white">Dashboard</h2>
+                    <p class="text-gray-400 mt-1">Overview of your storage system</p>
+                </div>
+                
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="stat-card card rounded-xl p-6 border border-gray-800">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-400 text-sm">Total Buckets</p>
+                                <p class="text-3xl font-bold text-white mt-2" id="stat-buckets">-</p>
+                            </div>
+                            <div class="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card card rounded-xl p-6 border border-gray-800">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-400 text-sm">Total Objects</p>
+                                <p class="text-3xl font-bold text-white mt-2" id="stat-objects">-</p>
+                            </div>
+                            <div class="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                                <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card card rounded-xl p-6 border border-gray-800">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-400 text-sm">Storage Used</p>
+                                <p class="text-3xl font-bold text-white mt-2" id="stat-storage">-</p>
+                            </div>
+                            <div class="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center">
+                                <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card card rounded-xl p-6 border border-gray-800">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-400 text-sm">Active Users</p>
+                                <p class="text-3xl font-bold text-white mt-2" id="stat-users">-</p>
+                            </div>
+                            <div class="w-12 h-12 rounded-lg bg-orange-500/20 flex items-center justify-center">
+                                <svg class="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Server Info -->
+                <div class="card rounded-xl border border-gray-800 p-6">
+                    <h3 class="text-lg font-semibold text-white mb-4">Server Information</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                            <p class="text-gray-400 text-sm">Version</p>
+                            <p class="text-white font-medium" id="info-version">-</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-400 text-sm">Region</p>
+                            <p class="text-white font-medium" id="info-region">-</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-400 text-sm">Uptime</p>
+                            <p class="text-white font-medium" id="info-uptime">-</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-400 text-sm">Status</p>
+                            <p class="text-green-400 font-medium" id="info-status">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Buckets Page -->
+            <div id="page-buckets" class="page hidden p-8">
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">Buckets</h2>
+                        <p class="text-gray-400 mt-1">Manage your storage buckets</p>
+                    </div>
+                    <button onclick="showCreateBucketModal()" class="btn-primary px-4 py-2 rounded-lg text-white font-medium flex items-center space-x-2 transition-all hover:shadow-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        <span>Create Bucket</span>
+                    </button>
+                </div>
+
+                <div class="card rounded-xl border border-gray-800 overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-800/50">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Name</th>
+                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Region</th>
+                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Created</th>
+                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Versioning</th>
+                                <th class="px-6 py-4 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="buckets-table" class="divide-y divide-gray-800">
+                            <tr>
+                                <td colspan="5" class="px-6 py-8 text-center text-gray-400">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Objects Page -->
+            <div id="page-objects" class="page hidden p-8">
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">Objects</h2>
+                        <p class="text-gray-400 mt-1">Browse and manage objects</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <select id="bucket-select" onchange="loadObjects()" class="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Select a bucket...</option>
+                        </select>
+                        <button onclick="showUploadModal()" class="btn-primary px-4 py-2 rounded-lg text-white font-medium flex items-center space-x-2 transition-all hover:shadow-lg">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                            </svg>
+                            <span>Upload</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Breadcrumb -->
+                <div id="object-breadcrumb" class="flex items-center space-x-2 mb-4 text-sm">
+                    <span class="text-gray-400">Path:</span>
+                    <span class="text-white">/</span>
+                </div>
+
+                <div class="card rounded-xl border border-gray-800 overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-800/50">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Name</th>
+                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Size</th>
+                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Last Modified</th>
+                                <th class="px-6 py-4 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="objects-table" class="divide-y divide-gray-800">
+                            <tr>
+                                <td colspan="4" class="px-6 py-8 text-center text-gray-400">Select a bucket to view objects</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Users Page -->
+            <div id="page-users" class="page hidden p-8">
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">Users & Credentials</h2>
+                        <p class="text-gray-400 mt-1">Manage access credentials</p>
+                    </div>
+                    <button onclick="showCreateUserModal()" class="btn-primary px-4 py-2 rounded-lg text-white font-medium flex items-center space-x-2 transition-all hover:shadow-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        <span>Create Credentials</span>
+                    </button>
+                </div>
+
+                <div class="card rounded-xl border border-gray-800 overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-800/50">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Access Key</th>
+                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Description</th>
+                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Created</th>
+                                <th class="px-6 py-4 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table" class="divide-y divide-gray-800">
+                            <tr>
+                                <td colspan="5" class="px-6 py-8 text-center text-gray-400">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div id="page-settings" class="page hidden p-8">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-white">Settings</h2>
+                    <p class="text-gray-400 mt-1">Configure your Hafiz server</p>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="card rounded-xl border border-gray-800 p-6">
+                        <h3 class="text-lg font-semibold text-white mb-4">Server Configuration</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-2">S3 API Endpoint</label>
+                                <input type="text" id="config-endpoint" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" readonly>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-2">Admin API Endpoint</label>
+                                <input type="text" id="config-admin-endpoint" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card rounded-xl border border-gray-800 p-6">
+                        <h3 class="text-lg font-semibold text-white mb-4">API Test</h3>
+                        <p class="text-gray-400 text-sm mb-4">Test your S3 API connection using AWS CLI:</p>
+                        <pre class="bg-gray-900 rounded-lg p-4 text-sm text-gray-300 overflow-x-auto">aws s3 ls --endpoint-url <span id="cli-endpoint">http://localhost:9000</span></pre>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create Bucket Modal -->
+    <div id="modal-create-bucket" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
+        <div class="card rounded-xl border border-gray-700 w-full max-w-md mx-4 p-6">
+            <h3 class="text-xl font-bold text-white mb-4">Create Bucket</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Bucket Name</label>
+                    <input type="text" id="new-bucket-name" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="my-bucket">
+                    <p class="text-xs text-gray-500 mt-1">Lowercase letters, numbers, and hyphens only</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Region</label>
+                    <select id="new-bucket-region" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="us-east-1">us-east-1</option>
+                        <option value="eu-west-1">eu-west-1</option>
+                        <option value="ap-southeast-1">ap-southeast-1</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button onclick="hideModal('modal-create-bucket')" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">Cancel</button>
+                <button onclick="createBucket()" class="btn-primary px-4 py-2 rounded-lg text-white transition-all">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create User Modal -->
+    <div id="modal-create-user" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
+        <div class="card rounded-xl border border-gray-700 w-full max-w-md mx-4 p-6">
+            <h3 class="text-xl font-bold text-white mb-4">Create Credentials</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Description</label>
+                    <input type="text" id="new-user-desc" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Application name or purpose">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button onclick="hideModal('modal-create-user')" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">Cancel</button>
+                <button onclick="createCredentials()" class="btn-primary px-4 py-2 rounded-lg text-white transition-all">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Credentials Result Modal -->
+    <div id="modal-credentials" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
+        <div class="card rounded-xl border border-gray-700 w-full max-w-lg mx-4 p-6">
+            <h3 class="text-xl font-bold text-white mb-4">Credentials Created</h3>
+            <div class="bg-yellow-900/30 border border-yellow-700 rounded-lg p-4 mb-4">
+                <p class="text-yellow-300 text-sm">⚠️ Save these credentials now. The secret key won't be shown again!</p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Access Key</label>
+                    <input type="text" id="cred-access-key" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white font-mono" readonly>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Secret Key</label>
+                    <input type="text" id="cred-secret-key" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white font-mono" readonly>
+                </div>
+            </div>
+            <div class="flex justify-end mt-6">
+                <button onclick="hideModal('modal-credentials')" class="btn-primary px-4 py-2 rounded-lg text-white transition-all">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div id="modal-upload" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
+        <div class="card rounded-xl border border-gray-700 w-full max-w-md mx-4 p-6">
+            <h3 class="text-xl font-bold text-white mb-4">Upload Object</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">File</label>
+                    <input type="file" id="upload-file" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Key (optional)</label>
+                    <input type="text" id="upload-key" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="path/to/file.txt">
+                    <p class="text-xs text-gray-500 mt-1">Leave empty to use filename</p>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button onclick="hideModal('modal-upload')" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">Cancel</button>
+                <button onclick="uploadObject()" class="btn-primary px-4 py-2 rounded-lg text-white transition-all">Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 shadow-lg transform translate-y-20 opacity-0 transition-all duration-300">
+        <p id="toast-message" class="text-white"></p>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE = window.location.origin;
+        
+        // Both S3 and Admin APIs run on the same port
+        const host = window.location.hostname;
+        const port = window.location.port || '9000';
+        const S3_ENDPOINT = `http://${host}:${port}`;
+        const ADMIN_ENDPOINT = `http://${host}:${port}`;
+
+        // State
+        let currentPage = 'dashboard';
+        let currentBucket = '';
+        let currentPrefix = '';
+        let buckets = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            showPage('dashboard');
+            loadDashboard();
+            checkServerStatus();
+            
+            // Update config display
+            document.getElementById('config-endpoint').value = S3_ENDPOINT;
+            document.getElementById('config-admin-endpoint').value = ADMIN_ENDPOINT;
+            document.getElementById('cli-endpoint').textContent = S3_ENDPOINT;
+        });
+
+        // Navigation
+        function showPage(page) {
+            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('bg-gray-800', 'text-blue-400'));
+            
+            document.getElementById(`page-${page}`).classList.remove('hidden');
+            document.getElementById(`nav-${page}`).classList.add('bg-gray-800', 'text-blue-400');
+            
+            currentPage = page;
+            
+            // Load data for the page
+            switch(page) {
+                case 'dashboard': loadDashboard(); break;
+                case 'buckets': loadBuckets(); break;
+                case 'objects': loadBucketList(); break;
+                case 'users': loadUsers(); break;
+            }
+        }
+
+        // API Calls
+        async function apiCall(endpoint, options = {}) {
+            try {
+                const response = await fetch(endpoint, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    }
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const text = await response.text();
+                return text ? JSON.parse(text) : null;
+            } catch (error) {
+                console.error('API Error:', error);
+                throw error;
+            }
+        }
+
+        // Check server status
+        async function checkServerStatus() {
+            try {
+                const response = await fetch(`${ADMIN_ENDPOINT}/api/v1/server/health`);
+                if (response.ok) {
+                    document.getElementById('server-status').textContent = 'Connected';
+                    document.getElementById('server-status').classList.add('text-green-400');
+                    document.getElementById('info-status').textContent = 'Healthy';
+                } else {
+                    throw new Error('Not healthy');
+                }
+            } catch (error) {
+                document.getElementById('server-status').textContent = 'Disconnected';
+                document.getElementById('server-status').classList.add('text-red-400');
+                document.getElementById('info-status').textContent = 'Offline';
+                document.getElementById('info-status').classList.remove('text-green-400');
+                document.getElementById('info-status').classList.add('text-red-400');
+            }
+        }
+
+        // Dashboard
+        async function loadDashboard() {
+            try {
+                // Try to get stats from admin API
+                const stats = await apiCall(`${ADMIN_ENDPOINT}/api/v1/stats`);
+                document.getElementById('stat-buckets').textContent = stats.bucket_count || 0;
+                document.getElementById('stat-objects').textContent = stats.object_count || 0;
+                document.getElementById('stat-storage').textContent = formatBytes(stats.total_size || 0);
+                document.getElementById('stat-users').textContent = stats.user_count || 1;
+                
+                document.getElementById('info-version').textContent = stats.version || '1.0.0';
+                document.getElementById('info-region').textContent = stats.region || 'us-east-1';
+                document.getElementById('info-uptime').textContent = stats.uptime || '-';
+            } catch (error) {
+                // Fallback - try to list buckets
+                try {
+                    const response = await fetch(`${S3_ENDPOINT}/`);
+                    if (response.ok) {
+                        document.getElementById('stat-buckets').textContent = '~';
+                        document.getElementById('info-version').textContent = '1.0.0';
+                        document.getElementById('info-region').textContent = 'us-east-1';
+                    }
+                } catch (e) {
+                    document.getElementById('stat-buckets').textContent = '-';
+                }
+                document.getElementById('stat-objects').textContent = '-';
+                document.getElementById('stat-storage').textContent = '-';
+                document.getElementById('stat-users').textContent = '-';
+            }
+        }
+
+        // Buckets
+        async function loadBuckets() {
+            const tbody = document.getElementById('buckets-table');
+            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">Loading...</td></tr>';
+            
+            try {
+                const response = await fetch(`${S3_ENDPOINT}/`, {
+                    headers: { 'Accept': 'application/xml' }
+                });
+                const text = await response.text();
+                
+                // Parse XML response
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(text, 'text/xml');
+                const bucketElements = xml.querySelectorAll('Bucket');
+                
+                buckets = [];
+                bucketElements.forEach(b => {
+                    buckets.push({
+                        name: b.querySelector('Name')?.textContent || '',
+                        creationDate: b.querySelector('CreationDate')?.textContent || ''
+                    });
+                });
+
+                if (buckets.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">No buckets found. Create your first bucket!</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = buckets.map(bucket => `
+                    <tr class="table-row transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+                                    </svg>
+                                </div>
+                                <span class="text-white font-medium">${bucket.name}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-gray-400">us-east-1</td>
+                        <td class="px-6 py-4 text-gray-400">${formatDate(bucket.creationDate)}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 text-xs rounded-full bg-gray-700 text-gray-300">Disabled</span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <button onclick="browseBucket('${bucket.name}')" class="text-blue-400 hover:text-blue-300 mr-3">Browse</button>
+                            <button onclick="deleteBucket('${bucket.name}')" class="text-red-400 hover:text-red-300">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-red-400">Error loading buckets: ${error.message}</td></tr>`;
+            }
+        }
+
+        function showCreateBucketModal() {
+            document.getElementById('modal-create-bucket').classList.remove('hidden');
+            document.getElementById('modal-create-bucket').classList.add('flex');
+            document.getElementById('new-bucket-name').value = '';
+            document.getElementById('new-bucket-name').focus();
+        }
+
+        async function createBucket() {
+            const name = document.getElementById('new-bucket-name').value.trim();
+            const region = document.getElementById('new-bucket-region').value;
+            
+            if (!name) {
+                showToast('Please enter a bucket name');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${S3_ENDPOINT}/${name}`, {
+                    method: 'PUT',
+                    headers: {
+                        'x-amz-bucket-region': region
+                    }
+                });
+                
+                if (response.ok) {
+                    showToast('Bucket created successfully');
+                    hideModal('modal-create-bucket');
+                    loadBuckets();
+                } else {
+                    const text = await response.text();
+                    showToast(`Error: ${text}`);
+                }
+            } catch (error) {
+                showToast(`Error: ${error.message}`);
+            }
+        }
+
+        async function deleteBucket(name) {
+            if (!confirm(`Are you sure you want to delete bucket "${name}"?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${S3_ENDPOINT}/${name}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok || response.status === 204) {
+                    showToast('Bucket deleted');
+                    loadBuckets();
+                } else {
+                    showToast('Error deleting bucket');
+                }
+            } catch (error) {
+                showToast(`Error: ${error.message}`);
+            }
+        }
+
+        function browseBucket(name) {
+            showPage('objects');
+            document.getElementById('bucket-select').value = name;
+            currentBucket = name;
+            currentPrefix = '';
+            loadObjects();
+        }
+
+        // Objects
+        async function loadBucketList() {
+            const select = document.getElementById('bucket-select');
+            const currentValue = select.value;
+            
+            try {
+                const response = await fetch(`${S3_ENDPOINT}/`);
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(text, 'text/xml');
+                const bucketElements = xml.querySelectorAll('Bucket');
+                
+                select.innerHTML = '<option value="">Select a bucket...</option>';
+                bucketElements.forEach(b => {
+                    const name = b.querySelector('Name')?.textContent || '';
+                    select.innerHTML += `<option value="${name}">${name}</option>`;
+                });
+                
+                if (currentValue) {
+                    select.value = currentValue;
+                }
+            } catch (error) {
+                console.error('Error loading buckets:', error);
+            }
+        }
+
+        async function loadObjects() {
+            const bucket = document.getElementById('bucket-select').value;
+            const tbody = document.getElementById('objects-table');
+            
+            if (!bucket) {
+                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-gray-400">Select a bucket to view objects</td></tr>';
+                return;
+            }
+            
+            currentBucket = bucket;
+            tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-gray-400">Loading...</td></tr>';
+            
+            try {
+                let url = `${S3_ENDPOINT}/${bucket}?list-type=2`;
+                if (currentPrefix) {
+                    url += `&prefix=${encodeURIComponent(currentPrefix)}`;
+                }
+                url += '&delimiter=/';
+                
+                const response = await fetch(url);
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(text, 'text/xml');
+                
+                const contents = xml.querySelectorAll('Contents');
+                const prefixes = xml.querySelectorAll('CommonPrefixes');
+                
+                // Update breadcrumb
+                updateBreadcrumb();
+                
+                let rows = '';
+                
+                // Add parent folder if we're in a subfolder
+                if (currentPrefix) {
+                    rows += `
+                        <tr class="table-row transition-colors cursor-pointer" onclick="navigateUp()">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 rounded-lg bg-gray-700 flex items-center justify-center">
+                                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12"/>
+                                        </svg>
+                                    </div>
+                                    <span class="text-gray-300">..</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-gray-400">-</td>
+                            <td class="px-6 py-4 text-gray-400">-</td>
+                            <td class="px-6 py-4"></td>
+                        </tr>
+                    `;
+                }
+                
+                // Add folders (common prefixes)
+                prefixes.forEach(p => {
+                    const prefix = p.querySelector('Prefix')?.textContent || '';
+                    const name = prefix.replace(currentPrefix, '').replace(/\/$/, '');
+                    rows += `
+                        <tr class="table-row transition-colors cursor-pointer" onclick="navigateToFolder('${prefix}')">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center">
+                                        <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+                                        </svg>
+                                    </div>
+                                    <span class="text-white">${name}/</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-gray-400">-</td>
+                            <td class="px-6 py-4 text-gray-400">-</td>
+                            <td class="px-6 py-4"></td>
+                        </tr>
+                    `;
+                });
+                
+                // Add files
+                contents.forEach(c => {
+                    const key = c.querySelector('Key')?.textContent || '';
+                    const size = c.querySelector('Size')?.textContent || '0';
+                    const lastModified = c.querySelector('LastModified')?.textContent || '';
+                    const name = key.replace(currentPrefix, '');
+                    
+                    if (name && !name.endsWith('/')) {
+                        rows += `
+                            <tr class="table-row transition-colors">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                        </div>
+                                        <span class="text-white">${name}</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-gray-400">${formatBytes(parseInt(size))}</td>
+                                <td class="px-6 py-4 text-gray-400">${formatDate(lastModified)}</td>
+                                <td class="px-6 py-4 text-right">
+                                    <button onclick="downloadObject('${key}')" class="text-blue-400 hover:text-blue-300 mr-3">Download</button>
+                                    <button onclick="deleteObject('${key}')" class="text-red-400 hover:text-red-300">Delete</button>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                });
+                
+                if (!rows) {
+                    rows = '<tr><td colspan="4" class="px-6 py-8 text-center text-gray-400">No objects in this location</td></tr>';
+                }
+                
+                tbody.innerHTML = rows;
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-red-400">Error: ${error.message}</td></tr>`;
+            }
+        }
+
+        function updateBreadcrumb() {
+            const breadcrumb = document.getElementById('object-breadcrumb');
+            let html = '<span class="text-gray-400">Path:</span> ';
+            html += `<a href="#" onclick="navigateToFolder('')" class="text-blue-400 hover:text-blue-300">/</a>`;
+            
+            if (currentPrefix) {
+                const parts = currentPrefix.split('/').filter(p => p);
+                let path = '';
+                parts.forEach((part, i) => {
+                    path += part + '/';
+                    html += ` <span class="text-gray-600">/</span> `;
+                    html += `<a href="#" onclick="navigateToFolder('${path}')" class="text-blue-400 hover:text-blue-300">${part}</a>`;
+                });
+            }
+            
+            breadcrumb.innerHTML = html;
+        }
+
+        function navigateToFolder(prefix) {
+            currentPrefix = prefix;
+            loadObjects();
+        }
+
+        function navigateUp() {
+            const parts = currentPrefix.split('/').filter(p => p);
+            parts.pop();
+            currentPrefix = parts.length ? parts.join('/') + '/' : '';
+            loadObjects();
+        }
+
+        function showUploadModal() {
+            if (!currentBucket) {
+                showToast('Please select a bucket first');
+                return;
+            }
+            document.getElementById('modal-upload').classList.remove('hidden');
+            document.getElementById('modal-upload').classList.add('flex');
+            document.getElementById('upload-file').value = '';
+            document.getElementById('upload-key').value = '';
+        }
+
+        async function uploadObject() {
+            const fileInput = document.getElementById('upload-file');
+            const keyInput = document.getElementById('upload-key');
+            
+            if (!fileInput.files[0]) {
+                showToast('Please select a file');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            let key = keyInput.value.trim() || file.name;
+            if (currentPrefix) {
+                key = currentPrefix + key;
+            }
+            
+            try {
+                const response = await fetch(`${S3_ENDPOINT}/${currentBucket}/${key}`, {
+                    method: 'PUT',
+                    body: file,
+                    headers: {
+                        'Content-Type': file.type || 'application/octet-stream'
+                    }
+                });
+                
+                if (response.ok) {
+                    showToast('File uploaded successfully');
+                    hideModal('modal-upload');
+                    loadObjects();
+                } else {
+                    showToast('Error uploading file');
+                }
+            } catch (error) {
+                showToast(`Error: ${error.message}`);
+            }
+        }
+
+        function downloadObject(key) {
+            window.open(`${S3_ENDPOINT}/${currentBucket}/${key}`, '_blank');
+        }
+
+        async function deleteObject(key) {
+            if (!confirm(`Are you sure you want to delete "${key}"?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${S3_ENDPOINT}/${currentBucket}/${key}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok || response.status === 204) {
+                    showToast('Object deleted');
+                    loadObjects();
+                } else {
+                    showToast('Error deleting object');
+                }
+            } catch (error) {
+                showToast(`Error: ${error.message}`);
+            }
+        }
+
+        // Users
+        async function loadUsers() {
+            const tbody = document.getElementById('users-table');
+            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">Loading...</td></tr>';
+            
+            try {
+                const data = await apiCall(`${ADMIN_ENDPOINT}/api/v1/users`);
+                const credentials = data.users || [];
+                
+                if (credentials.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">No credentials found</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = credentials.map(cred => `
+                    <tr class="table-row transition-colors">
+                        <td class="px-6 py-4">
+                            <span class="font-mono text-white">${cred.access_key}</span>
+                        </td>
+                        <td class="px-6 py-4 text-gray-400">${cred.display_name || cred.description || '-'}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 text-xs rounded-full ${cred.enabled !== false ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}">
+                                ${cred.enabled !== false ? 'Active' : 'Disabled'}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-gray-400">${formatDate(cred.created_at)}</td>
+                        <td class="px-6 py-4 text-right">
+                            <button onclick="deleteCredentials('${cred.access_key}')" class="text-red-400 hover:text-red-300">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">
+                    <p>Could not load credentials from admin API</p>
+                    <p class="text-sm mt-2">Admin API might not be available</p>
+                </td></tr>`;
+            }
+        }
+
+        function showCreateUserModal() {
+            document.getElementById('modal-create-user').classList.remove('hidden');
+            document.getElementById('modal-create-user').classList.add('flex');
+            document.getElementById('new-user-desc').value = '';
+        }
+
+        async function createCredentials() {
+            const description = document.getElementById('new-user-desc').value.trim();
+            
+            try {
+                const data = await apiCall(`${ADMIN_ENDPOINT}/api/v1/users`, {
+                    method: 'POST',
+                    body: JSON.stringify({ display_name: description })
+                });
+                
+                hideModal('modal-create-user');
+                
+                // Show credentials
+                document.getElementById('cred-access-key').value = data.access_key;
+                document.getElementById('cred-secret-key').value = data.secret_key;
+                document.getElementById('modal-credentials').classList.remove('hidden');
+                document.getElementById('modal-credentials').classList.add('flex');
+                
+                loadUsers();
+            } catch (error) {
+                showToast(`Error: ${error.message}`);
+            }
+        }
+
+        async function deleteCredentials(accessKey) {
+            if (!confirm(`Are you sure you want to delete credentials "${accessKey}"?`)) {
+                return;
+            }
+            
+            try {
+                await apiCall(`${ADMIN_ENDPOINT}/api/v1/users/${accessKey}`, {
+                    method: 'DELETE'
+                });
+                showToast('Credentials deleted');
+                loadUsers();
+            } catch (error) {
+                showToast(`Error: ${error.message}`);
+            }
+        }
+
+        // Utility functions
+        function hideModal(id) {
+            document.getElementById(id).classList.add('hidden');
+            document.getElementById(id).classList.remove('flex');
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').textContent = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.fixed').forEach(modal => {
+                    if (!modal.id.startsWith('toast')) {
+                        modal.classList.add('hidden');
+                        modal.classList.remove('flex');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

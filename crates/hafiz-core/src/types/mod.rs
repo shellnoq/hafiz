@@ -27,10 +27,10 @@ pub use policy::*;
 pub use presigned::*;
 pub use storage::*;
 
-// Re-export from replication (except NodeStatus which conflicts with storage)
+// Re-export from replication
 pub use replication::{
-    ClusterConfig, ClusterMessage, ClusterNode, ClusterStats,
-    ConflictResolution, ConsistencyLevel, NodeRole, NodeStats,
+    ClusterConfig, ClusterMessage, ClusterNode, ClusterNodeStatus, ClusterStats,
+    ConflictResolution, ConsistencyLevel, NodeId, NodeRole, NodeStats,
     ReplicationEvent, ReplicationEventType, ReplicationMode,
     ReplicationProgress, ReplicationRule, ReplicationStatus,
 };

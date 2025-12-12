@@ -55,7 +55,7 @@ pub enum ConflictResolution {
 /// Node status in the cluster
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
-pub enum NodeStatus {
+pub enum ClusterNodeStatus {
     /// Node is starting up
     #[default]
     Starting,
@@ -98,7 +98,7 @@ pub struct ClusterNode {
     /// Node role
     pub role: NodeRole,
     /// Current status
-    pub status: NodeStatus,
+    pub status: ClusterNodeStatus,
     /// Node region/zone for locality-aware routing
     pub region: Option<String>,
     /// Node zone within region
@@ -124,7 +124,7 @@ impl ClusterNode {
             endpoint,
             cluster_endpoint,
             role: NodeRole::Primary,
-            status: NodeStatus::Starting,
+            status: ClusterNodeStatus::Starting,
             region: None,
             zone: None,
             weight: 100,
@@ -136,7 +136,7 @@ impl ClusterNode {
     }
 
     pub fn is_healthy(&self) -> bool {
-        matches!(self.status, NodeStatus::Healthy | NodeStatus::Degraded)
+        matches!(self.status, ClusterNodeStatus::Healthy | ClusterNodeStatus::Degraded)
     }
 
     pub fn can_accept_writes(&self) -> bool {
@@ -546,7 +546,7 @@ mod tests {
 
         assert!(!node.is_healthy()); // Starting
 
-        node.status = NodeStatus::Healthy;
+        node.status = ClusterNodeStatus::Healthy;
         assert!(node.is_healthy());
         assert!(node.can_accept_writes());
         assert!(node.can_accept_reads());

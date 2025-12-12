@@ -627,10 +627,10 @@ pub fn LdapSettingsPage() -> impl IntoView {
                             {move || ldap_status.get().map(|result| match result {
                                 Ok(status) => view! {
                                     <div class="space-y-3">
-                                        <StatusRow label="Enabled" value=if status.enabled { "Yes" } else { "No" } ok=status.enabled />
-                                        <StatusRow label="Connected" value=if status.connected { "Yes" } else { "No" } ok=status.connected />
-                                        <StatusRow label="Server" value=&status.server_url ok=true />
-                                        <StatusRow label="Cached Users" value=&status.cached_users.to_string() ok=true />
+                                        <StatusRow label="Enabled" value=if status.enabled { "Yes".to_string() } else { "No".to_string() } ok=status.enabled />
+                                        <StatusRow label="Connected" value=if status.connected { "Yes".to_string() } else { "No".to_string() } ok=status.connected />
+                                        <StatusRow label="Server" value=status.server_url.clone() ok=true />
+                                        <StatusRow label="Cached Users" value=status.cached_users.to_string() ok=true />
                                         {status.error.map(|e| view! {
                                             <div class="p-2 bg-red-900/30 rounded text-red-300 text-sm">
                                                 {e}
